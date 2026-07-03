@@ -17,7 +17,9 @@
   "toast": {
     "created": "Recipe created",
     "updated": "Recipe updated",
-    "deleted": "Recipe deleted"
+    "deleted": "Recipe deleted",
+    "addedToKitchen": "Added {{name}} to kitchen",
+    "addedAllToKitchen": "Added missing ingredients to kitchen"
   },
   "form": {
     "editTitle": "Edit recipe",
@@ -54,7 +56,9 @@
     "haveEverything": "You have everything you need ✓",
     "missing_one": "Missing {{missing}} of {{count}} ingredient",
     "missing_other": "Missing {{missing}} of {{count}} ingredients",
-    "shoppingList": "Shopping list: {{list}}",
+    "shoppingList": "Shopping list:",
+    "addToKitchen": "Add to kitchen",
+    "addAllToKitchen": "Add all to kitchen",
     "checkManually": "Check manually (units differ): {{list}}",
     "noIngredients": "No ingredients listed.",
     "instructions": "Instructions",

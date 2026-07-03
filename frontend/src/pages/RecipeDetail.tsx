@@ -30,7 +30,7 @@ import HelpOutlinedIcon from '@mui/icons-material/HelpOutlined'
 import ConfirmDialog from '../components/ConfirmDialog'
 import RecipeFormDialog from '../components/RecipeFormDialog'
 import { useNotify } from '../components/SnackbarProvider'
-import { useDeleteRecipe, useRecipe, useStock } from '../api/hooks'
+import { useCreateStock, useDeleteRecipe, useRecipe, useStock, useUpdateStock } from '../api/hooks'
 import { errorMessage } from '../api/client'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
@@ -146,8 +146,9 @@ export default function RecipeDetail() {
     const missing = availabilities.filter((a) => a.status === 'none' || a.status === 'partial')
     const unknown = availabilities.filter((a) => a.status === 'unknown')
     const toBuy = missing.map((a) => ({
+      ingredientId: a.ri.ingredient.id,
       name: a.ri.ingredient.name,
-      quantity: a.shortfall,
+      shortfall: a.shortfall,
       unit: a.ri.unit,
     }))
     return {
@@ -160,6 +161,55 @@ export default function RecipeDetail() {
   }, [availabilities])
 
   const stockReady = !stockLoading && !stockError
+
+  const createStock = useCreateStock()
+  const updateStock = useUpdateStock()
+  const stockBusy = createStock.isPending || updateStock.isPending
+
+  // Add a bought ingredient to the kitchen so it counts as on-hand. When a stock
+  // row already exists we top it up by the shortfall; otherwise we create one in
+  // the recipe's unit.
+  type ToBuy = (typeof summary.toBuy)[number]
+  const addOne = async (item: ToBuy) => {
+    const existing = stockById.get(item.ingredientId)
+    if (existing && existing.quantity > 0) {
+      await updateStock.mutateAsync({
+        id: existing.id,
+        payload: { quantity: existing.quantity + item.shortfall, unit: existing.unit },
+      })
+    } else if (existing) {
+      await updateStock.mutateAsync({
+        id: existing.id,
+        payload: { quantity: item.shortfall, unit: item.unit },
+      })
+    } else {
+      await createStock.mutateAsync({
+        ingredientId: item.ingredientId,
+        quantity: item.shortfall,
+        unit: item.unit,
+      })
+    }
+  }
+
+  const handleAddToKitchen = async (item: ToBuy) => {
+    try {
+      await addOne(item)
+      notify(t('toast.addedToKitchen', { name: item.name }), 'success')
+    } catch (err) {
+      notify(errorMessage(err, t('errors:saveStock')), 'error')
+    }
+  }
+
+  const handleAddAllToKitchen = async () => {
+    try {
+      for (const item of summary.toBuy) {
+        await addOne(item)
+      }
+      notify(t('toast.addedAllToKitchen'), 'success')
+    } catch (err) {
+      notify(errorMessage(err, t('errors:saveStock')), 'error')
+    }
+  }
 
   const handleDelete = async () => {
     try {
@@ -338,13 +388,48 @@ export default function RecipeDetail() {
                             count: summary.total,
                           })}
                         </Typography>
-                        <Typography variant="body2">
-                          {t('detail.shoppingList', {
-                            list: summary.toBuy
-                              .map((b) => `${b.name} — ${formatQuantity(b.quantity)} ${b.unit}`.trim())
-                              .join(', '),
-                          })}
+                        <Typography variant="body2" sx={{ mt: 0.5 }}>
+                          {t('detail.shoppingList')}
                         </Typography>
+                        <Stack spacing={0.25} sx={{ mt: 0.5 }}>
+                          {summary.toBuy.map((b) => (
+                            <Stack
+                              key={b.ingredientId}
+                              direction="row"
+                              spacing={1}
+                              sx={{ alignItems: 'center', justifyContent: 'space-between' }}
+                            >
+                              <Typography variant="body2">
+                                {`${b.name} — ${formatQuantity(b.shortfall)} ${b.unit}`.trim()}
+                              </Typography>
+                              <Tooltip title={t('detail.addToKitchen')}>
+                                <span>
+                                  <IconButton
+                                    size="small"
+                                    color="inherit"
+                                    disabled={stockBusy}
+                                    aria-label={t('detail.addToKitchen')}
+                                    onClick={() => handleAddToKitchen(b)}
+                                  >
+                                    <AddIcon fontSize="small" />
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                            </Stack>
+                          ))}
+                        </Stack>
+                        {summary.toBuy.length > 1 && (
+                          <Button
+                            size="small"
+                            color="inherit"
+                            startIcon={<AddIcon />}
+                            disabled={stockBusy}
+                            onClick={handleAddAllToKitchen}
+                            sx={{ mt: 0.5 }}
+                          >
+                            {t('detail.addAllToKitchen')}
+                          </Button>
+                        )}
                       </Alert>
                     )}
                     {summary.unknown.length > 0 && (

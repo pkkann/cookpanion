@@ -17,7 +17,9 @@
   "toast": {
     "created": "Opskrift oprettet",
     "updated": "Opskrift opdateret",
-    "deleted": "Opskrift slettet"
+    "deleted": "Opskrift slettet",
+    "addedToKitchen": "Tilføjede {{name}} til køkkenet",
+    "addedAllToKitchen": "Tilføjede manglende ingredienser til køkkenet"
   },
   "form": {
     "editTitle": "Rediger opskrift",
@@ -54,7 +56,9 @@
     "haveEverything": "Du har alt, hvad du skal bruge ✓",
     "missing_one": "Mangler {{missing}} af {{count}} ingrediens",
     "missing_other": "Mangler {{missing}} af {{count}} ingredienser",
-    "shoppingList": "Indkøbsliste: {{list}}",
+    "shoppingList": "Indkøbsliste:",
+    "addToKitchen": "Tilføj til køkken",
+    "addAllToKitchen": "Tilføj alle til køkken",
     "checkManually": "Tjek manuelt (enheder er forskellige): {{list}}",
     "noIngredients": "Ingen ingredienser angivet.",
     "instructions": "Fremgangsmåde",
