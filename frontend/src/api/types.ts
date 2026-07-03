@@ -106,6 +106,14 @@ export interface CookItem {
   quantity: number
 }
 
+export interface RecipeTranslation {
+  title: string
+  description: string
+  instructions: string[]
+  /** ingredientId (as string) → translated name. */
+  ingredientNames: Record<string, string>
+}
+
 export interface CookPayload {
   items: CookItem[]
 }

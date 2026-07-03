@@ -9,6 +9,7 @@ use App\Repository\IngredientRepository;
 use App\Repository\RecipeRepository;
 use App\Repository\StockItemRepository;
 use App\Service\EntityPresenter;
+use App\Service\RecipeTranslator;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -24,6 +25,7 @@ class RecipeController extends AbstractApiController
         private readonly IngredientRepository $ingredients,
         private readonly StockItemRepository $stock,
         private readonly EntityPresenter $presenter,
+        private readonly RecipeTranslator $translator,
     ) {
     }
 
@@ -99,9 +101,73 @@ class RecipeController extends AbstractApiController
             return $applied;
         }
 
+        // Content changed → drop any cached translations so they get regenerated.
+        $recipe->setTranslations(null);
+
         $this->em->flush();
 
         return $this->json($this->presenter->recipe($recipe));
+    }
+
+    /**
+     * Translates the recipe's human-readable content into the given locale (or the
+     * current user's) and caches it on the recipe, keyed by locale. Returns the
+     * cached translation when present. Display-only: ingredient identity is unchanged.
+     */
+    #[Route('/{id}/translate', name: 'api_recipes_translate', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function translate(int $id, Request $request): JsonResponse
+    {
+        $recipe = $this->find($id);
+        if ($recipe instanceof JsonResponse) {
+            return $recipe;
+        }
+
+        if (!$this->translator->isConfigured()) {
+            return $this->json(['error' => 'AI is not configured. Add ANTHROPIC_API_KEY.'], Response::HTTP_SERVICE_UNAVAILABLE);
+        }
+
+        $data = $this->decode($request);
+        if ($data instanceof JsonResponse) {
+            return $data;
+        }
+
+        /** @var User $user */
+        $user = $this->getUser();
+        $locale = (string) ($data['locale'] ?? $user->getLocale());
+        if (!\in_array($locale, ['en', 'da'], true)) {
+            $locale = 'en';
+        }
+
+        // Serve a cached translation if we already have one for this locale.
+        $translations = $recipe->getTranslations() ?? [];
+        if (isset($translations[$locale])) {
+            return $this->json($translations[$locale]);
+        }
+
+        $ingredients = [];
+        foreach ($recipe->getRecipeIngredients() as $recipeIngredient) {
+            $ingredient = $recipeIngredient->getIngredient();
+            $ingredients[] = ['id' => $ingredient->getId(), 'name' => $ingredient->getName()];
+        }
+
+        $language = ['en' => 'English', 'da' => 'Danish'][$locale];
+        $result = $this->translator->translate(
+            $recipe->getTitle(),
+            $recipe->getDescription(),
+            $recipe->getInstructionSteps(),
+            $ingredients,
+            $language,
+        );
+
+        if (null === $result) {
+            return $this->json(['error' => 'AI translation failed. Please try again later.'], Response::HTTP_BAD_GATEWAY);
+        }
+
+        $translations[$locale] = $result;
+        $recipe->setTranslations($translations);
+        $this->em->flush();
+
+        return $this->json($result);
     }
 
     /**

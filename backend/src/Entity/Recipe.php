@@ -27,6 +27,16 @@ class Recipe
     #[ORM\Column]
     private int $servings = 1;
 
+    /**
+     * Cached AI translations of the recipe's human-readable content, keyed by
+     * locale: `{ "da": { title, description, instructions[], ingredientNames{id:name} } }`.
+     * Cleared whenever the recipe is edited.
+     *
+     * @var array<string, array<string, mixed>>|null
+     */
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $translations = null;
+
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(nullable: false)]
     private ?User $author = null;
@@ -155,6 +165,24 @@ class Recipe
     private static function stripMarker(string $line): string
     {
         return trim(preg_replace('/^\s*\d+[.)]\s+/', '', $line) ?? $line);
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>|null
+     */
+    public function getTranslations(): ?array
+    {
+        return $this->translations;
+    }
+
+    /**
+     * @param array<string, array<string, mixed>>|null $translations
+     */
+    public function setTranslations(?array $translations): static
+    {
+        $this->translations = $translations;
+
+        return $this;
     }
 
     public function getServings(): int

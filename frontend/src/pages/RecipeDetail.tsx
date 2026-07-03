@@ -16,6 +16,9 @@ import ListItemText from '@mui/material/ListItemText'
 import IconButton from '@mui/material/IconButton'
 import TextField from '@mui/material/TextField'
 import Tooltip from '@mui/material/Tooltip'
+import ToggleButton from '@mui/material/ToggleButton'
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
+import CircularProgress from '@mui/material/CircularProgress'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/DeleteOutlined'
@@ -24,6 +27,7 @@ import RemoveIcon from '@mui/icons-material/Remove'
 import RestartAltIcon from '@mui/icons-material/RestartAlt'
 import PeopleIcon from '@mui/icons-material/People'
 import RestaurantIcon from '@mui/icons-material/Restaurant'
+import TranslateIcon from '@mui/icons-material/Translate'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import CancelIcon from '@mui/icons-material/Cancel'
@@ -33,14 +37,22 @@ import RecipeFormDialog from '../components/RecipeFormDialog'
 import CookDialog from '../components/CookDialog'
 import type { CookRow } from '../components/CookDialog'
 import { useNotify } from '../components/SnackbarProvider'
-import { useCreateStock, useDeleteRecipe, useRecipe, useStock, useUpdateStock } from '../api/hooks'
+import {
+  useCreateStock,
+  useDeleteRecipe,
+  useRecipe,
+  useStock,
+  useTranslateRecipe,
+  useUpdateStock,
+} from '../api/hooks'
 import { errorMessage } from '../api/client'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { formatQuantity, scaleQuantity } from '../utils/quantity'
 import { computeAvailability } from '../utils/availability'
 import type { Availability } from '../utils/availability'
-import type { RecipeIngredient, StockItem } from '../api/types'
+import type { RecipeIngredient, RecipeTranslation, StockItem } from '../api/types'
+import { LANGUAGE_LABELS, type Language } from '../i18n/config'
 
 interface IngredientAvailability extends Availability {
   ri: RecipeIngredient
@@ -95,7 +107,7 @@ function statusView(
 }
 
 export default function RecipeDetail() {
-  const { t } = useTranslation(['recipes', 'common', 'errors'])
+  const { t, i18n } = useTranslation(['recipes', 'common', 'errors'])
   const { id } = useParams<{ id: string }>()
   const recipeId = Number(id)
   const navigate = useNavigate()
@@ -108,6 +120,49 @@ export default function RecipeDetail() {
   const [editOpen, setEditOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [cookOpen, setCookOpen] = useState(false)
+
+  // "Show a translation" of the recipe in the current UI language. Loaded
+  // translations are cached per locale here (and persisted server-side), and the
+  // "translated" view is kept across UI-language changes.
+  const locale: Language = i18n.language.startsWith('da') ? 'da' : 'en'
+  const translateMut = useTranslateRecipe()
+  const [loaded, setLoaded] = useState<Record<string, RecipeTranslation>>({})
+  const [showTranslated, setShowTranslated] = useState(false)
+
+  // Forget cached translations when the recipe changes — a different recipe, or
+  // an edit (React Query hands back a new reference only when the data changes).
+  useEffect(() => {
+    setLoaded({})
+    setShowTranslated(false)
+  }, [recipe])
+
+  const current = loaded[locale] ?? null
+
+  const handleTranslate = async () => {
+    if (!recipe) return
+    try {
+      const res = current ?? (await translateMut.mutateAsync({ id: recipe.id, locale }))
+      setLoaded((prev) => ({ ...prev, [locale]: res }))
+      setShowTranslated(true)
+    } catch (err) {
+      notify(errorMessage(err, t('detail.translateFailed')), 'error')
+    }
+  }
+
+  // Keep the translated view when the UI language changes: fetch the new locale if
+  // we don't have it yet (instant when the server already cached it).
+  useEffect(() => {
+    if (!showTranslated || !recipe || loaded[locale]) return
+    translateMut
+      .mutateAsync({ id: recipe.id, locale })
+      .then((res) => setLoaded((prev) => ({ ...prev, [locale]: res })))
+      .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locale, showTranslated, recipe?.id])
+
+  const tr = showTranslated ? current : null
+  const ingredientName = (ri: RecipeIngredient) =>
+    tr?.ingredientNames?.[String(ri.ingredient.id)] ?? ri.ingredient.name
 
   // Live, view-only servings scaling. Defaults to the recipe's stored servings.
   const baseServings = recipe?.servings ?? 0
@@ -269,9 +324,9 @@ export default function RecipeDetail() {
           >
             <Box>
               <Typography variant="h4" component="h1">
-                {recipe.title}
+                {tr?.title || recipe.title}
               </Typography>
-              <Stack direction="row" spacing={1} useFlexGap sx={{ mt: 1.5, flexWrap: 'wrap' }}>
+              <Stack direction="row" spacing={1} useFlexGap sx={{ mt: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
                 <Chip
                   icon={<PeopleIcon />}
                   variant="outlined"
@@ -283,6 +338,34 @@ export default function RecipeDetail() {
                     author: recipe.author?.name ?? t('detail.unknownAuthor'),
                   })}
                 />
+                {current ? (
+                  <ToggleButtonGroup
+                    size="small"
+                    exclusive
+                    value={showTranslated ? 'tr' : 'orig'}
+                    onChange={(_e, v) => v !== null && setShowTranslated(v === 'tr')}
+                  >
+                    <ToggleButton value="orig">{t('detail.original')}</ToggleButton>
+                    <ToggleButton value="tr">{LANGUAGE_LABELS[locale]}</ToggleButton>
+                  </ToggleButtonGroup>
+                ) : (
+                  <Button
+                    size="small"
+                    startIcon={
+                      translateMut.isPending ? (
+                        <CircularProgress size={16} color="inherit" />
+                      ) : (
+                        <TranslateIcon fontSize="small" />
+                      )
+                    }
+                    disabled={translateMut.isPending}
+                    onClick={handleTranslate}
+                  >
+                    {translateMut.isPending
+                      ? t('detail.translating')
+                      : t('detail.translateTo', { lang: LANGUAGE_LABELS[locale] })}
+                  </Button>
+                )}
               </Stack>
             </Box>
             <Stack direction="row" spacing={1}>
@@ -308,9 +391,9 @@ export default function RecipeDetail() {
             </Stack>
           </Box>
 
-          {recipe.description && (
+          {(tr?.description || recipe.description) && (
             <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-              {recipe.description}
+              {tr?.description || recipe.description}
             </Typography>
           )}
 
@@ -493,7 +576,7 @@ export default function RecipeDetail() {
                         }
                       >
                         <ListItemText
-                          primary={ri.ingredient.name}
+                          primary={ingredientName(ri)}
                           secondary={
                             <Box component="span">
                               <Typography component="span" variant="body2" color="text.secondary">
@@ -523,9 +606,9 @@ export default function RecipeDetail() {
                 {t('detail.instructions')}
               </Typography>
               <Divider sx={{ mb: 2 }} />
-              {recipe.instructions.length > 0 ? (
+              {(tr?.instructions?.length ? tr.instructions : recipe.instructions).length > 0 ? (
                 <Stack component="ol" spacing={1.5} sx={{ m: 0, pl: 3 }}>
-                  {recipe.instructions.map((step, i) => (
+                  {(tr?.instructions?.length ? tr.instructions : recipe.instructions).map((step, i) => (
                     <Typography key={i} component="li" variant="body1" sx={{ lineHeight: 1.6 }}>
                       {step}
                     </Typography>

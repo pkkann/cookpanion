@@ -130,3 +130,10 @@ export function useCookRecipe() {
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.stock }),
   })
 }
+
+export function useTranslateRecipe() {
+  return useMutation({
+    mutationFn: ({ id, locale }: { id: number; locale: string }) =>
+      api.translateRecipe(id, locale),
+  })
+}

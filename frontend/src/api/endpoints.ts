@@ -2,6 +2,7 @@ import { api } from './client'
 import type {
   AuthResponse,
   CookPayload,
+  RecipeTranslation,
   Ingredient,
   IngredientPayload,
   LoginPayload,
@@ -108,6 +109,11 @@ export async function deleteRecipe(id: number): Promise<void> {
 
 export async function cookRecipe(id: number, payload: CookPayload): Promise<StockItem[]> {
   const { data } = await api.post<StockItem[]>(`/recipes/${id}/cook`, payload)
+  return data
+}
+
+export async function translateRecipe(id: number, locale: string): Promise<RecipeTranslation> {
+  const { data } = await api.post<RecipeTranslation>(`/recipes/${id}/translate`, { locale })
   return data
 }
 

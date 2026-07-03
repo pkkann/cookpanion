@@ -67,6 +67,9 @@ Returns `200` with the updated `User`. An unsupported locale returns `400`
 - `DELETE /recipes/{id}` → `204`
 - `POST /recipes/{id}/cook` body `{ "items": [ { "ingredientId": int, "quantity": number } ] }` → `StockItem[]` (updated stock)
   - Deducts each amount from the household's matching stock row in one transaction. Quantities are floored at 0 (never negative); rows that reach 0 are kept. Ingredients with no stock row are skipped. Returns the full updated stock list.
+- `POST /recipes/{id}/translate` body `{ "locale": "en" | "da" }` (defaults to the user's locale) → `RecipeTranslation`
+  - Translates the recipe's title, description, instructions, and ingredient names into the locale (display-only; ingredient identity/units unchanged). Cached on the recipe per locale and returned from cache thereafter; the cache is cleared when the recipe is edited. `503` if AI isn't configured, `502` on translation failure.
+  - `RecipeTranslation` shape: `{ "title": string, "description": string, "instructions": string[], "ingredientNames": { "<ingredientId>": string } }`
 
 Recipe request body:
 ```json
