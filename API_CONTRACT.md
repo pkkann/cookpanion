@@ -1,4 +1,4 @@
-# Recipe AI — API Contract
+# Cookpanion — API Contract
 
 Shared contract between the Symfony backend (`backend/`) and the React SPA (`frontend/`).
 **Both sides MUST conform to this. Do not change it unilaterally.**

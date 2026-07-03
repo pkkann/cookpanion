@@ -1,6 +1,6 @@
-# Recipe AI — Frontend
+# Cookpanion — Frontend
 
-Single-page app for the Recipe AI project. React + Vite + TypeScript with MUI.
+Single-page app for the Cookpanion project. React + Vite + TypeScript with MUI.
 
 ## Stack
 

@@ -2,9 +2,9 @@ import type { ReactNode } from 'react'
 import Box from '@mui/material/Box'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
 import { useTranslation } from 'react-i18next'
 import LanguageSwitcher from '../i18n/LanguageSwitcher'
+import Logo from './Logo'
 
 interface AuthShellProps {
   title: string
@@ -28,7 +28,7 @@ export default function AuthShell({ title, subtitle, children, footer }: AuthShe
     >
       <Paper elevation={0} sx={{ p: { xs: 3, sm: 5 }, width: '100%', maxWidth: 440, border: '1px solid', borderColor: 'divider' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
-          <AutoAwesomeIcon color="primary" fontSize="large" />
+          <Logo size={40} />
           <Typography variant="h5" sx={{ fontWeight: 700, flexGrow: 1 }}>
             {t('appName')}
           </Typography>

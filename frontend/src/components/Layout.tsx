@@ -25,6 +25,7 @@ import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu'
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
 import LocalDiningIcon from '@mui/icons-material/LocalDining'
 import LogoutIcon from '@mui/icons-material/Logout'
+import Logo from './Logo'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 import LanguageSwitcher from '../i18n/LanguageSwitcher'
@@ -78,7 +79,7 @@ export default function Layout() {
   const drawerContent = (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Toolbar sx={{ gap: 1.5 }}>
-        <AutoAwesomeIcon color="primary" />
+        <Logo />
         <Typography variant="h6" noWrap sx={{ fontWeight: 700 }}>
           {t('common:appName')}
         </Typography>
@@ -149,7 +150,7 @@ export default function Layout() {
             </IconButton>
           )}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1 }}>
-            {!isDesktop && <AutoAwesomeIcon color="primary" />}
+            {!isDesktop && <Logo />}
             <Typography
               variant="h6"
               sx={{ fontWeight: 700, display: { xs: 'block', md: 'none' } }}

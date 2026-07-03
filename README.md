@@ -1,4 +1,4 @@
-# Recipe AI 🍳🤖
+# Cookpanion 🍳🤖
 
 A multi-user kitchen app: track your **ingredients**, keep an inventory of **what's in your kitchen**,
 store **recipes** built from those ingredients, and let **Claude** suggest recipes from what you have
