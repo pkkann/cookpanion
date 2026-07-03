@@ -12,6 +12,7 @@ import KitchenIcon from '@mui/icons-material/Kitchen'
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu'
 import LocalDiningIcon from '@mui/icons-material/LocalDining'
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 import { useIngredients, useRecipes, useStock } from '../api/hooks'
 
@@ -60,21 +61,22 @@ function StatCard({ label, value, loading, icon, to }: StatCardProps) {
 }
 
 export default function Dashboard() {
+  const { t } = useTranslation('dashboard')
   const navigate = useNavigate()
   const { user } = useAuth()
   const ingredients = useIngredients()
   const stock = useStock()
   const recipes = useRecipes()
 
-  const firstName = user?.name?.split(' ')[0] ?? 'there'
+  const firstName = user?.name?.split(' ')[0] ?? t('fallbackName')
 
   return (
     <Box>
       <Typography variant="h4" component="h1" gutterBottom>
-        Welcome back, {firstName}
+        {t('welcome', { name: firstName })}
       </Typography>
       <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-        Here's what's cooking in {user?.household?.name ?? 'your household'}.
+        {t('subtitle', { household: user?.household?.name ?? t('fallbackHousehold') })}
       </Typography>
 
       {/* Hero CTA */}
@@ -93,11 +95,10 @@ export default function Dashboard() {
       >
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
-            Not sure what to cook?
+            {t('heroTitle')}
           </Typography>
           <Typography variant="body1" sx={{ opacity: 0.92, maxWidth: 520 }}>
-            Get AI recipe ideas based on what's already in your kitchen — plus a short shopping list
-            when you need a little extra.
+            {t('heroBody')}
           </Typography>
         </Box>
         <Button
@@ -111,7 +112,7 @@ export default function Dashboard() {
             '&:hover': { bgcolor: 'grey.100' },
           }}
         >
-          Get suggestions
+          {t('getSuggestions')}
         </Button>
       </Paper>
 
@@ -125,21 +126,21 @@ export default function Dashboard() {
         }}
       >
         <StatCard
-          label="Ingredients"
+          label={t('statIngredients')}
           value={ingredients.data?.length ?? 0}
           loading={ingredients.isLoading}
           icon={<LocalDiningIcon />}
           to="/ingredients"
         />
         <StatCard
-          label="In your kitchen"
+          label={t('statKitchen')}
           value={stock.data?.length ?? 0}
           loading={stock.isLoading}
           icon={<KitchenIcon />}
           to="/kitchen"
         />
         <StatCard
-          label="Recipes"
+          label={t('statRecipes')}
           value={recipes.data?.length ?? 0}
           loading={recipes.isLoading}
           icon={<RestaurantMenuIcon />}
@@ -149,7 +150,7 @@ export default function Dashboard() {
 
       {/* Quick links */}
       <Typography variant="h6" gutterBottom>
-        Get started
+        {t('getStarted')}
       </Typography>
       <Box
         sx={{
@@ -160,13 +161,13 @@ export default function Dashboard() {
       >
         {[
           {
-            title: 'Stock your kitchen',
-            body: 'Track what you have on hand so suggestions stay realistic.',
+            title: t('stockTitle'),
+            body: t('stockBody'),
             to: '/kitchen',
           },
           {
-            title: 'Build a recipe',
-            body: 'Save your household favourites with ingredients and steps.',
+            title: t('buildTitle'),
+            body: t('buildBody'),
             to: '/recipes',
           },
         ].map((link) => (

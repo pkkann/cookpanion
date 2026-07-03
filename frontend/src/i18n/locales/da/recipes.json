@@ -1,0 +1,78 @@
+{
+  "list": {
+    "title": "Opskrifter",
+    "subtitle": "Din husstands gemte opskrifter.",
+    "new": "Ny opskrift",
+    "emptyTitle": "Ingen opskrifter endnu",
+    "emptyDescription": "Opret en opskrift manuelt, eller lad AI'en foreslå opskrifter ud fra dit køkken.",
+    "getAiSuggestions": "Få AI-forslag",
+    "noDescription": "Ingen beskrivelse",
+    "servings_one": "{{count}} portion",
+    "servings_other": "{{count}} portioner",
+    "ingredientsCount_one": "{{count}} ingrediens",
+    "ingredientsCount_other": "{{count}} ingredienser"
+  },
+  "deleteTitle": "Slet opskrift?",
+  "deleteMessage": "“{{title}}” bliver slettet permanent.",
+  "toast": {
+    "created": "Opskrift oprettet",
+    "updated": "Opskrift opdateret",
+    "deleted": "Opskrift slettet"
+  },
+  "form": {
+    "editTitle": "Rediger opskrift",
+    "newTitle": "Ny opskrift",
+    "title": "Titel",
+    "description": "Beskrivelse",
+    "defaultServings": "Standardportioner",
+    "servingsHelp": "Angiv ingrediensmængder for dette antal portioner. Læsere kan skalere om herfra.",
+    "ingredients": "Ingredienser",
+    "ingredient": "Ingrediens",
+    "qty": "Antal",
+    "unit": "Enhed",
+    "addIngredient": "Tilføj ingrediens",
+    "removeIngredient": "fjern ingrediens",
+    "instructions": "Fremgangsmåde",
+    "instructionsPlaceholder": "Trin-for-trin fremgangsmåde…",
+    "createRecipe": "Opret opskrift"
+  },
+  "detail": {
+    "back": "Tilbage til opskrifter",
+    "servesByDefault": "til {{count}} portioner som standard",
+    "byAuthor": "af {{author}}",
+    "unknownAuthor": "Ukendt",
+    "ingredients": "Ingredienser",
+    "servingLabel_one": "portion",
+    "servingLabel_other": "portioner",
+    "scaledFor_one": "Skaleret til {{count}} portion",
+    "scaledFor_other": "Skaleret til {{count}} portioner",
+    "reset": "Nulstil",
+    "scaleHint": "Mængder vises for standardportionsstørrelsen. Justér for at skalere om.",
+    "noScaleHint": "Denne opskrift har ingen portionsstørrelse, så mængder kan ikke skaleres.",
+    "checkingKitchen": "Tjekker dit køkken…",
+    "kitchenCheckFailed": "Kunne ikke tjekke køkkenlager.",
+    "haveEverything": "Du har alt, hvad du skal bruge ✓",
+    "missing_one": "Mangler {{missing}} af {{count}} ingrediens",
+    "missing_other": "Mangler {{missing}} af {{count}} ingredienser",
+    "shoppingList": "Indkøbsliste: {{list}}",
+    "checkManually": "Tjek manuelt (enheder er forskellige): {{list}}",
+    "noIngredients": "Ingen ingredienser angivet.",
+    "instructions": "Fremgangsmåde",
+    "noInstructions": "Ingen fremgangsmåde angivet.",
+    "notFound": "Opskrift ikke fundet.",
+    "aria": {
+      "decreaseServings": "færre portioner",
+      "increaseServings": "flere portioner",
+      "servings": "portioner"
+    },
+    "status": {
+      "enoughTooltip": "I køkken: {{have}} — nok",
+      "partialTooltip": "I køkken: {{have}} — mangler {{shortfall}} mere",
+      "partialNote": "mangler {{shortfall}} mere",
+      "noneTooltip": "Ikke i køkken — køb {{needed}}",
+      "noneNote": "Ikke i køkken — køb {{needed}}",
+      "unknownTooltip": "I køkken: {{have}}, opskrift kræver {{needed}} — kan ikke sammenligne enheder",
+      "unknownNote": "tjek manuelt (enheder er forskellige)"
+    }
+  }
+}

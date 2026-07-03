@@ -25,22 +25,24 @@ import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu'
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
 import LocalDiningIcon from '@mui/icons-material/LocalDining'
 import LogoutIcon from '@mui/icons-material/Logout'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
+import LanguageSwitcher from '../i18n/LanguageSwitcher'
 
 const DRAWER_WIDTH = 248
 
 interface NavItem {
-  label: string
+  titleKey: 'dashboard' | 'ingredients' | 'kitchen' | 'recipes' | 'suggestions'
   path: string
   icon: React.ReactNode
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard', path: '/', icon: <DashboardIcon /> },
-  { label: 'Ingredients', path: '/ingredients', icon: <LocalDiningIcon /> },
-  { label: 'Kitchen', path: '/kitchen', icon: <KitchenIcon /> },
-  { label: 'Recipes', path: '/recipes', icon: <RestaurantMenuIcon /> },
-  { label: 'AI Suggestions', path: '/suggestions', icon: <AutoAwesomeIcon /> },
+  { titleKey: 'dashboard', path: '/', icon: <DashboardIcon /> },
+  { titleKey: 'ingredients', path: '/ingredients', icon: <LocalDiningIcon /> },
+  { titleKey: 'kitchen', path: '/kitchen', icon: <KitchenIcon /> },
+  { titleKey: 'recipes', path: '/recipes', icon: <RestaurantMenuIcon /> },
+  { titleKey: 'suggestions', path: '/suggestions', icon: <AutoAwesomeIcon /> },
 ]
 
 function isActivePath(current: string, target: string): boolean {
@@ -54,6 +56,7 @@ export default function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
+  const { t } = useTranslation(['nav', 'common'])
 
   const [mobileOpen, setMobileOpen] = useState(false)
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
@@ -77,7 +80,7 @@ export default function Layout() {
       <Toolbar sx={{ gap: 1.5 }}>
         <AutoAwesomeIcon color="primary" />
         <Typography variant="h6" noWrap sx={{ fontWeight: 700 }}>
-          Recipe AI
+          {t('common:appName')}
         </Typography>
       </Toolbar>
       <Divider />
@@ -102,7 +105,7 @@ export default function Layout() {
                 }}
               >
                 <ListItemIcon sx={{ minWidth: 40 }}>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.label} />
+                <ListItemText primary={t(`nav:${item.titleKey}`)} />
               </ListItemButton>
             </ListItem>
           )
@@ -111,7 +114,7 @@ export default function Layout() {
       <Divider />
       <Box sx={{ p: 2 }}>
         <Typography variant="caption" color="text.secondary">
-          Household
+          {t('common:household')}
         </Typography>
         <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
           {user?.household?.name ?? '—'}
@@ -138,7 +141,7 @@ export default function Layout() {
             <IconButton
               edge="start"
               color="inherit"
-              aria-label="open navigation"
+              aria-label={t('nav:openNavigation')}
               onClick={() => setMobileOpen(true)}
               sx={{ mr: 1 }}
             >
@@ -151,7 +154,7 @@ export default function Layout() {
               variant="h6"
               sx={{ fontWeight: 700, display: { xs: 'block', md: 'none' } }}
             >
-              Recipe AI
+              {t('common:appName')}
             </Typography>
           </Box>
 
@@ -164,7 +167,8 @@ export default function Layout() {
                 {user?.household?.name}
               </Typography>
             </Box>
-            <Tooltip title="Account">
+            <LanguageSwitcher />
+            <Tooltip title={t('common:account')}>
               <IconButton onClick={(e) => setMenuAnchor(e.currentTarget)} size="small">
                 <Avatar sx={{ bgcolor: 'primary.main', width: 36, height: 36 }}>
                   {initials}
@@ -189,7 +193,7 @@ export default function Layout() {
                 <ListItemIcon>
                   <LogoutIcon fontSize="small" />
                 </ListItemIcon>
-                Log out
+                {t('common:logout')}
               </MenuItem>
             </Menu>
           </Box>

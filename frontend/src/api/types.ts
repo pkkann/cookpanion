@@ -1,5 +1,7 @@
 // Types mirroring API_CONTRACT.md shapes. Keep in sync with the backend contract.
 
+import type { Language } from '../i18n/config'
+
 export interface Household {
   id: number
   name: string
@@ -9,6 +11,7 @@ export interface User {
   id: number
   email: string
   name: string
+  locale: Language
   household: Household
 }
 

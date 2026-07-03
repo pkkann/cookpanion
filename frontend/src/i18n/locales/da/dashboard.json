@@ -1,0 +1,17 @@
+{
+  "welcome": "Velkommen tilbage, {{name}}",
+  "fallbackName": "der",
+  "subtitle": "Her er, hvad der sker i {{household}}.",
+  "fallbackHousehold": "din husstand",
+  "heroTitle": "I tvivl om, hvad du skal lave?",
+  "heroBody": "Få AI-opskriftsidéer baseret på det, du allerede har i køkkenet — plus en kort indkøbsliste, når du mangler lidt ekstra.",
+  "getSuggestions": "Få forslag",
+  "statIngredients": "Ingredienser",
+  "statKitchen": "I dit køkken",
+  "statRecipes": "Opskrifter",
+  "getStarted": "Kom i gang",
+  "stockTitle": "Fyld dit køkken op",
+  "stockBody": "Hold styr på, hvad du har på lager, så forslagene forbliver realistiske.",
+  "buildTitle": "Byg en opskrift",
+  "buildBody": "Gem husstandens favoritter med ingredienser og fremgangsmåde."
+}

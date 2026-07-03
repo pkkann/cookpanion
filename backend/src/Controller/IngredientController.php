@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Ingredient;
 use App\Repository\IngredientRepository;
 use App\Service\EntityPresenter;
+use App\Service\IngredientClassifier;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,6 +19,7 @@ class IngredientController extends AbstractApiController
         private readonly EntityManagerInterface $em,
         private readonly IngredientRepository $ingredients,
         private readonly EntityPresenter $presenter,
+        private readonly IngredientClassifier $classifier,
     ) {
     }
 
@@ -42,9 +44,15 @@ class IngredientController extends AbstractApiController
             return $this->json(['error' => 'Validation failed', 'details' => ['name' => 'Name is required.']], Response::HTTP_BAD_REQUEST);
         }
 
+        // Use an explicit category if supplied; otherwise let the AI assign one.
+        $category = $this->nullableString($data['category'] ?? null);
+        if (null === $category) {
+            $category = $this->classifier->classify($name);
+        }
+
         $ingredient = (new Ingredient())
             ->setName($name)
-            ->setCategory($this->nullableString($data['category'] ?? null))
+            ->setCategory($category)
             ->setDefaultUnit($this->nullableString($data['defaultUnit'] ?? null))
             ->setHousehold($this->household());
 

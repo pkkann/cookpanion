@@ -18,6 +18,12 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/api')]
 class AuthController extends AbstractController
 {
+    /**
+     * Locales the app ships translations for. Keep in sync with the frontend
+     * SUPPORTED_LANGUAGES (frontend/src/i18n/config.ts).
+     */
+    private const SUPPORTED_LOCALES = ['en', 'da'];
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly UserRepository $users,
@@ -106,6 +112,33 @@ class AuthController extends AbstractController
     {
         /** @var User $user */
         $user = $this->getUser();
+
+        return $this->json($this->presenter->user($user));
+    }
+
+    #[Route('/me', name: 'api_me_update', methods: ['PATCH'])]
+    public function updateMe(Request $request): JsonResponse
+    {
+        $data = $this->decode($request);
+        if ($data instanceof JsonResponse) {
+            return $data;
+        }
+
+        /** @var User $user */
+        $user = $this->getUser();
+
+        if (\array_key_exists('locale', $data)) {
+            $locale = (string) $data['locale'];
+            if (!\in_array($locale, self::SUPPORTED_LOCALES, true)) {
+                return $this->json(
+                    ['error' => 'Unsupported locale', 'details' => ['locale' => 'Must be one of: '.implode(', ', self::SUPPORTED_LOCALES)]],
+                    Response::HTTP_BAD_REQUEST,
+                );
+            }
+            $user->setLocale($locale);
+        }
+
+        $this->em->flush();
 
         return $this->json($this->presenter->user($user));
     }

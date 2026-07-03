@@ -15,9 +15,11 @@ import Divider from '@mui/material/Divider'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/DeleteOutlined'
 import { useCreateRecipe, useIngredients, useUpdateRecipe } from '../api/hooks'
+import UnitSelect from './UnitSelect'
 import { useNotify } from './SnackbarProvider'
 import { errorMessage } from '../api/client'
 import type { Ingredient, Recipe, RecipePayload } from '../api/types'
+import { useTranslation } from 'react-i18next'
 
 interface RowState {
   key: string
@@ -41,6 +43,7 @@ const newRow = (): RowState => ({
 })
 
 export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDialogProps) {
+  const { t } = useTranslation(['recipes', 'common', 'errors'])
   const notify = useNotify()
   const { data: ingredients } = useIngredients()
   const createMut = useCreateRecipe()
@@ -109,14 +112,14 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
     try {
       if (recipe) {
         await updateMut.mutateAsync({ id: recipe.id, payload })
-        notify('Recipe updated', 'success')
+        notify(t('toast.updated'), 'success')
       } else {
         await createMut.mutateAsync(payload)
-        notify('Recipe created', 'success')
+        notify(t('toast.created'), 'success')
       }
       onClose()
     } catch (err) {
-      notify(errorMessage(err, 'Could not save recipe'), 'error')
+      notify(errorMessage(err, t('errors:saveRecipe')), 'error')
     }
   }
 
@@ -125,10 +128,10 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <Box component="form" onSubmit={handleSubmit}>
-        <DialogTitle>{recipe ? 'Edit recipe' : 'New recipe'}</DialogTitle>
+        <DialogTitle>{recipe ? t('form.editTitle') : t('form.newTitle')}</DialogTitle>
         <DialogContent>
           <TextField
-            label="Title"
+            label={t('form.title')}
             fullWidth
             required
             autoFocus
@@ -137,7 +140,7 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
             onChange={(e) => setTitle(e.target.value)}
           />
           <TextField
-            label="Description"
+            label={t('form.description')}
             fullWidth
             margin="normal"
             multiline
@@ -146,18 +149,18 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
             onChange={(e) => setDescription(e.target.value)}
           />
           <TextField
-            label="Default servings"
+            label={t('form.defaultServings')}
             type="number"
             margin="normal"
             slotProps={{ htmlInput: { min: 1, step: 1 } }}
-            helperText="Enter ingredient amounts for this many servings. Viewers can rescale from here."
+            helperText={t('form.servingsHelp')}
             value={servings}
             onChange={(e) => setServings(e.target.value)}
           />
 
           <Divider sx={{ my: 2 }} />
           <Typography variant="subtitle2" gutterBottom>
-            Ingredients
+            {t('form.ingredients')}
           </Typography>
           <Stack spacing={1.5}>
             {rows.map((row) => (
@@ -175,11 +178,11 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
                     })
                   }
                   renderInput={(params) => (
-                    <TextField {...params} label="Ingredient" size="small" />
+                    <TextField {...params} label={t('form.ingredient')} size="small" />
                   )}
                 />
                 <TextField
-                  label="Qty"
+                  label={t('form.qty')}
                   type="number"
                   size="small"
                   sx={{ flex: 1, minWidth: 72 }}
@@ -187,15 +190,15 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
                   value={row.quantity}
                   onChange={(e) => updateRow(row.key, { quantity: e.target.value })}
                 />
-                <TextField
-                  label="Unit"
+                <UnitSelect
+                  label={t('form.unit')}
                   size="small"
                   sx={{ flex: 1, minWidth: 72 }}
                   value={row.unit}
-                  onChange={(e) => updateRow(row.key, { unit: e.target.value })}
+                  onChange={(unit) => updateRow(row.key, { unit })}
                 />
                 <IconButton
-                  aria-label="remove ingredient"
+                  aria-label={t('form.removeIngredient')}
                   onClick={() => removeRow(row.key)}
                   disabled={rows.length === 1}
                   sx={{ mt: 0.5 }}
@@ -206,27 +209,27 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
             ))}
           </Stack>
           <Button startIcon={<AddIcon />} onClick={addRow} sx={{ mt: 1.5 }} size="small">
-            Add ingredient
+            {t('form.addIngredient')}
           </Button>
 
           <Divider sx={{ my: 2 }} />
           <TextField
-            label="Instructions"
+            label={t('form.instructions')}
             fullWidth
             margin="normal"
             multiline
             minRows={5}
-            placeholder="Step-by-step method…"
+            placeholder={t('form.instructionsPlaceholder')}
             value={instructions}
             onChange={(e) => setInstructions(e.target.value)}
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={onClose} disabled={saving}>
-            Cancel
+            {t('common:cancel')}
           </Button>
           <Button type="submit" variant="contained" disabled={saving || !title.trim()}>
-            {recipe ? 'Save changes' : 'Create recipe'}
+            {recipe ? t('common:saveChanges') : t('form.createRecipe')}
           </Button>
         </DialogActions>
       </Box>

@@ -1,0 +1,30 @@
+{
+  "appName": "Recipe AI",
+  "save": "Gem",
+  "saveChanges": "Gem ændringer",
+  "cancel": "Annuller",
+  "delete": "Slet",
+  "remove": "Fjern",
+  "add": "Tilføj",
+  "edit": "Rediger",
+  "confirm": "Bekræft",
+  "account": "Konto",
+  "logout": "Log ud",
+  "household": "Husstand",
+  "language": "Sprog",
+  "units": {
+    "none": "Ingen enhed",
+    "g": "g",
+    "kg": "kg",
+    "ml": "ml",
+    "l": "l",
+    "pcs": "stk",
+    "tbsp": "spsk",
+    "tsp": "tsk",
+    "cup": "kop"
+  },
+  "aria": {
+    "edit": "rediger",
+    "delete": "slet"
+  }
+}

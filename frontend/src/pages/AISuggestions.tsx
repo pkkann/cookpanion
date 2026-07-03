@@ -36,8 +36,10 @@ import type {
   RecipeSuggestion,
   SuggestMode,
 } from '../api/types'
+import { useTranslation } from 'react-i18next'
 
 export default function AISuggestions() {
+  const { t } = useTranslation(['suggestions', 'errors'])
   const notify = useNotify()
   const queryClient = useQueryClient()
   const { data: ingredients } = useIngredients()
@@ -71,7 +73,7 @@ export default function AISuggestions() {
       if (errorStatus(err) === 503) {
         setNotConfigured(true)
       } else {
-        setErrorText(errorMessage(err, 'Could not get suggestions'))
+        setErrorText(errorMessage(err, t('errors:suggestions')))
       }
     } finally {
       setLoading(false)
@@ -123,9 +125,9 @@ export default function AISuggestions() {
       queryClient.invalidateQueries({ queryKey: queryKeys.recipes })
 
       setSavedIndexes((prev) => new Set(prev).add(index))
-      notify(`Saved “${suggestion.title}” to your recipes`, 'success')
+      notify(t('savedToast', { title: suggestion.title }), 'success')
     } catch (err) {
-      notify(errorMessage(err, 'Could not save recipe'), 'error')
+      notify(errorMessage(err, t('errors:saveRecipe')), 'error')
     } finally {
       setSavingIndex(null)
     }
@@ -133,16 +135,13 @@ export default function AISuggestions() {
 
   return (
     <Box>
-      <PageHeader
-        title="AI Suggestions"
-        subtitle="Let Claude suggest recipes from what you have (and a short shopping list)."
-      />
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
       {/* Request form */}
       <Paper variant="outlined" sx={{ p: { xs: 2.5, md: 3 }, mb: 3 }}>
         <Box component="form" onSubmit={handleSubmit}>
           <Typography variant="subtitle2" gutterBottom>
-            What should we cook with?
+            {t('whatToCook')}
           </Typography>
           <ToggleButtonGroup
             value={mode}
@@ -152,17 +151,17 @@ export default function AISuggestions() {
           >
             <ToggleButton value="kitchen" sx={{ px: 2 }}>
               <KitchenIcon fontSize="small" sx={{ mr: 1 }} />
-              Only my kitchen stock
+              {t('onlyKitchen')}
             </ToggleButton>
             <ToggleButton value="all" sx={{ px: 2 }}>
               <LocalDiningIcon fontSize="small" sx={{ mr: 1 }} />
-              All my ingredients
+              {t('allIngredients')}
             </ToggleButton>
           </ToggleButtonGroup>
 
           <Box sx={{ maxWidth: 420, mb: 2 }}>
             <Typography variant="subtitle2" gutterBottom>
-              Max extra ingredients to buy: <strong>{maxToBuy}</strong>
+              {t('maxToBuy')} <strong>{maxToBuy}</strong>
             </Typography>
             <Slider
               value={maxToBuy}
@@ -174,15 +173,15 @@ export default function AISuggestions() {
               valueLabelDisplay="auto"
             />
             <Typography variant="caption" color="text.secondary">
-              0 means suggestions must only use what you already have.
+              {t('maxToBuyHint')}
             </Typography>
           </Box>
 
           <TextField
-            label="Preferences (optional)"
+            label={t('preferences')}
             fullWidth
             margin="normal"
-            placeholder="e.g. vegetarian, quick, low-carb, kid-friendly"
+            placeholder={t('preferencesPlaceholder')}
             value={preferences}
             onChange={(e) => setPreferences(e.target.value)}
           />
@@ -195,7 +194,7 @@ export default function AISuggestions() {
             disabled={loading}
             sx={{ mt: 2 }}
           >
-            {loading ? 'Thinking…' : 'Suggest recipes'}
+            {loading ? t('thinking') : t('suggestRecipes')}
           </Button>
         </Box>
       </Paper>
@@ -203,10 +202,8 @@ export default function AISuggestions() {
       {/* AI not configured (503) */}
       {notConfigured && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          <AlertTitle>AI is not configured yet</AlertTitle>
-          Recipe suggestions need an Anthropic API key on the backend
-          (<code>ANTHROPIC_API_KEY</code>). Once it's added, come back and try again — the rest of
-          the app works without it.
+          <AlertTitle>{t('notConfiguredTitle')}</AlertTitle>
+          {t('notConfiguredBody')}
         </Alert>
       )}
 
@@ -220,16 +217,13 @@ export default function AISuggestions() {
       {loading && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 4, justifyContent: 'center' }}>
           <CircularProgress />
-          <Typography color="text.secondary">Cooking up some ideas…</Typography>
+          <Typography color="text.secondary">{t('cooking')}</Typography>
         </Box>
       )}
 
       {/* Empty result */}
       {!loading && suggestions?.length === 0 && (
-        <Alert severity="info">
-          No suggestions came back. Try allowing a few more ingredients to buy, or switch to using
-          all your ingredients.
-        </Alert>
+        <Alert severity="info">{t('emptyResult')}</Alert>
       )}
 
       {/* Suggestions */}
@@ -250,7 +244,7 @@ export default function AISuggestions() {
                 <Chip
                   size="small"
                   icon={<PeopleIcon />}
-                  label={`${s.servings} serving${s.servings === 1 ? '' : 's'}`}
+                  label={t('servings', { count: s.servings })}
                   sx={{ mb: 1.5 }}
                 />
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -258,7 +252,7 @@ export default function AISuggestions() {
                 </Typography>
 
                 <Typography variant="subtitle2" gutterBottom>
-                  Uses
+                  {t('uses')}
                 </Typography>
                 <Stack direction="row" spacing={1} useFlexGap sx={{ mb: 2, flexWrap: 'wrap' }}>
                   {s.usesIngredients.map((u, ui) => (
@@ -277,7 +271,7 @@ export default function AISuggestions() {
                       gutterBottom
                       sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
                     >
-                      <ShoppingCartIcon fontSize="small" /> To buy
+                      <ShoppingCartIcon fontSize="small" /> {t('toBuy')}
                     </Typography>
                     <Stack direction="row" spacing={1} useFlexGap sx={{ mb: 2, flexWrap: 'wrap' }}>
                       {s.toBuy.map((b, bi) => (
@@ -295,7 +289,7 @@ export default function AISuggestions() {
 
                 <Divider sx={{ my: 1.5 }} />
                 <Typography variant="subtitle2" gutterBottom>
-                  Instructions
+                  {t('instructions')}
                 </Typography>
                 <Typography
                   variant="body2"
@@ -313,10 +307,10 @@ export default function AISuggestions() {
                   onClick={() => saveAsRecipe(s, i)}
                 >
                   {savedIndexes.has(i)
-                    ? 'Saved'
+                    ? t('saved')
                     : savingIndex === i
-                      ? 'Saving…'
-                      : 'Save as recipe'}
+                      ? t('saving')
+                      : t('saveAsRecipe')}
                 </Button>
               </CardActions>
             </Card>

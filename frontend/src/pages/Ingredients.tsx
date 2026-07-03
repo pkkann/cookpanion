@@ -22,6 +22,7 @@ import LocalDiningIcon from '@mui/icons-material/LocalDining'
 import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import ConfirmDialog from '../components/ConfirmDialog'
+import UnitSelect from '../components/UnitSelect'
 import { useNotify } from '../components/SnackbarProvider'
 import {
   useCreateIngredient,
@@ -31,6 +32,7 @@ import {
 } from '../api/hooks'
 import type { Ingredient } from '../api/types'
 import { errorMessage } from '../api/client'
+import { useTranslation } from 'react-i18next'
 
 interface EditorState {
   open: boolean
@@ -38,6 +40,7 @@ interface EditorState {
 }
 
 export default function Ingredients() {
+  const { t } = useTranslation(['ingredients', 'common', 'errors'])
   const notify = useNotify()
   const { data: ingredients, isLoading, isError, error } = useIngredients()
   const createMut = useCreateIngredient()
@@ -70,23 +73,31 @@ export default function Ingredients() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    const payload = {
-      name: name.trim(),
-      category: category.trim() || null,
-      defaultUnit: defaultUnit.trim() || null,
-    }
-    if (!payload.name) return
+    const trimmedName = name.trim()
+    if (!trimmedName) return
     try {
       if (editor.editing) {
-        await updateMut.mutateAsync({ id: editor.editing.id, payload })
-        notify('Ingredient updated', 'success')
+        // On edit the user can override the category by hand.
+        await updateMut.mutateAsync({
+          id: editor.editing.id,
+          payload: {
+            name: trimmedName,
+            category: category.trim() || null,
+            defaultUnit: defaultUnit.trim() || null,
+          },
+        })
+        notify(t('toast.updated'), 'success')
       } else {
-        await createMut.mutateAsync(payload)
-        notify('Ingredient added', 'success')
+        // On create, omit category so the backend assigns it via AI.
+        await createMut.mutateAsync({
+          name: trimmedName,
+          defaultUnit: defaultUnit.trim() || null,
+        })
+        notify(t('toast.added'), 'success')
       }
       closeEditor()
     } catch (err) {
-      notify(errorMessage(err, 'Could not save ingredient'), 'error')
+      notify(errorMessage(err, t('errors:saveIngredient')), 'error')
     }
   }
 
@@ -94,10 +105,10 @@ export default function Ingredients() {
     if (!toDelete) return
     try {
       await deleteMut.mutateAsync(toDelete.id)
-      notify('Ingredient deleted', 'success')
+      notify(t('toast.deleted'), 'success')
       setToDelete(null)
     } catch (err) {
-      notify(errorMessage(err, 'Could not delete ingredient'), 'error')
+      notify(errorMessage(err, t('errors:deleteIngredient')), 'error')
     }
   }
 
@@ -111,18 +122,18 @@ export default function Ingredients() {
   return (
     <Box>
       <PageHeader
-        title="Ingredients"
-        subtitle="The building blocks your household cooks with."
+        title={t('title')}
+        subtitle={t('subtitle')}
         action={
           <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>
-            Add ingredient
+            {t('add')}
           </Button>
         }
       />
 
       {isError && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          {errorMessage(error, 'Failed to load ingredients')}
+          {errorMessage(error, t('errors:loadIngredients'))}
         </Alert>
       )}
 
@@ -135,11 +146,11 @@ export default function Ingredients() {
       ) : sorted.length === 0 ? (
         <EmptyState
           icon={<LocalDiningIcon fontSize="inherit" />}
-          title="No ingredients yet"
-          description="Add the ingredients your household uses so you can track stock and build recipes."
+          title={t('emptyTitle')}
+          description={t('emptyDescription')}
           action={
             <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>
-              Add your first ingredient
+              {t('addFirst')}
             </Button>
           }
         />
@@ -167,17 +178,25 @@ export default function Ingredients() {
                   <Stack direction="row" spacing={1} useFlexGap sx={{ mt: 1, flexWrap: 'wrap' }}>
                     {ing.category && <Chip size="small" label={ing.category} />}
                     {ing.defaultUnit && (
-                      <Chip size="small" variant="outlined" label={`unit: ${ing.defaultUnit}`} />
+                      <Chip
+                        size="small"
+                        variant="outlined"
+                        label={t('unitChip', { unit: ing.defaultUnit })}
+                      />
                     )}
                   </Stack>
                 </Box>
                 <Box sx={{ flexShrink: 0 }}>
-                  <IconButton size="small" aria-label="edit" onClick={() => openEdit(ing)}>
+                  <IconButton
+                    size="small"
+                    aria-label={t('common:aria.edit')}
+                    onClick={() => openEdit(ing)}
+                  >
                     <EditIcon fontSize="small" />
                   </IconButton>
                   <IconButton
                     size="small"
-                    aria-label="delete"
+                    aria-label={t('common:aria.delete')}
                     color="error"
                     onClick={() => setToDelete(ing)}
                   >
@@ -193,10 +212,10 @@ export default function Ingredients() {
       {/* Create / edit dialog */}
       <Dialog open={editor.open} onClose={closeEditor} maxWidth="xs" fullWidth>
         <Box component="form" onSubmit={handleSubmit}>
-          <DialogTitle>{editor.editing ? 'Edit ingredient' : 'Add ingredient'}</DialogTitle>
+          <DialogTitle>{editor.editing ? t('editTitle') : t('addTitle')}</DialogTitle>
           <DialogContent>
             <TextField
-              label="Name"
+              label={t('name')}
               fullWidth
               required
               autoFocus
@@ -204,29 +223,35 @@ export default function Ingredients() {
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
-            <TextField
-              label="Category"
+            {editor.editing ? (
+              <TextField
+                label={t('category')}
+                fullWidth
+                margin="normal"
+                placeholder={t('categoryPlaceholder')}
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+              />
+            ) : (
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                {t('categoryAutoHint')}
+              </Typography>
+            )}
+            <UnitSelect
+              label={t('defaultUnit')}
               fullWidth
               margin="normal"
-              placeholder="e.g. Dairy, Produce, Spices"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            />
-            <TextField
-              label="Default unit"
-              fullWidth
-              margin="normal"
-              placeholder="e.g. g, ml, pcs"
+              includeEmpty
               value={defaultUnit}
-              onChange={(e) => setDefaultUnit(e.target.value)}
+              onChange={setDefaultUnit}
             />
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={closeEditor} disabled={saving}>
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button type="submit" variant="contained" disabled={saving || !name.trim()}>
-              {editor.editing ? 'Save changes' : 'Add'}
+              {editor.editing ? t('common:saveChanges') : t('common:add')}
             </Button>
           </DialogActions>
         </Box>
@@ -234,9 +259,9 @@ export default function Ingredients() {
 
       <ConfirmDialog
         open={Boolean(toDelete)}
-        title="Delete ingredient?"
-        message={`“${toDelete?.name}” will be removed. This may affect stock and recipes that use it.`}
-        confirmLabel="Delete"
+        title={t('deleteTitle')}
+        message={t('deleteMessage', { name: toDelete?.name ?? '' })}
+        confirmLabel={t('common:delete')}
         destructive
         loading={deleteMut.isPending}
         onConfirm={handleDelete}

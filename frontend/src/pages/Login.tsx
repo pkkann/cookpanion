@@ -7,11 +7,13 @@ import Button from '@mui/material/Button'
 import Alert from '@mui/material/Alert'
 import Link from '@mui/material/Link'
 import Typography from '@mui/material/Typography'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 import { errorMessage } from '../api/client'
 import AuthShell from '../components/AuthShell'
 
 export default function Login() {
+  const { t } = useTranslation(['auth', 'errors'])
   const { user, login } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -32,7 +34,7 @@ export default function Login() {
       await login({ email, password })
       navigate(from, { replace: true })
     } catch (err) {
-      setError(errorMessage(err, 'Login failed. Check your credentials.'))
+      setError(errorMessage(err, t('errors:login')))
     } finally {
       setSubmitting(false)
     }
@@ -40,13 +42,13 @@ export default function Login() {
 
   return (
     <AuthShell
-      title="Welcome back"
-      subtitle="Sign in to plan meals with what's already in your kitchen."
+      title={t('login.title')}
+      subtitle={t('login.subtitle')}
       footer={
         <Typography variant="body2" color="text.secondary">
-          No account yet?{' '}
+          {t('login.noAccount')}{' '}
           <Link component={RouterLink} to="/register" sx={{ fontWeight: 600 }}>
-            Create one
+            {t('login.createOne')}
           </Link>
         </Typography>
       }
@@ -58,7 +60,7 @@ export default function Login() {
           </Alert>
         )}
         <TextField
-          label="Email"
+          label={t('login.email')}
           type="email"
           fullWidth
           required
@@ -68,7 +70,7 @@ export default function Login() {
           onChange={(e) => setEmail(e.target.value)}
         />
         <TextField
-          label="Password"
+          label={t('login.password')}
           type="password"
           fullWidth
           required
@@ -85,7 +87,7 @@ export default function Login() {
           disabled={submitting}
           sx={{ mt: 2 }}
         >
-          {submitting ? 'Signing in…' : 'Sign in'}
+          {submitting ? t('login.signingIn') : t('login.signIn')}
         </Button>
       </Box>
     </AuthShell>

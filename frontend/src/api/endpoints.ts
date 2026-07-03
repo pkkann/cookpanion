@@ -14,6 +14,7 @@ import type {
   SuggestResponse,
   User,
 } from './types'
+import type { Language } from '../i18n/config'
 
 // ---- Auth ----
 export async function register(payload: RegisterPayload): Promise<AuthResponse> {
@@ -28,6 +29,11 @@ export async function login(payload: LoginPayload): Promise<AuthResponse> {
 
 export async function getMe(): Promise<User> {
   const { data } = await api.get<User>('/me')
+  return data
+}
+
+export async function updateMe(payload: { locale: Language }): Promise<User> {
+  const { data } = await api.patch<User>('/me', payload)
   return data
 }
 

@@ -1,0 +1,78 @@
+{
+  "list": {
+    "title": "Recipes",
+    "subtitle": "Your household's saved recipes.",
+    "new": "New recipe",
+    "emptyTitle": "No recipes yet",
+    "emptyDescription": "Create a recipe by hand, or let the AI suggest recipes based on your kitchen.",
+    "getAiSuggestions": "Get AI suggestions",
+    "noDescription": "No description",
+    "servings_one": "{{count}} serving",
+    "servings_other": "{{count}} servings",
+    "ingredientsCount_one": "{{count}} ingredient",
+    "ingredientsCount_other": "{{count}} ingredients"
+  },
+  "deleteTitle": "Delete recipe?",
+  "deleteMessage": "“{{title}}” will be permanently deleted.",
+  "toast": {
+    "created": "Recipe created",
+    "updated": "Recipe updated",
+    "deleted": "Recipe deleted"
+  },
+  "form": {
+    "editTitle": "Edit recipe",
+    "newTitle": "New recipe",
+    "title": "Title",
+    "description": "Description",
+    "defaultServings": "Default servings",
+    "servingsHelp": "Enter ingredient amounts for this many servings. Viewers can rescale from here.",
+    "ingredients": "Ingredients",
+    "ingredient": "Ingredient",
+    "qty": "Qty",
+    "unit": "Unit",
+    "addIngredient": "Add ingredient",
+    "removeIngredient": "remove ingredient",
+    "instructions": "Instructions",
+    "instructionsPlaceholder": "Step-by-step method…",
+    "createRecipe": "Create recipe"
+  },
+  "detail": {
+    "back": "Back to recipes",
+    "servesByDefault": "serves {{count}} by default",
+    "byAuthor": "by {{author}}",
+    "unknownAuthor": "Unknown",
+    "ingredients": "Ingredients",
+    "servingLabel_one": "serving",
+    "servingLabel_other": "servings",
+    "scaledFor_one": "Scaled for {{count}} serving",
+    "scaledFor_other": "Scaled for {{count}} servings",
+    "reset": "Reset",
+    "scaleHint": "Amounts shown for the default serving size. Adjust to rescale.",
+    "noScaleHint": "This recipe has no serving size set, so quantities can't be scaled.",
+    "checkingKitchen": "Checking your kitchen…",
+    "kitchenCheckFailed": "Couldn't check kitchen stock.",
+    "haveEverything": "You have everything you need ✓",
+    "missing_one": "Missing {{missing}} of {{count}} ingredient",
+    "missing_other": "Missing {{missing}} of {{count}} ingredients",
+    "shoppingList": "Shopping list: {{list}}",
+    "checkManually": "Check manually (units differ): {{list}}",
+    "noIngredients": "No ingredients listed.",
+    "instructions": "Instructions",
+    "noInstructions": "No instructions provided.",
+    "notFound": "Recipe not found.",
+    "aria": {
+      "decreaseServings": "decrease servings",
+      "increaseServings": "increase servings",
+      "servings": "servings"
+    },
+    "status": {
+      "enoughTooltip": "In kitchen: {{have}} — enough",
+      "partialTooltip": "In kitchen: {{have}} — need {{shortfall}} more",
+      "partialNote": "need {{shortfall}} more",
+      "noneTooltip": "Not in kitchen — buy {{needed}}",
+      "noneNote": "Not in kitchen — buy {{needed}}",
+      "unknownTooltip": "In kitchen: {{have}}, recipe needs {{needed}} — can't compare units",
+      "unknownNote": "check manually (units differ)"
+    }
+  }
+}

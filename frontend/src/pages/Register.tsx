@@ -7,11 +7,13 @@ import Button from '@mui/material/Button'
 import Alert from '@mui/material/Alert'
 import Link from '@mui/material/Link'
 import Typography from '@mui/material/Typography'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 import { errorMessage } from '../api/client'
 import AuthShell from '../components/AuthShell'
 
 export default function Register() {
+  const { t } = useTranslation(['auth', 'errors'])
   const { user, register } = useAuth()
   const navigate = useNavigate()
 
@@ -35,7 +37,7 @@ export default function Register() {
       await register({ name, email, password, householdName })
       navigate('/', { replace: true })
     } catch (err) {
-      setError(errorMessage(err, 'Registration failed. Please try again.'))
+      setError(errorMessage(err, t('errors:register')))
     } finally {
       setSubmitting(false)
     }
@@ -43,13 +45,13 @@ export default function Register() {
 
   return (
     <AuthShell
-      title="Create your kitchen"
-      subtitle="Set up a household to track ingredients, stock and recipes together."
+      title={t('register.title')}
+      subtitle={t('register.subtitle')}
       footer={
         <Typography variant="body2" color="text.secondary">
-          Already have an account?{' '}
+          {t('register.haveAccount')}{' '}
           <Link component={RouterLink} to="/login" sx={{ fontWeight: 600 }}>
-            Sign in
+            {t('register.signIn')}
           </Link>
         </Typography>
       }
@@ -61,7 +63,7 @@ export default function Register() {
           </Alert>
         )}
         <TextField
-          label="Your name"
+          label={t('register.name')}
           fullWidth
           required
           autoComplete="name"
@@ -70,16 +72,16 @@ export default function Register() {
           onChange={(e) => setName(e.target.value)}
         />
         <TextField
-          label="Household name"
+          label={t('register.householdName')}
           fullWidth
           required
           margin="normal"
-          helperText="e.g. “The Smith Family” or “Flat 3B”"
+          helperText={t('register.householdNameHelp')}
           value={householdName}
           onChange={(e) => setHouseholdName(e.target.value)}
         />
         <TextField
-          label="Email"
+          label={t('register.email')}
           type="email"
           fullWidth
           required
@@ -89,7 +91,7 @@ export default function Register() {
           onChange={(e) => setEmail(e.target.value)}
         />
         <TextField
-          label="Password"
+          label={t('register.password')}
           type="password"
           fullWidth
           required
@@ -98,7 +100,7 @@ export default function Register() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           error={passwordTooShort}
-          helperText={passwordTooShort ? 'Use at least 6 characters' : ' '}
+          helperText={passwordTooShort ? t('register.passwordTooShort') : ' '}
         />
         <Button
           type="submit"
@@ -108,7 +110,7 @@ export default function Register() {
           disabled={submitting}
           sx={{ mt: 1 }}
         >
-          {submitting ? 'Creating account…' : 'Create account'}
+          {submitting ? t('register.creatingAccount') : t('register.createAccount')}
         </Button>
       </Box>
     </AuthShell>

@@ -1,0 +1,16 @@
+{
+  "generic": "Noget gik galt",
+  "login": "Login mislykkedes. Tjek dine oplysninger.",
+  "register": "Registrering mislykkedes. Prøv igen.",
+  "loadIngredients": "Kunne ikke indlæse ingredienser",
+  "saveIngredient": "Kunne ikke gemme ingrediens",
+  "deleteIngredient": "Kunne ikke slette ingrediens",
+  "loadStock": "Kunne ikke indlæse lager",
+  "saveStock": "Kunne ikke gemme lager",
+  "removeStockItem": "Kunne ikke fjerne vare",
+  "loadRecipes": "Kunne ikke indlæse opskrifter",
+  "loadRecipe": "Kunne ikke indlæse opskrift",
+  "saveRecipe": "Kunne ikke gemme opskrift",
+  "deleteRecipe": "Kunne ikke slette opskrift",
+  "suggestions": "Kunne ikke hente forslag"
+}

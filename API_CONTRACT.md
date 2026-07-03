@@ -11,7 +11,7 @@ Shared contract between the Symfony backend (`backend/`) and the React SPA (`fro
 
 ## Data model (conceptual)
 
-- **User**: id, email, name, household (belongs to one household)
+- **User**: id, email, name, locale (`"en"` | `"da"`, default `"en"`), household (belongs to one household)
 - **Household**: id, name, members[]
 - **Ingredient**: id, name, category (nullable), defaultUnit (e.g. "g", "ml", "pcs") — scoped to household
 - **StockItem** (what's in the kitchen): id, ingredient, quantity (float), unit — scoped to household; one row per ingredient
@@ -31,12 +31,18 @@ Returns `200`: `{ "token": string, "user": User }`
 (Backend may implement login via `json_login`; response includes token + user.)
 
 ### GET /me
-Returns the current user: `{ "id", "email", "name", "household": { "id", "name" } }`
+Returns the current user: `{ "id", "email", "name", "locale", "household": { "id", "name" } }`
+
+### PATCH /me
+Updates the authenticated user's preferences. Body: `{ "locale": "en" | "da" }`
+Returns `200` with the updated `User`. An unsupported locale returns `400`
+`{ "error": "Unsupported locale", "details": { "locale": "..." } }`.
 
 ## Ingredients  `/api/ingredients`
 
 - `GET /ingredients` → `Ingredient[]`
 - `POST /ingredients` body `{ "name", "category"?, "defaultUnit"? }` → `201 Ingredient`
+  - When `category` is omitted or blank, it is assigned automatically by AI from the name (falls back to `null` when AI is unavailable).
 - `GET /ingredients/{id}` → `Ingredient`
 - `PUT /ingredients/{id}` body `{ "name", "category"?, "defaultUnit"? }` → `Ingredient`
 - `DELETE /ingredients/{id}` → `204`

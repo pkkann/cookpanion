@@ -1,0 +1,16 @@
+{
+  "generic": "Something went wrong",
+  "login": "Login failed. Check your credentials.",
+  "register": "Registration failed. Please try again.",
+  "loadIngredients": "Failed to load ingredients",
+  "saveIngredient": "Could not save ingredient",
+  "deleteIngredient": "Could not delete ingredient",
+  "loadStock": "Failed to load stock",
+  "saveStock": "Could not save stock",
+  "removeStockItem": "Could not remove item",
+  "loadRecipes": "Failed to load recipes",
+  "loadRecipe": "Failed to load recipe",
+  "saveRecipe": "Could not save recipe",
+  "deleteRecipe": "Could not delete recipe",
+  "suggestions": "Could not get suggestions"
+}

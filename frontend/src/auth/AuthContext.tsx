@@ -1,8 +1,10 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { clearToken, getToken, setToken } from '../api/client'
 import { getMe, login as loginRequest, register as registerRequest } from '../api/endpoints'
 import type { LoginPayload, RegisterPayload, User } from '../api/types'
+import i18n from '../i18n'
+import type { Language } from '../i18n/config'
 
 interface AuthContextValue {
   user: User | null
@@ -10,6 +12,7 @@ interface AuthContextValue {
   login: (payload: LoginPayload) => Promise<void>
   register: (payload: RegisterPayload) => Promise<void>
   logout: () => void
+  setUserLocale: (locale: Language) => void
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -61,9 +64,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }
 
+  const setUserLocale = useCallback((locale: Language) => {
+    setUser((u) => (u ? { ...u, locale } : u))
+  }, [])
+
+  // Keep the UI language in sync with the authenticated user's stored locale.
+  // `/me` (and login/register) is authoritative; the localStorage cache only
+  // drives the first paint before the user resolves.
+  useEffect(() => {
+    if (user?.locale && user.locale !== i18n.language) {
+      void i18n.changeLanguage(user.locale)
+    }
+  }, [user?.locale])
+
   const value = useMemo<AuthContextValue>(
-    () => ({ user, initializing, login, register, logout }),
-    [user, initializing],
+    () => ({ user, initializing, login, register, logout, setUserLocale }),
+    [user, initializing, setUserLocale],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

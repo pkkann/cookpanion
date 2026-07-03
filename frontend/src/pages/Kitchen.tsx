@@ -25,6 +25,7 @@ import KitchenIcon from '@mui/icons-material/Kitchen'
 import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import ConfirmDialog from '../components/ConfirmDialog'
+import UnitSelect from '../components/UnitSelect'
 import { useNotify } from '../components/SnackbarProvider'
 import {
   useCreateStock,
@@ -35,8 +36,10 @@ import {
 } from '../api/hooks'
 import type { Ingredient, StockItem } from '../api/types'
 import { errorMessage } from '../api/client'
+import { useTranslation } from 'react-i18next'
 
 export default function Kitchen() {
+  const { t } = useTranslation(['kitchen', 'common', 'errors'])
   const notify = useNotify()
   const { data: stock, isLoading, isError, error } = useStock()
   const { data: ingredients } = useIngredients()
@@ -91,7 +94,7 @@ export default function Kitchen() {
     try {
       if (editing) {
         await updateMut.mutateAsync({ id: editing.id, payload: { quantity: qty, unit: unit.trim() } })
-        notify('Stock updated', 'success')
+        notify(t('toast.updated'), 'success')
       } else {
         if (!ingredient) return
         await createMut.mutateAsync({
@@ -99,11 +102,11 @@ export default function Kitchen() {
           quantity: qty,
           unit: unit.trim(),
         })
-        notify('Added to kitchen', 'success')
+        notify(t('toast.added'), 'success')
       }
       closeDialog()
     } catch (err) {
-      notify(errorMessage(err, 'Could not save stock'), 'error')
+      notify(errorMessage(err, t('errors:saveStock')), 'error')
     }
   }
 
@@ -111,10 +114,10 @@ export default function Kitchen() {
     if (!toDelete) return
     try {
       await deleteMut.mutateAsync(toDelete.id)
-      notify('Removed from kitchen', 'success')
+      notify(t('toast.removed'), 'success')
       setToDelete(null)
     } catch (err) {
-      notify(errorMessage(err, 'Could not remove item'), 'error')
+      notify(errorMessage(err, t('errors:removeStockItem')), 'error')
     }
   }
 
@@ -124,8 +127,8 @@ export default function Kitchen() {
   return (
     <Box>
       <PageHeader
-        title="Kitchen"
-        subtitle="What you currently have in stock."
+        title={t('title')}
+        subtitle={t('subtitle')}
         action={
           <Button
             variant="contained"
@@ -133,14 +136,14 @@ export default function Kitchen() {
             onClick={openAdd}
             disabled={!isLoading && availableIngredients.length === 0}
           >
-            Add stock
+            {t('addStock')}
           </Button>
         }
       />
 
       {isError && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          {errorMessage(error, 'Failed to load stock')}
+          {errorMessage(error, t('errors:loadStock'))}
         </Alert>
       )}
 
@@ -153,20 +156,18 @@ export default function Kitchen() {
       ) : sortedStock.length === 0 ? (
         <EmptyState
           icon={<KitchenIcon fontSize="inherit" />}
-          title="Your kitchen is empty"
+          title={t('emptyTitle')}
           description={
-            noIngredientsAtAll
-              ? 'Add some ingredients first, then stock them here.'
-              : 'Add ingredients you currently have on hand to track your stock.'
+            noIngredientsAtAll ? t('emptyDescriptionNoIngredients') : t('emptyDescription')
           }
           action={
             noIngredientsAtAll ? (
               <Button component={RouterLink} to="/ingredients" variant="contained">
-                Go to ingredients
+                {t('goToIngredients')}
               </Button>
             ) : (
               <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd}>
-                Add stock
+                {t('addStock')}
               </Button>
             )
           }
@@ -196,12 +197,16 @@ export default function Kitchen() {
                   )}
                 </Box>
                 <Box sx={{ flexShrink: 0 }}>
-                  <IconButton size="small" aria-label="edit" onClick={() => openEdit(item)}>
+                  <IconButton
+                    size="small"
+                    aria-label={t('common:aria.edit')}
+                    onClick={() => openEdit(item)}
+                  >
                     <EditIcon fontSize="small" />
                   </IconButton>
                   <IconButton
                     size="small"
-                    aria-label="delete"
+                    aria-label={t('common:aria.delete')}
                     color="error"
                     onClick={() => setToDelete(item)}
                   >
@@ -217,11 +222,11 @@ export default function Kitchen() {
       {/* Add / edit stock dialog */}
       <Dialog open={dialogOpen} onClose={closeDialog} maxWidth="xs" fullWidth>
         <Box component="form" onSubmit={handleSubmit}>
-          <DialogTitle>{editing ? 'Edit stock' : 'Add to kitchen'}</DialogTitle>
+          <DialogTitle>{editing ? t('editTitle') : t('addTitle')}</DialogTitle>
           <DialogContent>
             {editing ? (
               <TextField
-                label="Ingredient"
+                label={t('ingredient')}
                 fullWidth
                 margin="normal"
                 value={editing.ingredient.name}
@@ -239,7 +244,7 @@ export default function Kitchen() {
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    label="Ingredient"
+                    label={t('ingredient')}
                     required
                     margin="normal"
                     autoFocus
@@ -249,7 +254,7 @@ export default function Kitchen() {
             )}
             <Stack direction="row" spacing={2}>
               <TextField
-                label="Quantity"
+                label={t('quantity')}
                 type="number"
                 required
                 margin="normal"
@@ -258,27 +263,26 @@ export default function Kitchen() {
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
               />
-              <TextField
-                label="Unit"
+              <UnitSelect
+                label={t('unit')}
                 required
                 margin="normal"
                 fullWidth
-                placeholder="g, ml, pcs"
                 value={unit}
-                onChange={(e) => setUnit(e.target.value)}
+                onChange={setUnit}
               />
             </Stack>
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={closeDialog} disabled={saving}>
-              Cancel
+              {t('common:cancel')}
             </Button>
             <Button
               type="submit"
               variant="contained"
               disabled={saving || (!editing && !ingredient) || !quantity || !unit.trim()}
             >
-              {editing ? 'Save changes' : 'Add'}
+              {editing ? t('common:saveChanges') : t('common:add')}
             </Button>
           </DialogActions>
         </Box>
@@ -286,9 +290,9 @@ export default function Kitchen() {
 
       <ConfirmDialog
         open={Boolean(toDelete)}
-        title="Remove from kitchen?"
-        message={`“${toDelete?.ingredient.name}” will be removed from your stock.`}
-        confirmLabel="Remove"
+        title={t('deleteTitle')}
+        message={t('deleteMessage', { name: toDelete?.ingredient.name ?? '' })}
+        confirmLabel={t('common:remove')}
         destructive
         loading={deleteMut.isPending}
         onConfirm={handleDelete}
@@ -297,11 +301,11 @@ export default function Kitchen() {
 
       {availableIngredients.length === 0 && !noIngredientsAtAll && sortedStock.length > 0 && (
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>
-          Every ingredient is already stocked. Add more on the{' '}
+          {t('allStockedPrefix')}
           <Link component={RouterLink} to="/ingredients">
-            ingredients page
-          </Link>{' '}
-          to stock them.
+            {t('ingredientsPageLink')}
+          </Link>
+          {t('allStockedSuffix')}
         </Typography>
       )}
     </Box>

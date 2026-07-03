@@ -1,0 +1,24 @@
+{
+  "title": "Ingredienser",
+  "subtitle": "De byggesten, din husstand laver mad med.",
+  "add": "Tilføj ingrediens",
+  "addFirst": "Tilføj din første ingrediens",
+  "emptyTitle": "Ingen ingredienser endnu",
+  "emptyDescription": "Tilføj de ingredienser, din husstand bruger, så du kan holde styr på lager og bygge opskrifter.",
+  "unitChip": "enhed: {{unit}}",
+  "editTitle": "Rediger ingrediens",
+  "addTitle": "Tilføj ingrediens",
+  "name": "Navn",
+  "category": "Kategori",
+  "categoryPlaceholder": "f.eks. Mejeri, Grønt, Krydderier",
+  "categoryAutoHint": "Kategori tildeles automatisk.",
+  "defaultUnit": "Standardenhed",
+  "defaultUnitPlaceholder": "f.eks. g, ml, stk",
+  "deleteTitle": "Slet ingrediens?",
+  "deleteMessage": "“{{name}}” bliver fjernet. Det kan påvirke lager og opskrifter, der bruger den.",
+  "toast": {
+    "added": "Ingrediens tilføjet",
+    "updated": "Ingrediens opdateret",
+    "deleted": "Ingrediens slettet"
+  }
+}

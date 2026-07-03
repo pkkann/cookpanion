@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Entity\User;
 use App\Repository\IngredientRepository;
 use App\Repository\StockItemRepository;
 use Psr\Log\LoggerInterface;
@@ -56,11 +57,13 @@ class AiController extends AbstractApiController
 
         try {
             $messages = new MessageBag(
-                Message::forSystem('Respond ONLY with a single valid JSON object. No markdown, no code fences, no commentary.'),
+                Message::forSystem('Respond ONLY with a single valid JSON object. No markdown, no code fences, no commentary.'.$this->languageInstruction()),
                 Message::ofUser($userPrompt),
             );
 
-            $result = $this->recipeAgent->call($messages);
+            // The platform defaults max_tokens to 1000, which truncates a 3-recipe
+            // JSON response mid-object; raise it so the JSON can complete.
+            $result = $this->recipeAgent->call($messages, ['max_tokens' => 4096]);
             $content = $result->getContent();
         } catch (\Throwable $e) {
             $this->logger->error('AI recipe suggestion failed', ['exception' => $e]);
@@ -76,6 +79,30 @@ class AiController extends AbstractApiController
         }
 
         return $this->json(['suggestions' => $suggestions]);
+    }
+
+    /**
+     * A system-prompt addendum instructing the model to respond in the user's
+     * chosen language. Empty for English (the schema/prompt are already English).
+     */
+    private function languageInstruction(): string
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        $languages = [
+            'da' => 'Danish',
+        ];
+
+        $language = $languages[$user->getLocale()] ?? null;
+        if (null === $language) {
+            return '';
+        }
+
+        return \sprintf(
+            ' Write every human-readable string value (title, description, instructions, and ingredient names) in %s. Keep all JSON keys exactly as specified in English.',
+            $language,
+        );
     }
 
     /**

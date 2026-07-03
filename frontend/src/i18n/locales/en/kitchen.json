@@ -1,0 +1,25 @@
+{
+  "title": "Kitchen",
+  "subtitle": "What you currently have in stock.",
+  "addStock": "Add stock",
+  "emptyTitle": "Your kitchen is empty",
+  "emptyDescriptionNoIngredients": "Add some ingredients first, then stock them here.",
+  "emptyDescription": "Add ingredients you currently have on hand to track your stock.",
+  "goToIngredients": "Go to ingredients",
+  "editTitle": "Edit stock",
+  "addTitle": "Add to kitchen",
+  "ingredient": "Ingredient",
+  "quantity": "Quantity",
+  "unit": "Unit",
+  "unitPlaceholder": "g, ml, pcs",
+  "deleteTitle": "Remove from kitchen?",
+  "deleteMessage": "“{{name}}” will be removed from your stock.",
+  "allStockedPrefix": "Every ingredient is already stocked. Add more on the ",
+  "ingredientsPageLink": "ingredients page",
+  "allStockedSuffix": " to stock them.",
+  "toast": {
+    "updated": "Stock updated",
+    "added": "Added to kitchen",
+    "removed": "Removed from kitchen"
+  }
+}
