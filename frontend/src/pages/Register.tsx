@@ -6,15 +6,17 @@ import TextField from '@mui/material/TextField'
 import Button from '@mui/material/Button'
 import Alert from '@mui/material/Alert'
 import Link from '@mui/material/Link'
+import Divider from '@mui/material/Divider'
 import Typography from '@mui/material/Typography'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 import { errorMessage } from '../api/client'
 import AuthShell from '../components/AuthShell'
+import GoogleSignInButton, { googleSignInEnabled } from '../auth/GoogleSignInButton'
 
 export default function Register() {
   const { t } = useTranslation(['auth', 'errors'])
-  const { user, register } = useAuth()
+  const { user, register, loginWithGoogle } = useAuth()
   const navigate = useNavigate()
 
   const [name, setName] = useState('')
@@ -40,6 +42,16 @@ export default function Register() {
       setError(errorMessage(err, t('errors:register')))
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleGoogle = async (credential: string) => {
+    setError(null)
+    try {
+      await loginWithGoogle(credential)
+      navigate('/', { replace: true })
+    } catch (err) {
+      setError(errorMessage(err, t('errors:googleSignIn')))
     }
   }
 
@@ -113,6 +125,12 @@ export default function Register() {
           {submitting ? t('register.creatingAccount') : t('register.createAccount')}
         </Button>
       </Box>
+      {googleSignInEnabled && (
+        <>
+          <Divider sx={{ my: 2 }}>{t('social.or')}</Divider>
+          <GoogleSignInButton onCredential={handleGoogle} />
+        </>
+      )}
     </AuthShell>
   )
 }

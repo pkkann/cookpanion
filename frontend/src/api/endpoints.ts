@@ -32,6 +32,11 @@ export async function login(payload: LoginPayload): Promise<AuthResponse> {
   return data
 }
 
+export async function googleAuth(credential: string): Promise<AuthResponse> {
+  const { data } = await api.post<AuthResponse>('/auth/google', { credential })
+  return data
+}
+
 export async function getMe(): Promise<User> {
   const { data } = await api.get<User>('/me')
   return data

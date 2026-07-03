@@ -30,6 +30,16 @@ Body: `{ "email": string, "password": string }`
 Returns `200`: `{ "token": string, "user": User }`
 (Backend may implement login via `json_login`; response includes token + user.)
 
+### POST /auth/google
+Body: `{ "credential": string }` — the Google Identity Services ID token obtained by the
+"Sign in with Google" button in the browser.
+Verifies the token with Google (audience must match the server's `GOOGLE_CLIENT_ID`, email must be
+verified), then signs in. A verified email matching an existing account logs into it (link by email,
+`200`); a new email creates a user + household (`201`). Response body is the same as login/register:
+`{ "token": string, "user": User }`.
+- `401 { "error": "Invalid Google credential" }` if the token is missing/invalid/unverified.
+- `503 { "error": "Google sign-in is not configured." }` if `GOOGLE_CLIENT_ID` is unset.
+
 ### GET /me
 Returns the current user: `{ "id", "email", "name", "locale", "household": { "id", "name" } }`
 

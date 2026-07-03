@@ -6,6 +6,7 @@ use App\Entity\Household;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Service\EntityPresenter;
+use App\Service\GoogleTokenVerifier;
 use Doctrine\ORM\EntityManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -30,6 +31,7 @@ class AuthController extends AbstractController
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly JWTTokenManagerInterface $jwtManager,
         private readonly EntityPresenter $presenter,
+        private readonly GoogleTokenVerifier $googleVerifier,
     ) {
     }
 
@@ -105,6 +107,60 @@ class AuthController extends AbstractController
             'token' => $this->jwtManager->create($user),
             'user' => $this->presenter->user($user),
         ]);
+    }
+
+    /**
+     * Signs in (or signs up) with a Google Identity Services ID token. The
+     * browser obtains the token from the "Sign in with Google" button and posts
+     * it here as `credential`; we verify it with Google, then mint our own JWT.
+     * A verified Google email that matches an existing account logs into it
+     * (link by email); otherwise a new user + household is created.
+     */
+    #[Route('/auth/google', name: 'api_auth_google', methods: ['POST'])]
+    public function googleAuth(Request $request): JsonResponse
+    {
+        if (!$this->googleVerifier->isConfigured()) {
+            return $this->json(['error' => 'Google sign-in is not configured.'], Response::HTTP_SERVICE_UNAVAILABLE);
+        }
+
+        $data = $this->decode($request);
+        if ($data instanceof JsonResponse) {
+            return $data;
+        }
+
+        $credential = (string) ($data['credential'] ?? '');
+        $claims = '' !== $credential ? $this->googleVerifier->verify($credential) : null;
+        if (null === $claims) {
+            return $this->json(['error' => 'Invalid Google credential'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        // Link by verified email: an existing account is signed straight in.
+        $existing = $this->users->findOneBy(['email' => $claims['email']]);
+        if (null !== $existing) {
+            return $this->json([
+                'token' => $this->jwtManager->create($existing),
+                'user' => $this->presenter->user($existing),
+            ]);
+        }
+
+        // First time we've seen this Google email → create a household + user.
+        // The password column is non-nullable but unused for Google accounts, so
+        // store an unguessable random hash.
+        $household = (new Household())->setName($claims['name']);
+        $user = (new User())
+            ->setEmail($claims['email'])
+            ->setName($claims['name'])
+            ->setHousehold($household);
+        $user->setPassword($this->passwordHasher->hashPassword($user, bin2hex(random_bytes(32))));
+
+        $this->em->persist($household);
+        $this->em->persist($user);
+        $this->em->flush();
+
+        return $this->json([
+            'token' => $this->jwtManager->create($user),
+            'user' => $this->presenter->user($user),
+        ], Response::HTTP_CREATED);
     }
 
     #[Route('/me', name: 'api_me', methods: ['GET'])]

@@ -79,6 +79,11 @@ export interface LoginPayload {
   password: string
 }
 
+export interface GoogleAuthPayload {
+  /** The Google Identity Services ID token from the sign-in button. */
+  credential: string
+}
+
 export interface IngredientPayload {
   name: string
   category?: string | null

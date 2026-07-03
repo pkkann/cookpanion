@@ -2,6 +2,7 @@
   "generic": "Noget gik galt",
   "login": "Login mislykkedes. Tjek dine oplysninger.",
   "register": "Registrering mislykkedes. Prøv igen.",
+  "googleSignIn": "Google-login mislykkedes",
   "loadIngredients": "Kunne ikke indlæse ingredienser",
   "saveIngredient": "Kunne ikke gemme ingrediens",
   "deleteIngredient": "Kunne ikke slette ingrediens",

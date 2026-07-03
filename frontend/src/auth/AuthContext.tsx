@@ -1,7 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { clearToken, getToken, setToken } from '../api/client'
-import { getMe, login as loginRequest, register as registerRequest } from '../api/endpoints'
+import {
+  getMe,
+  googleAuth as googleAuthRequest,
+  login as loginRequest,
+  register as registerRequest,
+} from '../api/endpoints'
 import type { LoginPayload, RegisterPayload, User } from '../api/types'
 import i18n from '../i18n'
 import type { Language } from '../i18n/config'
@@ -11,6 +16,7 @@ interface AuthContextValue {
   initializing: boolean
   login: (payload: LoginPayload) => Promise<void>
   register: (payload: RegisterPayload) => Promise<void>
+  loginWithGoogle: (credential: string) => Promise<void>
   logout: () => void
   setUserLocale: (locale: Language) => void
 }
@@ -59,6 +65,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(res.user)
   }
 
+  const loginWithGoogle = async (credential: string) => {
+    const res = await googleAuthRequest(credential)
+    setToken(res.token)
+    setUser(res.user)
+  }
+
   const logout = () => {
     clearToken()
     setUser(null)
@@ -78,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user?.locale])
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, initializing, login, register, logout, setUserLocale }),
+    () => ({ user, initializing, login, register, loginWithGoogle, logout, setUserLocale }),
     [user, initializing, setUserLocale],
   )
 
