@@ -190,7 +190,13 @@ class RecipeController extends AbstractApiController
             $recipe->setDescription((string) $data['description']);
         }
         if (\array_key_exists('instructions', $data)) {
-            $recipe->setInstructions((string) $data['instructions']);
+            $instructions = $data['instructions'];
+            if (\is_array($instructions)) {
+                $recipe->setInstructionSteps(array_map(static fn ($s): string => (string) $s, $instructions));
+            } else {
+                // Tolerate a legacy string body; it is split into steps on read.
+                $recipe->setInstructions((string) $instructions);
+            }
         }
         if (\array_key_exists('servings', $data)) {
             $recipe->setServings(max(1, (int) $data['servings']));

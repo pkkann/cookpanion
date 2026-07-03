@@ -49,7 +49,7 @@ export interface Recipe {
   id: number
   title: string
   description: string
-  instructions: string
+  instructions: string[]
   servings: number
   author: RecipeAuthor
   createdAt: string
@@ -96,7 +96,7 @@ export interface RecipeIngredientPayload {
 export interface RecipePayload {
   title: string
   description: string
-  instructions: string
+  instructions: string[]
   servings: number
   ingredients: RecipeIngredientPayload[]
 }

@@ -50,7 +50,11 @@
     "addIngredient": "Add ingredient",
     "removeIngredient": "remove ingredient",
     "instructions": "Instructions",
-    "instructionsPlaceholder": "Step-by-step method…",
+    "stepPlaceholder": "Describe this step…",
+    "addStep": "Add step",
+    "removeStep": "remove step",
+    "moveStepUp": "move step up",
+    "moveStepDown": "move step down",
     "createRecipe": "Create recipe"
   },
   "detail": {

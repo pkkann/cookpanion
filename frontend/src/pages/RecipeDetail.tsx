@@ -523,13 +523,19 @@ export default function RecipeDetail() {
                 {t('detail.instructions')}
               </Typography>
               <Divider sx={{ mb: 2 }} />
-              <Typography
-                variant="body1"
-                component="div"
-                sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.7 }}
-              >
-                {recipe.instructions || t('detail.noInstructions')}
-              </Typography>
+              {recipe.instructions.length > 0 ? (
+                <Stack component="ol" spacing={1.5} sx={{ m: 0, pl: 3 }}>
+                  {recipe.instructions.map((step, i) => (
+                    <Typography key={i} component="li" variant="body1" sx={{ lineHeight: 1.6 }}>
+                      {step}
+                    </Typography>
+                  ))}
+                </Stack>
+              ) : (
+                <Typography variant="body1" color="text.secondary">
+                  {t('detail.noInstructions')}
+                </Typography>
+              )}
             </Paper>
           </Box>
 

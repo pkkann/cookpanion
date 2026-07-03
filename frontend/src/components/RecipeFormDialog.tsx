@@ -14,6 +14,8 @@ import Typography from '@mui/material/Typography'
 import Divider from '@mui/material/Divider'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/DeleteOutlined'
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import { useCreateRecipe, useIngredients, useUpdateRecipe } from '../api/hooks'
 import UnitSelect from './UnitSelect'
 import { useNotify } from './SnackbarProvider'
@@ -26,6 +28,11 @@ interface RowState {
   ingredient: Ingredient | null
   quantity: string
   unit: string
+}
+
+interface StepState {
+  key: string
+  text: string
 }
 
 interface RecipeFormDialogProps {
@@ -42,6 +49,9 @@ const newRow = (): RowState => ({
   unit: '',
 })
 
+let stepCounter = 0
+const newStep = (text = ''): StepState => ({ key: `step-${stepCounter++}`, text })
+
 export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDialogProps) {
   const { t } = useTranslation(['recipes', 'common', 'errors'])
   const notify = useNotify()
@@ -52,7 +62,7 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [servings, setServings] = useState('4')
-  const [instructions, setInstructions] = useState('')
+  const [steps, setSteps] = useState<StepState[]>([newStep()])
   const [rows, setRows] = useState<RowState[]>([newRow()])
 
   // Reset form whenever the dialog opens for a given recipe (or fresh create).
@@ -62,7 +72,11 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
       setTitle(recipe.title)
       setDescription(recipe.description ?? '')
       setServings(String(recipe.servings ?? 1))
-      setInstructions(recipe.instructions ?? '')
+      setSteps(
+        recipe.instructions.length > 0
+          ? recipe.instructions.map((text) => newStep(text))
+          : [newStep()],
+      )
       setRows(
         recipe.ingredients.length > 0
           ? recipe.ingredients.map((ri) => ({
@@ -77,7 +91,7 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
       setTitle('')
       setDescription('')
       setServings('4')
-      setInstructions('')
+      setSteps([newStep()])
       setRows([newRow()])
     }
   }, [open, recipe])
@@ -89,6 +103,19 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
   const addRow = () => setRows((rs) => [...rs, newRow()])
   const removeRow = (key: string) => setRows((rs) => rs.filter((r) => r.key !== key))
 
+  const updateStep = (key: string, text: string) =>
+    setSteps((ss) => ss.map((s) => (s.key === key ? { ...s, text } : s)))
+  const addStep = () => setSteps((ss) => [...ss, newStep()])
+  const removeStep = (key: string) => setSteps((ss) => ss.filter((s) => s.key !== key))
+  const moveStep = (index: number, dir: -1 | 1) =>
+    setSteps((ss) => {
+      const next = [...ss]
+      const target = index + dir
+      if (target < 0 || target >= next.length) return ss
+      ;[next[index], next[target]] = [next[target], next[index]]
+      return next
+    })
+
   const saving = createMut.isPending || updateMut.isPending
 
   const handleSubmit = async (e: FormEvent) => {
@@ -98,7 +125,7 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
     const payload: RecipePayload = {
       title: title.trim(),
       description: description.trim(),
-      instructions: instructions.trim(),
+      instructions: steps.map((s) => s.text.trim()).filter(Boolean),
       servings: Math.max(1, Math.round(Number(servings) || 1)),
       ingredients: validRows.map((r) => ({
         ingredientId: r.ingredient!.id,
@@ -213,16 +240,56 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
           </Button>
 
           <Divider sx={{ my: 2 }} />
-          <TextField
-            label={t('form.instructions')}
-            fullWidth
-            margin="normal"
-            multiline
-            minRows={5}
-            placeholder={t('form.instructionsPlaceholder')}
-            value={instructions}
-            onChange={(e) => setInstructions(e.target.value)}
-          />
+          <Typography variant="subtitle2" gutterBottom>
+            {t('form.instructions')}
+          </Typography>
+          <Stack spacing={1.5}>
+            {steps.map((step, idx) => (
+              <Stack key={step.key} direction="row" spacing={1} sx={{ alignItems: 'flex-start' }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1.75, minWidth: 20 }}>
+                  {idx + 1}.
+                </Typography>
+                <TextField
+                  sx={{ flex: 1 }}
+                  size="small"
+                  multiline
+                  minRows={2}
+                  placeholder={t('form.stepPlaceholder')}
+                  value={step.text}
+                  onChange={(e) => updateStep(step.key, e.target.value)}
+                />
+                <Stack direction="row">
+                  <IconButton
+                    size="small"
+                    aria-label={t('form.moveStepUp')}
+                    disabled={idx === 0}
+                    onClick={() => moveStep(idx, -1)}
+                  >
+                    <ArrowUpwardIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    aria-label={t('form.moveStepDown')}
+                    disabled={idx === steps.length - 1}
+                    onClick={() => moveStep(idx, 1)}
+                  >
+                    <ArrowDownwardIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    aria-label={t('form.removeStep')}
+                    disabled={steps.length === 1}
+                    onClick={() => removeStep(step.key)}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Stack>
+              </Stack>
+            ))}
+          </Stack>
+          <Button startIcon={<AddIcon />} onClick={addStep} sx={{ mt: 1.5 }} size="small">
+            {t('form.addStep')}
+          </Button>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={onClose} disabled={saving}>

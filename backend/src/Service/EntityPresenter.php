@@ -79,7 +79,7 @@ final class EntityPresenter
             'id' => $recipe->getId(),
             'title' => $recipe->getTitle(),
             'description' => $recipe->getDescription(),
-            'instructions' => $recipe->getInstructions(),
+            'instructions' => $recipe->getInstructionSteps(),
             'servings' => $recipe->getServings(),
             'author' => [
                 'id' => $author?->getId(),

@@ -73,7 +73,7 @@ Recipe request body:
 {
   "title": "string",
   "description": "string",
-  "instructions": "string",
+  "instructions": ["step one", "step two"],
   "servings": 4,
   "ingredients": [
     { "ingredientId": 1, "quantity": 200, "unit": "g" }
@@ -87,7 +87,7 @@ Recipe request body:
   "id": 1,
   "title": "string",
   "description": "string",
-  "instructions": "string",
+  "instructions": ["step one", "step two"],
   "servings": 4,
   "author": { "id": 1, "name": "string" },
   "createdAt": "2026-07-02T12:00:00+00:00",

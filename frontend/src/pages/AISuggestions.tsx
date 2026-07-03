@@ -30,6 +30,7 @@ import { useIngredients } from '../api/hooks'
 import { queryKeys } from '../api/hooks'
 import { createIngredient, createRecipe, suggestRecipes } from '../api/endpoints'
 import { errorMessage, errorStatus } from '../api/client'
+import { splitInstructions } from '../utils/instructions'
 import type {
   Ingredient,
   RecipeIngredientPayload,
@@ -114,7 +115,7 @@ export default function AISuggestions() {
       await createRecipe({
         title: suggestion.title,
         description: suggestion.description,
-        instructions: suggestion.instructions,
+        instructions: splitInstructions(suggestion.instructions),
         servings: suggestion.servings,
         ingredients: recipeIngredients,
       })
@@ -291,13 +292,19 @@ export default function AISuggestions() {
                 <Typography variant="subtitle2" gutterBottom>
                   {t('instructions')}
                 </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}
-                >
-                  {s.instructions}
-                </Typography>
+                <Stack component="ol" spacing={0.75} sx={{ m: 0, pl: 2.5 }}>
+                  {splitInstructions(s.instructions).map((step, si) => (
+                    <Typography
+                      key={si}
+                      component="li"
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ lineHeight: 1.6 }}
+                    >
+                      {step}
+                    </Typography>
+                  ))}
+                </Stack>
               </CardContent>
               <CardActions sx={{ px: 2, pb: 2 }}>
                 <Button

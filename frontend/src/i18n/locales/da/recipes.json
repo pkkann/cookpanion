@@ -50,7 +50,11 @@
     "addIngredient": "Tilføj ingrediens",
     "removeIngredient": "fjern ingrediens",
     "instructions": "Fremgangsmåde",
-    "instructionsPlaceholder": "Trin-for-trin fremgangsmåde…",
+    "stepPlaceholder": "Beskriv dette trin…",
+    "addStep": "Tilføj trin",
+    "removeStep": "fjern trin",
+    "moveStepUp": "flyt trin op",
+    "moveStepDown": "flyt trin ned",
     "createRecipe": "Opret opskrift"
   },
   "detail": {

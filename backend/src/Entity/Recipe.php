@@ -91,6 +91,72 @@ class Recipe
         return $this;
     }
 
+    /**
+     * Instructions exposed as an ordered list of steps. Stored newline-joined in
+     * the underlying text column.
+     *
+     * @return list<string>
+     */
+    public function getInstructionSteps(): array
+    {
+        return self::splitSteps($this->instructions);
+    }
+
+    /**
+     * @param list<string> $steps
+     */
+    public function setInstructionSteps(array $steps): static
+    {
+        $clean = [];
+        foreach ($steps as $step) {
+            $step = trim((string) $step);
+            if ('' !== $step) {
+                $clean[] = $step;
+            }
+        }
+        $this->instructions = implode("\n", $clean);
+
+        return $this;
+    }
+
+    /**
+     * Splits stored instructions into steps. Prefers explicit line breaks; falls
+     * back to inline "1. " / "2) " numbering so legacy single-line recipes still
+     * render as multiple steps. Any leading marker is stripped.
+     *
+     * @return list<string>
+     */
+    private static function splitSteps(string $text): array
+    {
+        $text = trim($text);
+        if ('' === $text) {
+            return [];
+        }
+
+        $byLines = array_values(array_filter(
+            array_map(static fn (string $l): string => self::stripMarker(trim($l)), preg_split('/\r?\n+/', $text) ?: []),
+            static fn (string $l): bool => '' !== $l,
+        ));
+        if (\count($byLines) > 1) {
+            return $byLines;
+        }
+
+        $byNumbers = array_values(array_filter(
+            array_map('trim', preg_split('/\s*\d+[.)]\s+/', $text) ?: []),
+            static fn (string $s): bool => '' !== $s,
+        ));
+        if (\count($byNumbers) > 1) {
+            return $byNumbers;
+        }
+
+        return [self::stripMarker($text)];
+    }
+
+    private static function stripMarker(string $line): string
+    {
+        return trim(preg_replace('/^\s*\d+[.)]\s+/', '', $line) ?? $line);
+    }
+
     public function getServings(): int
     {
         return $this->servings;
