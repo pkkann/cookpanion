@@ -101,6 +101,15 @@ export interface RecipePayload {
   ingredients: RecipeIngredientPayload[]
 }
 
+export interface CookItem {
+  ingredientId: number
+  quantity: number
+}
+
+export interface CookPayload {
+  items: CookItem[]
+}
+
 // ---- AI suggestions ----
 
 export type SuggestMode = 'kitchen' | 'all'

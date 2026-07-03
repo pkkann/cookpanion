@@ -19,7 +19,22 @@
     "updated": "Opskrift opdateret",
     "deleted": "Opskrift slettet",
     "addedToKitchen": "Tilføjede {{name}} til køkkenet",
-    "addedAllToKitchen": "Tilføjede manglende ingredienser til køkkenet"
+    "addedAllToKitchen": "Tilføjede manglende ingredienser til køkkenet",
+    "cooked": "Køkken opdateret"
+  },
+  "cook": {
+    "button": "Lav denne",
+    "title": "Lav \"{{title}}\"",
+    "servings": "{{count}} portioner",
+    "have": "På lager: {{amount}}",
+    "use": "Brug",
+    "left": "Tilbage: {{amount}}",
+    "unitDiffers": "Enhed er forskellig — springes over",
+    "notInKitchen": "Ikke i køkkenet — springes over",
+    "shortWarning": "Ikke nok af: {{list}} — lageret falder til 0.",
+    "skippedWarning": "Sprunget over (enhed passer ikke eller ikke i køkkenet): {{list}}",
+    "nothingToDeduct": "Ingen køkkeningredienser at trække fra.",
+    "confirm": "Lav den"
   },
   "form": {
     "editTitle": "Rediger opskrift",

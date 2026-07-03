@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import * as api from './endpoints'
 import type {
+  CookPayload,
   IngredientPayload,
   RecipePayload,
   StockCreatePayload,
@@ -118,5 +119,14 @@ export function useDeleteRecipe() {
   return useMutation({
     mutationFn: (id: number) => api.deleteRecipe(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.recipes }),
+  })
+}
+
+export function useCookRecipe() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: CookPayload }) =>
+      api.cookRecipe(id, payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.stock }),
   })
 }

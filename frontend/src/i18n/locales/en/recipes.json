@@ -19,7 +19,22 @@
     "updated": "Recipe updated",
     "deleted": "Recipe deleted",
     "addedToKitchen": "Added {{name}} to kitchen",
-    "addedAllToKitchen": "Added missing ingredients to kitchen"
+    "addedAllToKitchen": "Added missing ingredients to kitchen",
+    "cooked": "Kitchen updated"
+  },
+  "cook": {
+    "button": "Cook this",
+    "title": "Cook \"{{title}}\"",
+    "servings": "{{count}} servings",
+    "have": "In kitchen: {{amount}}",
+    "use": "Use",
+    "left": "Left: {{amount}}",
+    "unitDiffers": "Unit differs — skipped",
+    "notInKitchen": "Not in kitchen — skipped",
+    "shortWarning": "Not enough of: {{list}} — stock will drop to 0.",
+    "skippedWarning": "Skipped (unit mismatch or not in kitchen): {{list}}",
+    "nothingToDeduct": "No kitchen ingredients to deduct.",
+    "confirm": "Cook it"
   },
   "form": {
     "editTitle": "Edit recipe",

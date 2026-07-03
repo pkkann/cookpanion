@@ -65,6 +65,8 @@ Returns `200` with the updated `User`. An unsupported locale returns `400`
 - `GET /recipes/{id}` → `Recipe`
 - `PUT /recipes/{id}` → `Recipe`
 - `DELETE /recipes/{id}` → `204`
+- `POST /recipes/{id}/cook` body `{ "items": [ { "ingredientId": int, "quantity": number } ] }` → `StockItem[]` (updated stock)
+  - Deducts each amount from the household's matching stock row in one transaction. Quantities are floored at 0 (never negative); rows that reach 0 are kept. Ingredients with no stock row are skipped. Returns the full updated stock list.
 
 Recipe request body:
 ```json

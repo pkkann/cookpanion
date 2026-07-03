@@ -1,6 +1,7 @@
 import { api } from './client'
 import type {
   AuthResponse,
+  CookPayload,
   Ingredient,
   IngredientPayload,
   LoginPayload,
@@ -103,6 +104,11 @@ export async function updateRecipe(id: number, payload: RecipePayload): Promise<
 
 export async function deleteRecipe(id: number): Promise<void> {
   await api.delete(`/recipes/${id}`)
+}
+
+export async function cookRecipe(id: number, payload: CookPayload): Promise<StockItem[]> {
+  const { data } = await api.post<StockItem[]>(`/recipes/${id}/cook`, payload)
+  return data
 }
 
 // ---- AI suggestions ----

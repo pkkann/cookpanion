@@ -23,12 +23,15 @@ import AddIcon from '@mui/icons-material/Add'
 import RemoveIcon from '@mui/icons-material/Remove'
 import RestartAltIcon from '@mui/icons-material/RestartAlt'
 import PeopleIcon from '@mui/icons-material/People'
+import RestaurantIcon from '@mui/icons-material/Restaurant'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import CancelIcon from '@mui/icons-material/Cancel'
 import HelpOutlinedIcon from '@mui/icons-material/HelpOutlined'
 import ConfirmDialog from '../components/ConfirmDialog'
 import RecipeFormDialog from '../components/RecipeFormDialog'
+import CookDialog from '../components/CookDialog'
+import type { CookRow } from '../components/CookDialog'
 import { useNotify } from '../components/SnackbarProvider'
 import { useCreateStock, useDeleteRecipe, useRecipe, useStock, useUpdateStock } from '../api/hooks'
 import { errorMessage } from '../api/client'
@@ -104,6 +107,7 @@ export default function RecipeDetail() {
 
   const [editOpen, setEditOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [cookOpen, setCookOpen] = useState(false)
 
   // Live, view-only servings scaling. Defaults to the recipe's stored servings.
   const baseServings = recipe?.servings ?? 0
@@ -161,6 +165,20 @@ export default function RecipeDetail() {
   }, [availabilities])
 
   const stockReady = !stockLoading && !stockError
+
+  const cookRows = useMemo<CookRow[]>(
+    () =>
+      availabilities.map((a) => ({
+        ingredientId: a.ri.ingredient.id,
+        name: a.ri.ingredient.name,
+        unit: a.ri.unit,
+        needed: a.needed,
+        have: a.have,
+        haveUnit: a.haveUnit,
+        status: a.status,
+      })),
+    [availabilities],
+  )
 
   const createStock = useCreateStock()
   const updateStock = useUpdateStock()
@@ -268,6 +286,14 @@ export default function RecipeDetail() {
               </Stack>
             </Box>
             <Stack direction="row" spacing={1}>
+              <Button
+                variant="contained"
+                startIcon={<RestaurantIcon />}
+                disabled={!stockReady || recipe.ingredients.length === 0}
+                onClick={() => setCookOpen(true)}
+              >
+                {t('cook.button')}
+              </Button>
               <Button variant="outlined" startIcon={<EditIcon />} onClick={() => setEditOpen(true)}>
                 {t('common:edit')}
               </Button>
@@ -508,6 +534,14 @@ export default function RecipeDetail() {
           </Box>
 
           <RecipeFormDialog open={editOpen} recipe={recipe} onClose={() => setEditOpen(false)} />
+          <CookDialog
+            open={cookOpen}
+            onClose={() => setCookOpen(false)}
+            recipeId={recipe.id}
+            recipeTitle={recipe.title}
+            servings={chosenServings}
+            rows={cookRows}
+          />
           <ConfirmDialog
             open={confirmOpen}
             title={t('deleteTitle')}
