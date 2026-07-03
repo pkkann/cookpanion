@@ -1,0 +1,38 @@
+{
+  "title": "Meal plan",
+  "subtitle": "Plan what to cook and see what you need to buy.",
+  "planMeal": "Plan a meal",
+  "emptyTitle": "Nothing planned yet",
+  "emptyDescription": "Plan a recipe for a day to start building your shopping list.",
+  "today": "Today",
+  "tomorrow": "Tomorrow",
+  "addTitle": "Plan a meal",
+  "editTitle": "Edit planned meal",
+  "recipe": "Recipe",
+  "date": "Date",
+  "servings": "Servings",
+  "recipeServes": "This recipe serves {{count}}.",
+  "noRecipes": "You have no recipes yet. Create one first.",
+  "servingsChip_one": "{{count}} serving",
+  "servingsChip_other": "{{count}} servings",
+  "deleteTitle": "Remove from plan?",
+  "deleteMessage": "“{{title}}” on {{date}} will be removed from your plan.",
+  "shoppingTitle": "To buy for this plan",
+  "shoppingSubtitle": "Across your upcoming meals, minus what's already in your kitchen.",
+  "nothingToBuy": "You have everything you need for your planned meals.",
+  "addToKitchen": "Add to kitchen",
+  "addAllToKitchen": "Add all to kitchen",
+  "checkManually": "Check manually (unit differs from your kitchen): {{list}}",
+  "uncategorized": "Other",
+  "aria": {
+    "decreaseServings": "decrease servings",
+    "increaseServings": "increase servings"
+  },
+  "toast": {
+    "planned": "Added to your plan",
+    "updated": "Plan updated",
+    "removed": "Removed from plan",
+    "addedToKitchen": "Added {{name}} to your kitchen",
+    "addedAllToKitchen": "Added everything to your kitchen"
+  }
+}

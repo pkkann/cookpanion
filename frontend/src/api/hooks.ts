@@ -3,6 +3,8 @@ import * as api from './endpoints'
 import type {
   CookPayload,
   IngredientPayload,
+  PlannedMealCreatePayload,
+  PlannedMealUpdatePayload,
   RecipePayload,
   StockCreatePayload,
   StockUpdatePayload,
@@ -13,6 +15,7 @@ export const queryKeys = {
   stock: ['stock'] as const,
   recipes: ['recipes'] as const,
   recipe: (id: number) => ['recipes', id] as const,
+  plannedMeals: ['plannedMeals'] as const,
 }
 
 // ---- Ingredients ----
@@ -127,7 +130,11 @@ export function useCookRecipe() {
   return useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: CookPayload }) =>
       api.cookRecipe(id, payload),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.stock }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.stock })
+      // Cooking removes the recipe's next planned meal server-side.
+      qc.invalidateQueries({ queryKey: queryKeys.plannedMeals })
+    },
   })
 }
 
@@ -135,5 +142,35 @@ export function useTranslateRecipe() {
   return useMutation({
     mutationFn: ({ id, locale }: { id: number; locale: string }) =>
       api.translateRecipe(id, locale),
+  })
+}
+
+// ---- Meal plan ----
+export function usePlannedMeals() {
+  return useQuery({ queryKey: queryKeys.plannedMeals, queryFn: api.listPlannedMeals })
+}
+
+export function useCreatePlannedMeal() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: PlannedMealCreatePayload) => api.createPlannedMeal(payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.plannedMeals }),
+  })
+}
+
+export function useUpdatePlannedMeal() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: PlannedMealUpdatePayload }) =>
+      api.updatePlannedMeal(id, payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.plannedMeals }),
+  })
+}
+
+export function useDeletePlannedMeal() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.deletePlannedMeal(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.plannedMeals }),
   })
 }

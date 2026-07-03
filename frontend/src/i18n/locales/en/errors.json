@@ -12,5 +12,8 @@
   "loadRecipe": "Failed to load recipe",
   "saveRecipe": "Could not save recipe",
   "deleteRecipe": "Could not delete recipe",
+  "loadPlannedMeals": "Failed to load your plan",
+  "savePlannedMeal": "Could not save planned meal",
+  "removePlannedMeal": "Could not remove planned meal",
   "suggestions": "Could not get suggestions"
 }

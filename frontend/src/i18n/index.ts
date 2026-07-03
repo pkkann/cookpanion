@@ -12,6 +12,7 @@ import enIngredients from './locales/en/ingredients.json'
 import enKitchen from './locales/en/kitchen.json'
 import enRecipes from './locales/en/recipes.json'
 import enSuggestions from './locales/en/suggestions.json'
+import enPlan from './locales/en/plan.json'
 
 import daCommon from './locales/da/common.json'
 import daNav from './locales/da/nav.json'
@@ -22,6 +23,7 @@ import daIngredients from './locales/da/ingredients.json'
 import daKitchen from './locales/da/kitchen.json'
 import daRecipes from './locales/da/recipes.json'
 import daSuggestions from './locales/da/suggestions.json'
+import daPlan from './locales/da/plan.json'
 
 export const defaultNS = 'common'
 
@@ -36,6 +38,7 @@ export const resources = {
     kitchen: enKitchen,
     recipes: enRecipes,
     suggestions: enSuggestions,
+    plan: enPlan,
   },
   da: {
     common: daCommon,
@@ -47,6 +50,7 @@ export const resources = {
     kitchen: daKitchen,
     recipes: daRecipes,
     suggestions: daSuggestions,
+    plan: daPlan,
   },
 } as const
 

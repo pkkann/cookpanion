@@ -6,15 +6,20 @@ import Typography from '@mui/material/Typography'
 import Card from '@mui/material/Card'
 import CardActionArea from '@mui/material/CardActionArea'
 import CardContent from '@mui/material/CardContent'
+import Chip from '@mui/material/Chip'
+import Stack from '@mui/material/Stack'
 import Skeleton from '@mui/material/Skeleton'
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
 import KitchenIcon from '@mui/icons-material/Kitchen'
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu'
 import LocalDiningIcon from '@mui/icons-material/LocalDining'
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
-import { useIngredients, useRecipes, useStock } from '../api/hooks'
+import { useIngredients, usePlannedMeals, useRecipes, useStock } from '../api/hooks'
+import { formatWeekdayDate, todayIso } from '../utils/date'
+import { planShoppingList } from '../utils/planShoppingList'
 
 interface StatCardProps {
   label: string
@@ -61,14 +66,23 @@ function StatCard({ label, value, loading, icon, to }: StatCardProps) {
 }
 
 export default function Dashboard() {
-  const { t } = useTranslation('dashboard')
+  const { t, i18n } = useTranslation('dashboard')
   const navigate = useNavigate()
   const { user } = useAuth()
   const ingredients = useIngredients()
   const stock = useStock()
   const recipes = useRecipes()
+  const plannedMeals = usePlannedMeals()
 
   const firstName = user?.name?.split(' ')[0] ?? t('fallbackName')
+
+  // "The plan" is simply any upcoming planned meals — highlight it when present.
+  const today = todayIso()
+  const upcomingMeals = (plannedMeals.data ?? [])
+    .filter((m) => m.date >= today)
+    .sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id)
+  const nextMeals = upcomingMeals.slice(0, 3)
+  const buyCount = planShoppingList(plannedMeals.data ?? [], stock.data ?? []).toBuy.length
 
   return (
     <Box>
@@ -116,12 +130,54 @@ export default function Dashboard() {
         </Button>
       </Paper>
 
+      {/* Meal plan highlight — shown whenever there are upcoming planned meals */}
+      {upcomingMeals.length > 0 && (
+        <Paper
+          variant="outlined"
+          sx={{
+            p: { xs: 2.5, md: 3 },
+            mb: 4,
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 2,
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderColor: 'primary.main',
+          }}
+        >
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CalendarMonthIcon fontSize="small" color="primary" /> {t('planTitle')}
+            </Typography>
+            <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap', mt: 1 }}>
+              {nextMeals.map((m) => (
+                <Chip
+                  key={m.id}
+                  size="small"
+                  label={`${formatWeekdayDate(m.date, i18n.language)} · ${m.recipe.title}`}
+                />
+              ))}
+            </Stack>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              {buyCount > 0 ? t('planToBuy', { count: buyCount }) : t('planAllStocked')}
+            </Typography>
+          </Box>
+          <Button
+            variant="contained"
+            startIcon={<CalendarMonthIcon />}
+            onClick={() => navigate('/plan')}
+          >
+            {t('viewPlan')}
+          </Button>
+        </Paper>
+      )}
+
       {/* Stats */}
       <Box
         sx={{
           display: 'grid',
           gap: 2,
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
           mb: 4,
         }}
       >
@@ -145,6 +201,13 @@ export default function Dashboard() {
           loading={recipes.isLoading}
           icon={<RestaurantMenuIcon />}
           to="/recipes"
+        />
+        <StatCard
+          label={t('statPlanned')}
+          value={upcomingMeals.length}
+          loading={plannedMeals.isLoading}
+          icon={<CalendarMonthIcon />}
+          to="/plan"
         />
       </Box>
 

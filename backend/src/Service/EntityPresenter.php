@@ -3,6 +3,7 @@
 namespace App\Service;
 
 use App\Entity\Ingredient;
+use App\Entity\PlannedMeal;
 use App\Entity\Recipe;
 use App\Entity\StockItem;
 use App\Entity\User;
@@ -87,6 +88,21 @@ final class EntityPresenter
             ],
             'createdAt' => $recipe->getCreatedAt()->format(\DateTimeInterface::ATOM),
             'ingredients' => $ingredients,
+        ];
+    }
+
+    /**
+     * A planned meal embeds the full recipe so the SPA can aggregate a
+     * shopping list across the plan client-side. `date` is date-only.
+     */
+    public function plannedMeal(PlannedMeal $meal): array
+    {
+        return [
+            'id' => $meal->getId(),
+            'date' => $meal->getDate()->format('Y-m-d'),
+            'servings' => $meal->getServings(),
+            'recipe' => $this->recipe($meal->getRecipe()),
+            'createdAt' => $meal->getCreatedAt()->format(\DateTimeInterface::ATOM),
         ];
     }
 }

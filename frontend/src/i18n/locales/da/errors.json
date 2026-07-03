@@ -12,5 +12,8 @@
   "loadRecipe": "Kunne ikke indlæse opskrift",
   "saveRecipe": "Kunne ikke gemme opskrift",
   "deleteRecipe": "Kunne ikke slette opskrift",
+  "loadPlannedMeals": "Kunne ikke indlæse din plan",
+  "savePlannedMeal": "Kunne ikke gemme planlagt måltid",
+  "removePlannedMeal": "Kunne ikke fjerne planlagt måltid",
   "suggestions": "Kunne ikke hente forslag"
 }

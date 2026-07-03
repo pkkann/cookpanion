@@ -50,6 +50,7 @@ import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { formatQuantity, scaleQuantity } from '../utils/quantity'
 import { computeAvailability } from '../utils/availability'
+import { addToStock } from '../utils/stock'
 import { useIsMobile } from '../utils/useIsMobile'
 import type { Availability } from '../utils/availability'
 import type { RecipeIngredient, RecipeTranslation, StockItem } from '../api/types'
@@ -245,26 +246,12 @@ export default function RecipeDetail() {
   // row already exists we top it up by the shortfall; otherwise we create one in
   // the recipe's unit.
   type ToBuy = (typeof summary.toBuy)[number]
-  const addOne = async (item: ToBuy) => {
-    const existing = stockById.get(item.ingredientId)
-    if (existing && existing.quantity > 0) {
-      await updateStock.mutateAsync({
-        id: existing.id,
-        payload: { quantity: existing.quantity + item.shortfall, unit: existing.unit },
-      })
-    } else if (existing) {
-      await updateStock.mutateAsync({
-        id: existing.id,
-        payload: { quantity: item.shortfall, unit: item.unit },
-      })
-    } else {
-      await createStock.mutateAsync({
-        ingredientId: item.ingredientId,
-        quantity: item.shortfall,
-        unit: item.unit,
-      })
-    }
-  }
+  const addOne = (item: ToBuy) =>
+    addToStock(
+      { ingredientId: item.ingredientId, quantity: item.shortfall, unit: item.unit },
+      stockById,
+      { createStock: createStock.mutateAsync, updateStock: updateStock.mutateAsync },
+    )
 
   const handleAddToKitchen = async (item: ToBuy) => {
     try {

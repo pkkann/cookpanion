@@ -6,6 +6,9 @@ import type {
   Ingredient,
   IngredientPayload,
   LoginPayload,
+  PlannedMeal,
+  PlannedMealCreatePayload,
+  PlannedMealUpdatePayload,
   Recipe,
   RecipePayload,
   RegisterPayload,
@@ -115,6 +118,29 @@ export async function cookRecipe(id: number, payload: CookPayload): Promise<Stoc
 export async function translateRecipe(id: number, locale: string): Promise<RecipeTranslation> {
   const { data } = await api.post<RecipeTranslation>(`/recipes/${id}/translate`, { locale })
   return data
+}
+
+// ---- Meal plan (planned meals) ----
+export async function listPlannedMeals(): Promise<PlannedMeal[]> {
+  const { data } = await api.get<PlannedMeal[]>('/planned-meals')
+  return data
+}
+
+export async function createPlannedMeal(payload: PlannedMealCreatePayload): Promise<PlannedMeal> {
+  const { data } = await api.post<PlannedMeal>('/planned-meals', payload)
+  return data
+}
+
+export async function updatePlannedMeal(
+  id: number,
+  payload: PlannedMealUpdatePayload,
+): Promise<PlannedMeal> {
+  const { data } = await api.put<PlannedMeal>(`/planned-meals/${id}`, payload)
+  return data
+}
+
+export async function deletePlannedMeal(id: number): Promise<void> {
+  await api.delete(`/planned-meals/${id}`)
 }
 
 // ---- AI suggestions ----

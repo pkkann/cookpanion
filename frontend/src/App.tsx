@@ -10,6 +10,7 @@ import Kitchen from './pages/Kitchen'
 import Recipes from './pages/Recipes'
 import RecipeDetail from './pages/RecipeDetail'
 import AISuggestions from './pages/AISuggestions'
+import Plan from './pages/Plan'
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
               <Route path="/kitchen" element={<Kitchen />} />
               <Route path="/recipes" element={<Recipes />} />
               <Route path="/recipes/:id" element={<RecipeDetail />} />
+              <Route path="/plan" element={<Plan />} />
               <Route path="/suggestions" element={<AISuggestions />} />
             </Route>
           </Route>

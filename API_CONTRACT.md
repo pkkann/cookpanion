@@ -67,6 +67,7 @@ Returns `200` with the updated `User`. An unsupported locale returns `400`
 - `DELETE /recipes/{id}` → `204`
 - `POST /recipes/{id}/cook` body `{ "items": [ { "ingredientId": int, "quantity": number } ] }` → `StockItem[]` (updated stock)
   - Deducts each amount from the household's matching stock row in one transaction. Quantities are floored at 0 (never negative); rows that reach 0 are kept. Ingredients with no stock row are skipped. Returns the full updated stock list.
+  - Side effect: also removes the recipe's **next upcoming** planned meal (soonest date ≥ today) from the plan, if any. Only that one occurrence is removed; other planned days for the recipe are kept.
 - `POST /recipes/{id}/translate` body `{ "locale": "en" | "da" }` (defaults to the user's locale) → `RecipeTranslation`
   - Translates the recipe's title, description, instructions, and ingredient names into the locale (display-only; ingredient identity/units unchanged). Cached on the recipe per locale and returned from cache thereafter; the cache is cleared when the recipe is edited. `503` if AI isn't configured, `502` on translation failure.
   - `RecipeTranslation` shape: `{ "title": string, "description": string, "instructions": string[], "ingredientNames": { "<ingredientId>": string } }`
@@ -99,6 +100,35 @@ Recipe request body:
   ]
 }
 ```
+
+## Meal plan  `/api/planned-meals`
+
+A **PlannedMeal** assigns a recipe to a date with a servings count. There is no "plan" resource —
+the collection of a household's planned meals *is* the plan.
+
+- `GET /planned-meals` → `PlannedMeal[]` (ascending by date). Each embeds the **full** recipe so the
+  SPA can aggregate a shopping list client-side.
+- `POST /planned-meals` body `{ "recipeId": int, "date": "YYYY-MM-DD", "servings"?: int }` → `201 PlannedMeal`
+  - `servings` defaults to the recipe's own servings when omitted; coerced to `>= 1`.
+  - `date` must be a strict `YYYY-MM-DD` (else `400`); `recipeId` must resolve to a household recipe
+    (else `404`).
+- `PUT /planned-meals/{id}` body `{ "date"?: "YYYY-MM-DD", "servings"?: int }` → `PlannedMeal`
+  (move a meal to another day / change its servings).
+- `DELETE /planned-meals/{id}` → `204`
+
+`PlannedMeal` shape:
+```json
+{
+  "id": 1,
+  "date": "2026-07-06",
+  "servings": 6,
+  "recipe": { "id": 1, "title": "…", "…": "full Recipe shape (incl. ingredients)" },
+  "createdAt": "2026-07-03T12:00:00+00:00"
+}
+```
+
+The "what to buy for the plan" shopping list is computed **client-side** from planned meals (from
+today onward) minus current stock — there is no server-side aggregation endpoint.
 
 ## AI recipe suggestions  `/api/ai/suggest-recipes`
 

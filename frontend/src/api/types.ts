@@ -56,6 +56,15 @@ export interface Recipe {
   ingredients: RecipeIngredient[]
 }
 
+export interface PlannedMeal {
+  id: number
+  /** Date-only ISO string, `YYYY-MM-DD`. */
+  date: string
+  servings: number
+  recipe: Recipe
+  createdAt: string
+}
+
 // ---- Request payloads ----
 
 export interface RegisterPayload {
@@ -104,6 +113,18 @@ export interface RecipePayload {
 export interface CookItem {
   ingredientId: number
   quantity: number
+}
+
+export interface PlannedMealCreatePayload {
+  recipeId: number
+  /** Date-only ISO string, `YYYY-MM-DD`. */
+  date: string
+  servings: number
+}
+
+export interface PlannedMealUpdatePayload {
+  date?: string
+  servings?: number
 }
 
 export interface RecipeTranslation {

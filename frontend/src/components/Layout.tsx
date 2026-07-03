@@ -22,6 +22,7 @@ import MenuIcon from '@mui/icons-material/Menu'
 import DashboardIcon from '@mui/icons-material/Dashboard'
 import KitchenIcon from '@mui/icons-material/Kitchen'
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu'
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
 import LocalDiningIcon from '@mui/icons-material/LocalDining'
 import LogoutIcon from '@mui/icons-material/Logout'
@@ -33,7 +34,7 @@ import LanguageSwitcher from '../i18n/LanguageSwitcher'
 const DRAWER_WIDTH = 248
 
 interface NavItem {
-  titleKey: 'dashboard' | 'ingredients' | 'kitchen' | 'recipes' | 'suggestions'
+  titleKey: 'dashboard' | 'ingredients' | 'kitchen' | 'recipes' | 'plan' | 'suggestions'
   path: string
   icon: React.ReactNode
 }
@@ -43,6 +44,7 @@ const NAV_ITEMS: NavItem[] = [
   { titleKey: 'ingredients', path: '/ingredients', icon: <LocalDiningIcon /> },
   { titleKey: 'kitchen', path: '/kitchen', icon: <KitchenIcon /> },
   { titleKey: 'recipes', path: '/recipes', icon: <RestaurantMenuIcon /> },
+  { titleKey: 'plan', path: '/plan', icon: <CalendarMonthIcon /> },
   { titleKey: 'suggestions', path: '/suggestions', icon: <AutoAwesomeIcon /> },
 ]
 

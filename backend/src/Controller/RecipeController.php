@@ -6,6 +6,7 @@ use App\Entity\Recipe;
 use App\Entity\RecipeIngredient;
 use App\Entity\User;
 use App\Repository\IngredientRepository;
+use App\Repository\PlannedMealRepository;
 use App\Repository\RecipeRepository;
 use App\Repository\StockItemRepository;
 use App\Service\EntityPresenter;
@@ -24,6 +25,7 @@ class RecipeController extends AbstractApiController
         private readonly RecipeRepository $recipes,
         private readonly IngredientRepository $ingredients,
         private readonly StockItemRepository $stock,
+        private readonly PlannedMealRepository $plannedMeals,
         private readonly EntityPresenter $presenter,
         private readonly RecipeTranslator $translator,
     ) {
@@ -174,7 +176,8 @@ class RecipeController extends AbstractApiController
      * Deducts the given amounts from the household's kitchen stock ("cooking" the
      * recipe). All deductions are applied in a single flush; quantities are floored
      * at zero (never negative) and stock rows that reach zero are kept. Ingredients
-     * with no stock row are silently skipped. Returns the updated stock list.
+     * with no stock row are silently skipped. Cooking also removes the recipe's next
+     * upcoming planned meal from the plan (if any). Returns the updated stock list.
      */
     #[Route('/{id}/cook', name: 'api_recipes_cook', methods: ['POST'], requirements: ['id' => '\d+'])]
     public function cook(int $id, Request $request): JsonResponse
@@ -218,6 +221,20 @@ class RecipeController extends AbstractApiController
             }
 
             $stock->setQuantity(max(0.0, $stock->getQuantity() - $quantity));
+        }
+
+        // Cooking the recipe crosses off its next upcoming planned meal (today or
+        // later). Only the soonest occurrence is removed; other planned days stay.
+        $today = new \DateTimeImmutable('today');
+        $planned = $this->plannedMeals->findBy(
+            ['recipe' => $recipe, 'household' => $household],
+            ['date' => 'ASC', 'id' => 'ASC'],
+        );
+        foreach ($planned as $meal) {
+            if ($meal->getDate() >= $today) {
+                $this->em->remove($meal);
+                break;
+            }
         }
 
         $this->em->flush();
