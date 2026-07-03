@@ -1,0 +1,11 @@
+ai:
+    platform:
+        anthropic:
+            api_key: '%env(ANTHROPIC_API_KEY)%'
+
+    agent:
+        recipe:
+            platform: 'ai.platform.anthropic'
+            model: '%env(AI_MODEL)%'
+            prompt:
+                text: 'You are a helpful kitchen assistant that proposes practical recipes from a given list of available ingredients. Always respect dietary preferences and quantity limits. Respond ONLY with valid JSON matching the requested schema.'

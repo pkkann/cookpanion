@@ -1,0 +1,184 @@
+<?php
+
+namespace App\Controller;
+
+use App\Entity\Recipe;
+use App\Entity\RecipeIngredient;
+use App\Entity\User;
+use App\Repository\IngredientRepository;
+use App\Repository\RecipeRepository;
+use App\Service\EntityPresenter;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Attribute\Route;
+
+#[Route('/api/recipes')]
+class RecipeController extends AbstractApiController
+{
+    public function __construct(
+        private readonly EntityManagerInterface $em,
+        private readonly RecipeRepository $recipes,
+        private readonly IngredientRepository $ingredients,
+        private readonly EntityPresenter $presenter,
+    ) {
+    }
+
+    #[Route('', name: 'api_recipes_list', methods: ['GET'])]
+    public function list(): JsonResponse
+    {
+        $items = $this->recipes->findBy(['household' => $this->household()], ['createdAt' => 'DESC']);
+
+        return $this->json(array_map($this->presenter->recipe(...), $items));
+    }
+
+    #[Route('', name: 'api_recipes_create', methods: ['POST'])]
+    public function create(Request $request): JsonResponse
+    {
+        $data = $this->decode($request);
+        if ($data instanceof JsonResponse) {
+            return $data;
+        }
+
+        $title = trim((string) ($data['title'] ?? ''));
+        if ('' === $title) {
+            return $this->json(['error' => 'Validation failed', 'details' => ['title' => 'Title is required.']], Response::HTTP_BAD_REQUEST);
+        }
+
+        /** @var User $user */
+        $user = $this->getUser();
+
+        $recipe = (new Recipe())
+            ->setAuthor($user)
+            ->setHousehold($this->household());
+
+        $applied = $this->apply($recipe, $data);
+        if ($applied instanceof JsonResponse) {
+            return $applied;
+        }
+
+        $this->em->persist($recipe);
+        $this->em->flush();
+
+        return $this->json($this->presenter->recipe($recipe), Response::HTTP_CREATED);
+    }
+
+    #[Route('/{id}', name: 'api_recipes_show', methods: ['GET'], requirements: ['id' => '\d+'])]
+    public function show(int $id): JsonResponse
+    {
+        $recipe = $this->find($id);
+        if ($recipe instanceof JsonResponse) {
+            return $recipe;
+        }
+
+        return $this->json($this->presenter->recipe($recipe));
+    }
+
+    #[Route('/{id}', name: 'api_recipes_update', methods: ['PUT'], requirements: ['id' => '\d+'])]
+    public function update(int $id, Request $request): JsonResponse
+    {
+        $recipe = $this->find($id);
+        if ($recipe instanceof JsonResponse) {
+            return $recipe;
+        }
+
+        $data = $this->decode($request);
+        if ($data instanceof JsonResponse) {
+            return $data;
+        }
+
+        if (\array_key_exists('title', $data) && '' === trim((string) $data['title'])) {
+            return $this->json(['error' => 'Validation failed', 'details' => ['title' => 'Title is required.']], Response::HTTP_BAD_REQUEST);
+        }
+
+        $applied = $this->apply($recipe, $data);
+        if ($applied instanceof JsonResponse) {
+            return $applied;
+        }
+
+        $this->em->flush();
+
+        return $this->json($this->presenter->recipe($recipe));
+    }
+
+    #[Route('/{id}', name: 'api_recipes_delete', methods: ['DELETE'], requirements: ['id' => '\d+'])]
+    public function delete(int $id): JsonResponse
+    {
+        $recipe = $this->find($id);
+        if ($recipe instanceof JsonResponse) {
+            return $recipe;
+        }
+
+        $this->em->remove($recipe);
+        $this->em->flush();
+
+        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
+    }
+
+    /**
+     * Applies scalar fields and, when an "ingredients" array is provided, replaces
+     * the recipe's ingredient lines. Returns a JsonResponse on validation failure.
+     *
+     * @param array<string, mixed> $data
+     */
+    private function apply(Recipe $recipe, array $data): ?JsonResponse
+    {
+        if (\array_key_exists('title', $data)) {
+            $recipe->setTitle(trim((string) $data['title']));
+        }
+        if (\array_key_exists('description', $data)) {
+            $recipe->setDescription((string) $data['description']);
+        }
+        if (\array_key_exists('instructions', $data)) {
+            $recipe->setInstructions((string) $data['instructions']);
+        }
+        if (\array_key_exists('servings', $data)) {
+            $recipe->setServings(max(1, (int) $data['servings']));
+        }
+
+        if (!\array_key_exists('ingredients', $data)) {
+            return null;
+        }
+
+        if (!\is_array($data['ingredients'])) {
+            return $this->json(['error' => 'Validation failed', 'details' => ['ingredients' => 'Must be an array.']], Response::HTTP_BAD_REQUEST);
+        }
+
+        // Replace the full set of ingredient lines (orphanRemoval cleans up the old ones).
+        $recipe->clearRecipeIngredients();
+
+        foreach ($data['ingredients'] as $index => $line) {
+            if (!\is_array($line)) {
+                return $this->json(['error' => 'Validation failed', 'details' => ["ingredients[$index]" => 'Must be an object.']], Response::HTTP_BAD_REQUEST);
+            }
+
+            $ingredientId = (int) ($line['ingredientId'] ?? 0);
+            $ingredient = $ingredientId > 0
+                ? $this->ingredients->findOneBy(['id' => $ingredientId, 'household' => $this->household()])
+                : null;
+            if (null === $ingredient) {
+                return $this->json(['error' => 'Ingredient not found', 'details' => ["ingredients[$index].ingredientId" => $ingredientId]], Response::HTTP_BAD_REQUEST);
+            }
+
+            $recipeIngredient = (new RecipeIngredient())
+                ->setIngredient($ingredient)
+                ->setQuantity((float) ($line['quantity'] ?? 0))
+                ->setUnit(trim((string) ($line['unit'] ?? ($ingredient->getDefaultUnit() ?? ''))));
+
+            $recipe->addRecipeIngredient($recipeIngredient);
+        }
+
+        return null;
+    }
+
+    private function find(int $id): Recipe|JsonResponse
+    {
+        $recipe = $this->recipes->findOneBy(['id' => $id, 'household' => $this->household()]);
+        if (null === $recipe) {
+            return $this->json(['error' => 'Recipe not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        return $recipe;
+    }
+}
