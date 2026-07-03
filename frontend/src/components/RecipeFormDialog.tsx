@@ -21,6 +21,7 @@ import UnitSelect from './UnitSelect'
 import { useNotify } from './SnackbarProvider'
 import { errorMessage } from '../api/client'
 import type { Ingredient, Recipe, RecipePayload } from '../api/types'
+import { useIsMobile } from '../utils/useIsMobile'
 import { useTranslation } from 'react-i18next'
 
 interface RowState {
@@ -55,6 +56,7 @@ const newStep = (text = ''): StepState => ({ key: `step-${stepCounter++}`, text 
 export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDialogProps) {
   const { t } = useTranslation(['recipes', 'common', 'errors'])
   const notify = useNotify()
+  const isMobile = useIsMobile()
   const { data: ingredients } = useIngredients()
   const createMut = useCreateRecipe()
   const updateMut = useUpdateRecipe()
@@ -153,7 +155,7 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
   const options = ingredients ?? []
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth fullScreen={isMobile}>
       <Box component="form" onSubmit={handleSubmit}>
         <DialogTitle>{recipe ? t('form.editTitle') : t('form.newTitle')}</DialogTitle>
         <DialogContent>
@@ -191,7 +193,12 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
           </Typography>
           <Stack spacing={1.5}>
             {rows.map((row) => (
-              <Stack key={row.key} direction="row" spacing={1} sx={{ alignItems: 'flex-start' }}>
+              <Stack
+                key={row.key}
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={1}
+                sx={{ alignItems: { xs: 'stretch', sm: 'flex-start' } }}
+              >
                 <Autocomplete
                   sx={{ flex: 2, minWidth: 0 }}
                   options={options}
@@ -208,30 +215,32 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
                     <TextField {...params} label={t('form.ingredient')} size="small" />
                   )}
                 />
-                <TextField
-                  label={t('form.qty')}
-                  type="number"
-                  size="small"
-                  sx={{ flex: 1, minWidth: 72 }}
-                  slotProps={{ htmlInput: { min: 0, step: 'any' } }}
-                  value={row.quantity}
-                  onChange={(e) => updateRow(row.key, { quantity: e.target.value })}
-                />
-                <UnitSelect
-                  label={t('form.unit')}
-                  size="small"
-                  sx={{ flex: 1, minWidth: 72 }}
-                  value={row.unit}
-                  onChange={(unit) => updateRow(row.key, { unit })}
-                />
-                <IconButton
-                  aria-label={t('form.removeIngredient')}
-                  onClick={() => removeRow(row.key)}
-                  disabled={rows.length === 1}
-                  sx={{ mt: 0.5 }}
-                >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
+                <Stack direction="row" spacing={1} sx={{ flex: 1, alignItems: 'flex-start' }}>
+                  <TextField
+                    label={t('form.qty')}
+                    type="number"
+                    size="small"
+                    sx={{ flex: 1, minWidth: 72 }}
+                    slotProps={{ htmlInput: { min: 0, step: 'any' } }}
+                    value={row.quantity}
+                    onChange={(e) => updateRow(row.key, { quantity: e.target.value })}
+                  />
+                  <UnitSelect
+                    label={t('form.unit')}
+                    size="small"
+                    sx={{ flex: 1, minWidth: 72 }}
+                    value={row.unit}
+                    onChange={(unit) => updateRow(row.key, { unit })}
+                  />
+                  <IconButton
+                    aria-label={t('form.removeIngredient')}
+                    onClick={() => removeRow(row.key)}
+                    disabled={rows.length === 1}
+                    sx={{ mt: 0.5 }}
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                </Stack>
               </Stack>
             ))}
           </Stack>
@@ -245,20 +254,27 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
           </Typography>
           <Stack spacing={1.5}>
             {steps.map((step, idx) => (
-              <Stack key={step.key} direction="row" spacing={1} sx={{ alignItems: 'flex-start' }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1.75, minWidth: 20 }}>
-                  {idx + 1}.
-                </Typography>
-                <TextField
-                  sx={{ flex: 1 }}
-                  size="small"
-                  multiline
-                  minRows={2}
-                  placeholder={t('form.stepPlaceholder')}
-                  value={step.text}
-                  onChange={(e) => updateStep(step.key, e.target.value)}
-                />
-                <Stack direction="row">
+              <Stack
+                key={step.key}
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={1}
+                sx={{ alignItems: { xs: 'stretch', sm: 'flex-start' } }}
+              >
+                <Stack direction="row" spacing={1} sx={{ flex: 1, alignItems: 'flex-start' }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1.75, minWidth: 20 }}>
+                    {idx + 1}.
+                  </Typography>
+                  <TextField
+                    sx={{ flex: 1 }}
+                    size="small"
+                    multiline
+                    minRows={2}
+                    placeholder={t('form.stepPlaceholder')}
+                    value={step.text}
+                    onChange={(e) => updateStep(step.key, e.target.value)}
+                  />
+                </Stack>
+                <Stack direction="row" sx={{ justifyContent: { xs: 'flex-end', sm: 'initial' } }}>
                   <IconButton
                     size="small"
                     aria-label={t('form.moveStepUp')}

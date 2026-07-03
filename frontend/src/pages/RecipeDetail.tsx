@@ -50,6 +50,7 @@ import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { formatQuantity, scaleQuantity } from '../utils/quantity'
 import { computeAvailability } from '../utils/availability'
+import { useIsMobile } from '../utils/useIsMobile'
 import type { Availability } from '../utils/availability'
 import type { RecipeIngredient, RecipeTranslation, StockItem } from '../api/types'
 import { LANGUAGE_LABELS, type Language } from '../i18n/config'
@@ -112,6 +113,7 @@ export default function RecipeDetail() {
   const recipeId = Number(id)
   const navigate = useNavigate()
   const notify = useNotify()
+  const isMobile = useIsMobile()
 
   const { data: recipe, isLoading, isError, error } = useRecipe(recipeId)
   const { data: stock, isLoading: stockLoading, isError: stockError } = useStock()
@@ -368,20 +370,31 @@ export default function RecipeDetail() {
                 )}
               </Stack>
             </Box>
-            <Stack direction="row" spacing={1}>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={1}
+              sx={{ width: { xs: '100%', sm: 'auto' } }}
+            >
               <Button
                 variant="contained"
+                fullWidth={isMobile}
                 startIcon={<RestaurantIcon />}
                 disabled={!stockReady || recipe.ingredients.length === 0}
                 onClick={() => setCookOpen(true)}
               >
                 {t('cook.button')}
               </Button>
-              <Button variant="outlined" startIcon={<EditIcon />} onClick={() => setEditOpen(true)}>
+              <Button
+                variant="outlined"
+                fullWidth={isMobile}
+                startIcon={<EditIcon />}
+                onClick={() => setEditOpen(true)}
+              >
                 {t('common:edit')}
               </Button>
               <Button
                 variant="outlined"
+                fullWidth={isMobile}
                 color="error"
                 startIcon={<DeleteIcon />}
                 onClick={() => setConfirmOpen(true)}

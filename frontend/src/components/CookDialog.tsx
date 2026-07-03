@@ -16,6 +16,7 @@ import { useNotify } from './SnackbarProvider'
 import { errorMessage } from '../api/client'
 import { formatQuantity } from '../utils/quantity'
 import type { AvailabilityStatus } from '../utils/availability'
+import { useIsMobile } from '../utils/useIsMobile'
 import { useTranslation } from 'react-i18next'
 
 export interface CookRow {
@@ -56,6 +57,7 @@ export default function CookDialog({
 }: CookDialogProps) {
   const { t } = useTranslation(['recipes', 'common', 'errors'])
   const notify = useNotify()
+  const isMobile = useIsMobile()
   const cookMut = useCookRecipe()
 
   // Editable "use" amount per ingredient, keyed by id. Defaults to the needed amount.
@@ -70,13 +72,13 @@ export default function CookDialog({
     setUses(initial)
   }, [open, rows])
 
-  const useValue = (row: CookRow) => Math.max(0, parseFloat(uses[row.ingredientId] ?? '') || 0)
+  const usedAmount = (row: CookRow) => Math.max(0, parseFloat(uses[row.ingredientId] ?? '') || 0)
 
   const skipped = useMemo(() => rows.filter((r) => !isDeductible(r)), [rows])
 
   // Rows where the amount used exceeds what's on hand — stock will floor at 0.
   const shortNames = rows
-    .filter((r) => isDeductible(r) && useValue(r) > r.have)
+    .filter((r) => isDeductible(r) && usedAmount(r) > r.have)
     .map((r) => r.name)
 
   const deductibleCount = rows.filter(isDeductible).length
@@ -84,7 +86,7 @@ export default function CookDialog({
   const handleConfirm = async () => {
     const items = rows
       .filter(isDeductible)
-      .map((r) => ({ ingredientId: r.ingredientId, quantity: useValue(r) }))
+      .map((r) => ({ ingredientId: r.ingredientId, quantity: usedAmount(r) }))
       .filter((i) => i.quantity > 0)
 
     try {
@@ -97,7 +99,7 @@ export default function CookDialog({
   }
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth fullScreen={isMobile}>
       <DialogTitle>
         {t('cook.title', { title: recipeTitle })}
         <Typography variant="body2" color="text.secondary">
@@ -108,7 +110,7 @@ export default function CookDialog({
         <Stack spacing={1} sx={{ mt: 0.5 }}>
           {rows.map((row) => {
             const deductible = isDeductible(row)
-            const left = Math.max(0, row.have - useValue(row))
+            const left = Math.max(0, row.have - usedAmount(row))
             const skipLabel =
               row.status === 'unknown' ? t('cook.unitDiffers') : t('cook.notInKitchen')
             return (
@@ -116,9 +118,10 @@ export default function CookDialog({
                 key={row.ingredientId}
                 sx={{
                   display: 'grid',
-                  gridTemplateColumns: 'minmax(0, 1fr) 140px 112px',
-                  alignItems: 'center',
+                  gridTemplateColumns: { xs: '1fr', sm: 'minmax(0, 1fr) 140px 112px' },
+                  alignItems: { xs: 'stretch', sm: 'center' },
                   columnGap: 1.5,
+                  rowGap: { xs: 1, sm: 0 },
                   border: '1px solid',
                   borderColor: 'divider',
                   borderRadius: 2,
@@ -175,7 +178,7 @@ export default function CookDialog({
                     color="warning"
                     variant="outlined"
                     label={skipLabel}
-                    sx={{ gridColumn: '2 / 4', justifySelf: 'start' }}
+                    sx={{ gridColumn: { xs: '1', sm: '2 / 4' }, justifySelf: 'start' }}
                   />
                 )}
               </Box>

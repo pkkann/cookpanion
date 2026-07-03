@@ -36,11 +36,13 @@ import {
 } from '../api/hooks'
 import type { Ingredient, StockItem } from '../api/types'
 import { errorMessage } from '../api/client'
+import { useIsMobile } from '../utils/useIsMobile'
 import { useTranslation } from 'react-i18next'
 
 export default function Kitchen() {
   const { t } = useTranslation(['kitchen', 'common', 'errors'])
   const notify = useNotify()
+  const isMobile = useIsMobile()
   const { data: stock, isLoading, isError, error } = useStock()
   const { data: ingredients } = useIngredients()
   const createMut = useCreateStock()
@@ -220,7 +222,7 @@ export default function Kitchen() {
       )}
 
       {/* Add / edit stock dialog */}
-      <Dialog open={dialogOpen} onClose={closeDialog} maxWidth="xs" fullWidth>
+      <Dialog open={dialogOpen} onClose={closeDialog} maxWidth="xs" fullWidth fullScreen={isMobile}>
         <Box component="form" onSubmit={handleSubmit}>
           <DialogTitle>{editing ? t('editTitle') : t('addTitle')}</DialogTitle>
           <DialogContent>

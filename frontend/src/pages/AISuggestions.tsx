@@ -8,6 +8,8 @@ import Typography from '@mui/material/Typography'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Slider from '@mui/material/Slider'
+import useMediaQuery from '@mui/material/useMediaQuery'
+import { useTheme } from '@mui/material/styles'
 import TextField from '@mui/material/TextField'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
@@ -42,6 +44,8 @@ import { useTranslation } from 'react-i18next'
 export default function AISuggestions() {
   const { t } = useTranslation(['suggestions', 'errors'])
   const notify = useNotify()
+  const theme = useTheme()
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'))
   const queryClient = useQueryClient()
   const { data: ingredients } = useIngredients()
 
@@ -151,18 +155,20 @@ export default function AISuggestions() {
           <ToggleButtonGroup
             value={mode}
             exclusive
+            orientation={isDesktop ? 'horizontal' : 'vertical'}
+            fullWidth={!isDesktop}
             onChange={(_e, val: SuggestMode | null) => val && setMode(val)}
-            sx={{ mb: 3, flexWrap: 'wrap' }}
+            sx={{ mb: 3 }}
           >
-            <ToggleButton value="kitchen" sx={{ px: 2 }}>
+            <ToggleButton value="kitchen" sx={{ px: 2, justifyContent: { xs: 'flex-start', md: 'center' } }}>
               <KitchenIcon fontSize="small" sx={{ mr: 1 }} />
               {t('onlyKitchen')}
             </ToggleButton>
-            <ToggleButton value="all" sx={{ px: 2 }}>
+            <ToggleButton value="all" sx={{ px: 2, justifyContent: { xs: 'flex-start', md: 'center' } }}>
               <LocalDiningIcon fontSize="small" sx={{ mr: 1 }} />
               {t('allIngredients')}
             </ToggleButton>
-            <ToggleButton value="surprise" sx={{ px: 2 }}>
+            <ToggleButton value="surprise" sx={{ px: 2, justifyContent: { xs: 'flex-start', md: 'center' } }}>
               <AutoAwesomeIcon fontSize="small" sx={{ mr: 1 }} />
               {t('surprise')}
             </ToggleButton>

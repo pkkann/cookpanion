@@ -32,6 +32,7 @@ import {
 } from '../api/hooks'
 import type { Ingredient } from '../api/types'
 import { errorMessage } from '../api/client'
+import { useIsMobile } from '../utils/useIsMobile'
 import { useTranslation } from 'react-i18next'
 
 interface EditorState {
@@ -42,6 +43,7 @@ interface EditorState {
 export default function Ingredients() {
   const { t } = useTranslation(['ingredients', 'common', 'errors'])
   const notify = useNotify()
+  const isMobile = useIsMobile()
   const { data: ingredients, isLoading, isError, error } = useIngredients()
   const createMut = useCreateIngredient()
   const updateMut = useUpdateIngredient()
@@ -210,7 +212,7 @@ export default function Ingredients() {
       )}
 
       {/* Create / edit dialog */}
-      <Dialog open={editor.open} onClose={closeEditor} maxWidth="xs" fullWidth>
+      <Dialog open={editor.open} onClose={closeEditor} maxWidth="xs" fullWidth fullScreen={isMobile}>
         <Box component="form" onSubmit={handleSubmit}>
           <DialogTitle>{editor.editing ? t('editTitle') : t('addTitle')}</DialogTitle>
           <DialogContent>
