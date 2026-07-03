@@ -112,11 +112,15 @@ export interface CookPayload {
 
 // ---- AI suggestions ----
 
-export type SuggestMode = 'kitchen' | 'all'
+export type SuggestMode = 'kitchen' | 'all' | 'surprise'
 
 export interface SuggestPayload {
   mode: SuggestMode
+  /** How many recipes to generate. */
+  count?: number
   maxToBuy: number
+  /** Target ingredients per recipe; used in "surprise" mode. */
+  numIngredients?: number
   preferences?: string
 }
 

@@ -46,7 +46,9 @@ export default function AISuggestions() {
   const { data: ingredients } = useIngredients()
 
   const [mode, setMode] = useState<SuggestMode>('kitchen')
+  const [count, setCount] = useState(3)
   const [maxToBuy, setMaxToBuy] = useState(3)
+  const [numIngredients, setNumIngredients] = useState(6)
   const [preferences, setPreferences] = useState('')
 
   const [loading, setLoading] = useState(false)
@@ -66,7 +68,9 @@ export default function AISuggestions() {
     try {
       const res = await suggestRecipes({
         mode,
+        count,
         maxToBuy,
+        numIngredients,
         preferences: preferences.trim() || undefined,
       })
       setSuggestions(res.suggestions)
@@ -158,25 +162,67 @@ export default function AISuggestions() {
               <LocalDiningIcon fontSize="small" sx={{ mr: 1 }} />
               {t('allIngredients')}
             </ToggleButton>
+            <ToggleButton value="surprise" sx={{ px: 2 }}>
+              <AutoAwesomeIcon fontSize="small" sx={{ mr: 1 }} />
+              {t('surprise')}
+            </ToggleButton>
           </ToggleButtonGroup>
 
           <Box sx={{ maxWidth: 420, mb: 2 }}>
             <Typography variant="subtitle2" gutterBottom>
-              {t('maxToBuy')} <strong>{maxToBuy}</strong>
+              {t('recipeCount')} <strong>{count}</strong>
             </Typography>
             <Slider
-              value={maxToBuy}
-              onChange={(_e, val) => setMaxToBuy(val as number)}
-              min={0}
-              max={10}
+              value={count}
+              onChange={(_e, val) => setCount(val as number)}
+              min={1}
+              max={6}
               step={1}
               marks
               valueLabelDisplay="auto"
             />
             <Typography variant="caption" color="text.secondary">
-              {t('maxToBuyHint')}
+              {t('recipeCountHint')}
             </Typography>
           </Box>
+
+          {mode === 'surprise' ? (
+            <Box sx={{ maxWidth: 420, mb: 2 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                {t('numIngredients')} <strong>{numIngredients}</strong>
+              </Typography>
+              <Slider
+                value={numIngredients}
+                onChange={(_e, val) => setNumIngredients(val as number)}
+                min={3}
+                max={15}
+                step={1}
+                marks
+                valueLabelDisplay="auto"
+              />
+              <Typography variant="caption" color="text.secondary">
+                {t('numIngredientsHint')}
+              </Typography>
+            </Box>
+          ) : (
+            <Box sx={{ maxWidth: 420, mb: 2 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                {t('maxToBuy')} <strong>{maxToBuy}</strong>
+              </Typography>
+              <Slider
+                value={maxToBuy}
+                onChange={(_e, val) => setMaxToBuy(val as number)}
+                min={0}
+                max={10}
+                step={1}
+                marks
+                valueLabelDisplay="auto"
+              />
+              <Typography variant="caption" color="text.secondary">
+                {t('maxToBuyHint')}
+              </Typography>
+            </Box>
+          )}
 
           <TextField
             label={t('preferences')}

@@ -43,17 +43,27 @@ class AiController extends AbstractApiController
             return $data;
         }
 
-        $mode = 'all' === ($data['mode'] ?? 'kitchen') ? 'all' : 'kitchen';
-        $maxToBuy = max(0, (int) ($data['maxToBuy'] ?? 0));
+        $requestedMode = (string) ($data['mode'] ?? 'kitchen');
+        $mode = \in_array($requestedMode, ['kitchen', 'all', 'surprise'], true) ? $requestedMode : 'kitchen';
         $preferences = trim((string) ($data['preferences'] ?? ''));
+        $count = max(1, min(8, (int) ($data['count'] ?? 3)));
 
-        $available = $this->availableIngredients($mode);
-        if ([] === $available) {
-            // Nothing to cook with; return an empty, contract-shaped result.
-            return $this->json(['suggestions' => []]);
+        if ('surprise' === $mode) {
+            // Ignore the household entirely: propose recipes from scratch, sized to
+            // a chosen ingredient count. No ingredient lookup, no empty short-circuit.
+            $numIngredients = max(2, min(20, (int) ($data['numIngredients'] ?? 6)));
+            $userPrompt = $this->buildSurprisePrompt($count, $numIngredients, $preferences);
+        } else {
+            $maxToBuy = max(0, (int) ($data['maxToBuy'] ?? 0));
+
+            $available = $this->availableIngredients($mode);
+            if ([] === $available) {
+                // Nothing to cook with; return an empty, contract-shaped result.
+                return $this->json(['suggestions' => []]);
+            }
+
+            $userPrompt = $this->buildPrompt($mode, $available, $maxToBuy, $preferences, $count);
         }
-
-        $userPrompt = $this->buildPrompt($mode, $available, $maxToBuy, $preferences);
 
         try {
             $messages = new MessageBag(
@@ -61,9 +71,10 @@ class AiController extends AbstractApiController
                 Message::ofUser($userPrompt),
             );
 
-            // The platform defaults max_tokens to 1000, which truncates a 3-recipe
-            // JSON response mid-object; raise it so the JSON can complete.
-            $result = $this->recipeAgent->call($messages, ['max_tokens' => 4096]);
+            // The platform defaults max_tokens to 1000, which truncates a multi-recipe
+            // JSON response mid-object; scale the budget with the requested count so
+            // the JSON can complete.
+            $result = $this->recipeAgent->call($messages, ['max_tokens' => min(8192, max(4096, $count * 1400))]);
             $content = $result->getContent();
         } catch (\Throwable $e) {
             $this->logger->error('AI recipe suggestion failed', ['exception' => $e]);
@@ -139,7 +150,7 @@ class AiController extends AbstractApiController
     /**
      * @param list<array{name: string, quantity: float|null, unit: string|null}> $available
      */
-    private function buildPrompt(string $mode, array $available, int $maxToBuy, string $preferences): string
+    private function buildPrompt(string $mode, array $available, int $maxToBuy, string $preferences, int $count): string
     {
         $modeText = 'kitchen' === $mode
             ? 'Only the ingredients currently in stock (with quantities) are listed below.'
@@ -171,7 +182,7 @@ class AiController extends AbstractApiController
         $prefText = '' !== $preferences ? $preferences : 'none';
 
         return <<<PROMPT
-        Suggest 3 practical recipes.
+        Suggest {$count} practical recipe(s).
 
         Mode: {$mode}. {$modeText}
         You may include AT MOST {$maxToBuy} extra ingredient(s) that are NOT in the list below; put those in each recipe's "toBuy". If maxToBuy is 0, every ingredient used must come from the list.
@@ -186,6 +197,46 @@ class AiController extends AbstractApiController
         Rules:
         - "usesIngredients" lists ingredients taken from the available list, with realistic quantities and units.
         - "toBuy" lists any extra ingredients (respecting the maxToBuy limit).
+        - "servings" is an integer.
+        - "instructions" is a concise step-by-step string.
+        PROMPT;
+    }
+
+    /**
+     * Builds the prompt for "Surprise me" mode: creative recipes with no regard to
+     * what the household has, sized to roughly $numIngredients ingredients each.
+     */
+    private function buildSurprisePrompt(int $count, int $numIngredients, string $preferences): string
+    {
+        $schema = <<<'JSON'
+        {
+          "suggestions": [
+            {
+              "title": "string",
+              "description": "string",
+              "servings": 2,
+              "instructions": "string",
+              "usesIngredients": [ { "name": "string", "quantity": 0, "unit": "string" } ],
+              "toBuy": [ { "name": "string", "quantity": 0, "unit": "string" } ]
+            }
+          ]
+        }
+        JSON;
+
+        $prefText = '' !== $preferences ? $preferences : 'none';
+
+        return <<<PROMPT
+        Suggest {$count} creative, varied recipe(s) to surprise the user. Be adventurous — do NOT limit yourself to any particular pantry or set of ingredients. Vary the cuisines and styles across the suggestions.
+
+        Each recipe should use AT MOST {$numIngredients} ingredient(s) — fewer is fine.
+        Dietary preferences / constraints: {$prefText}.
+
+        Return ONLY a JSON object exactly matching this schema (no extra keys, no prose, no markdown):
+        {$schema}
+
+        Rules:
+        - List EVERY ingredient the recipe needs in "usesIngredients", with realistic quantities and units.
+        - Leave "toBuy" as an empty array (the user is starting from scratch).
         - "servings" is an integer.
         - "instructions" is a concise step-by-step string.
         PROMPT;

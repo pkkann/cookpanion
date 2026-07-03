@@ -103,11 +103,15 @@ Recipe request body:
 Body:
 ```json
 {
-  "mode": "kitchen" | "all",          // "kitchen" = only current stock; "all" = all household ingredients
-  "maxToBuy": 3,                        // max number of extra ingredients allowed to buy (0 = strict)
+  "mode": "kitchen" | "all" | "surprise", // "kitchen" = only current stock; "all" = all household ingredients; "surprise" = ignore the kitchen, propose from scratch
+  "count": 3,                           // how many recipes to generate; clamped 1–8, default 3
+  "maxToBuy": 3,                        // (kitchen/all) max extra ingredients allowed to buy (0 = strict)
+  "numIngredients": 6,                  // (surprise) target ingredients per recipe; clamped 2–20, default 6
   "preferences": "vegetarian, quick"   // optional free text
 }
 ```
+
+In `surprise` mode the kitchen is ignored and there is no empty-result short-circuit; every ingredient a recipe needs is returned in `usesIngredients` and `toBuy` is empty.
 
 Response `200`:
 ```json
