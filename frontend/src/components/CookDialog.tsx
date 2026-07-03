@@ -5,6 +5,7 @@ import DialogContent from '@mui/material/DialogContent'
 import DialogActions from '@mui/material/DialogActions'
 import Button from '@mui/material/Button'
 import TextField from '@mui/material/TextField'
+import InputAdornment from '@mui/material/InputAdornment'
 import Typography from '@mui/material/Typography'
 import Box from '@mui/material/Box'
 import Stack from '@mui/material/Stack'
@@ -104,58 +105,78 @@ export default function CookDialog({
         </Typography>
       </DialogTitle>
       <DialogContent>
-        <Stack spacing={1.25} sx={{ mt: 0.5 }}>
+        <Stack spacing={1} sx={{ mt: 0.5 }}>
           {rows.map((row) => {
             const deductible = isDeductible(row)
             const left = Math.max(0, row.have - useValue(row))
+            const skipLabel =
+              row.status === 'unknown' ? t('cook.unitDiffers') : t('cook.notInKitchen')
             return (
-              <Box key={row.ingredientId}>
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  sx={{ alignItems: 'center', justifyContent: 'space-between' }}
-                >
-                  <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 0 }} noWrap>
+              <Box
+                key={row.ingredientId}
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(0, 1fr) 140px 112px',
+                  alignItems: 'center',
+                  columnGap: 1.5,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 2,
+                  px: 1.75,
+                  py: 1.25,
+                }}
+              >
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600 }} noWrap>
                     {row.name}
                   </Typography>
-                  {!deductible && (
-                    <Chip
-                      size="small"
-                      color="warning"
-                      variant="outlined"
-                      label={
-                        row.status === 'unknown'
-                          ? t('cook.unitDiffers')
-                          : t('cook.notInKitchen')
-                      }
-                    />
-                  )}
-                </Stack>
-                {deductible && (
-                  <Stack
-                    direction="row"
-                    spacing={1.5}
-                    sx={{ alignItems: 'center', mt: 0.5, flexWrap: 'wrap' }}
-                  >
-                    <Typography variant="caption" color="text.secondary">
-                      {t('cook.have', { amount: `${formatQuantity(row.have)} ${row.haveUnit}`.trim() })}
+                  {row.have > 0 && (
+                    <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
+                      {t('cook.have', {
+                        amount: `${formatQuantity(row.have)} ${row.haveUnit}`.trim(),
+                      })}
                     </Typography>
+                  )}
+                </Box>
+
+                {deductible ? (
+                  <>
                     <TextField
                       label={t('cook.use')}
                       type="number"
                       size="small"
-                      sx={{ width: 120 }}
-                      slotProps={{ htmlInput: { min: 0, step: 'any' } }}
+                      fullWidth
                       value={uses[row.ingredientId] ?? ''}
                       onChange={(e) =>
                         setUses((prev) => ({ ...prev, [row.ingredientId]: e.target.value }))
                       }
-                      helperText={row.unit || undefined}
+                      slotProps={{
+                        htmlInput: { min: 0, step: 'any', style: { textAlign: 'center' } },
+                        input: {
+                          endAdornment: (
+                            <InputAdornment position="end">{row.unit}</InputAdornment>
+                          ),
+                        },
+                      }}
                     />
-                    <Typography variant="body2">
-                      {t('cook.left', { amount: `${formatQuantity(left)} ${row.haveUnit}`.trim() })}
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ whiteSpace: 'nowrap' }}
+                    >
+                      {t('cook.left', {
+                        amount: `${formatQuantity(left)} ${row.haveUnit}`.trim(),
+                      })}
                     </Typography>
-                  </Stack>
+                  </>
+                ) : (
+                  <Chip
+                    size="small"
+                    color="warning"
+                    variant="outlined"
+                    label={skipLabel}
+                    sx={{ gridColumn: '2 / 4', justifySelf: 'start' }}
+                  />
                 )}
               </Box>
             )
