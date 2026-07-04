@@ -18,15 +18,24 @@ security:
             pattern: ^/api
             stateless: true
             provider: app_user_provider
+            # With two authenticators, Symfony needs to know which one handles an
+            # unauthenticated request — Lexik's returns the 401 JSON entry point.
+            entry_point: jwt
             # Lexik's authenticator only "supports" requests carrying a Bearer token,
             # so /register and /login (which send none) pass through anonymously.
             jwt: ~
+            # Exchanges a valid refresh token (POSTed to check_path) for a fresh
+            # access token. The authenticator intercepts this path during the
+            # firewall phase and returns { token, refresh_token }.
+            refresh_jwt:
+                check_path: /api/token/refresh
 
     # Note: only the *first* matching rule is applied.
     access_control:
         - { path: ^/api/register, roles: PUBLIC_ACCESS }
         - { path: ^/api/login, roles: PUBLIC_ACCESS }
         - { path: ^/api/auth/google, roles: PUBLIC_ACCESS }
+        - { path: ^/api/token/refresh, roles: PUBLIC_ACCESS }
         - { path: ^/api, roles: ROLE_USER }
 
 when@test:

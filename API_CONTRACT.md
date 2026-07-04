@@ -3,9 +3,10 @@
 Shared contract between the Symfony backend (`backend/`) and the React SPA (`frontend/`).
 **Both sides MUST conform to this. Do not change it unilaterally.**
 
-- Base URL (from browser): `http://localhost:8000/api`
+- Base URL (from browser): `/api` (the SPA and API are served on one origin behind nginx).
 - All requests/responses are JSON (`Content-Type: application/json`).
-- Auth: JWT Bearer. Send `Authorization: Bearer <token>` on every endpoint except `POST /register` and `POST /login`.
+- Auth: JWT Bearer. Send `Authorization: Bearer <token>` on every endpoint except `POST /register`, `POST /login`, `POST /auth/google`, and `POST /token/refresh`.
+- The access `token` is short-lived (~1h). Auth responses also return a long-lived `refresh_token` (~30d); when a request returns `401`, exchange the refresh token at `POST /token/refresh` for a new pair and replay the request.
 - Errors use standard HTTP status codes with body: `{ "error": "message", "details"?: {...} }`.
 - All domain data is scoped to the authenticated user's **household**. A user only ever sees their household's ingredients, stock, and recipes.
 
@@ -23,12 +24,11 @@ Shared contract between the Symfony backend (`backend/`) and the React SPA (`fro
 ### POST /register
 Body: `{ "email": string, "password": string, "name": string, "householdName": string }`
 Creates a user + a new household they own. Returns `201`:
-`{ "token": string, "user": User }`
+`{ "token": string, "refresh_token": string, "user": User }`
 
 ### POST /login
 Body: `{ "email": string, "password": string }`
-Returns `200`: `{ "token": string, "user": User }`
-(Backend may implement login via `json_login`; response includes token + user.)
+Returns `200`: `{ "token": string, "refresh_token": string, "user": User }`
 
 ### POST /auth/google
 Body: `{ "credential": string }` — the Google Identity Services ID token obtained by the
@@ -36,9 +36,19 @@ Body: `{ "credential": string }` — the Google Identity Services ID token obtai
 Verifies the token with Google (audience must match the server's `GOOGLE_CLIENT_ID`, email must be
 verified), then signs in. A verified email matching an existing account logs into it (link by email,
 `200`); a new email creates a user + household (`201`). Response body is the same as login/register:
-`{ "token": string, "user": User }`.
+`{ "token": string, "refresh_token": string, "user": User }`.
 - `401 { "error": "Invalid Google credential" }` if the token is missing/invalid/unverified.
 - `503 { "error": "Google sign-in is not configured." }` if `GOOGLE_CLIENT_ID` is unset.
+
+### POST /token/refresh
+Body: `{ "refresh_token": string }` — no `Authorization` header.
+Returns `200`: `{ "token": string, "refresh_token": string }` (a new access token and a rotated
+refresh token; the old refresh token is single-use and immediately invalidated).
+- `401` if the refresh token is missing, expired, or already used/revoked.
+
+### POST /logout
+Body: `{ "refresh_token": string }`. Revokes the refresh token server-side. Idempotent — always
+returns `204`, even for an unknown token. The access token is left to expire on its own.
 
 ### GET /me
 Returns the current user: `{ "id", "email", "name", "locale", "household": { "id", "name" } }`

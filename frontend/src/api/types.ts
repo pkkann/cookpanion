@@ -17,7 +17,13 @@ export interface User {
 
 export interface AuthResponse {
   token: string
+  refresh_token: string
   user: User
+}
+
+export interface RefreshResponse {
+  token: string
+  refresh_token: string
 }
 
 export interface Ingredient {

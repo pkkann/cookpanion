@@ -1,0 +1,8 @@
+gesdinet_jwt_refresh_token:
+    refresh_token_class: App\Entity\RefreshToken
+    # How long a refresh token stays valid — this is effectively how long a user
+    # stays signed in across browser restarts (30 days).
+    ttl: 2592000
+    # Rotate on use: each refresh consumes the old token and mints a fresh one,
+    # so a leaked refresh token has a limited useful life.
+    single_use: true

@@ -37,6 +37,11 @@ export async function googleAuth(credential: string): Promise<AuthResponse> {
   return data
 }
 
+/** Best-effort server-side revocation of the refresh token on sign-out. */
+export async function logout(refreshToken: string): Promise<void> {
+  await api.post('/logout', { refresh_token: refreshToken })
+}
+
 export async function getMe(): Promise<User> {
   const { data } = await api.get<User>('/me')
   return data

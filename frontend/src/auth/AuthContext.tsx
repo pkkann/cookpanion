@@ -1,10 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { clearToken, getToken, setToken } from '../api/client'
+import { clearSession, getRefreshToken, getToken, setSession } from '../api/client'
 import {
   getMe,
   googleAuth as googleAuthRequest,
   login as loginRequest,
+  logout as logoutRequest,
   register as registerRequest,
 } from '../api/endpoints'
 import type { LoginPayload, RegisterPayload, User } from '../api/types'
@@ -41,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         if (active) {
-          clearToken()
+          clearSession()
           setUser(null)
         }
       })
@@ -55,24 +56,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (payload: LoginPayload) => {
     const res = await loginRequest(payload)
-    setToken(res.token)
+    setSession(res.token, res.refresh_token)
     setUser(res.user)
   }
 
   const register = async (payload: RegisterPayload) => {
     const res = await registerRequest(payload)
-    setToken(res.token)
+    setSession(res.token, res.refresh_token)
     setUser(res.user)
   }
 
   const loginWithGoogle = async (credential: string) => {
     const res = await googleAuthRequest(credential)
-    setToken(res.token)
+    setSession(res.token, res.refresh_token)
     setUser(res.user)
   }
 
   const logout = () => {
-    clearToken()
+    // Best-effort server-side revocation, then clear locally regardless.
+    const refreshToken = getRefreshToken()
+    if (refreshToken) {
+      void logoutRequest(refreshToken).catch(() => {})
+    }
+    clearSession()
     setUser(null)
   }
 

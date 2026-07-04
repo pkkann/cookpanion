@@ -8,6 +8,8 @@ use App\Repository\UserRepository;
 use App\Service\EntityPresenter;
 use App\Service\GoogleTokenVerifier;
 use Doctrine\ORM\EntityManagerInterface;
+use Gesdinet\JWTRefreshTokenBundle\Generator\RefreshTokenGeneratorInterface;
+use Gesdinet\JWTRefreshTokenBundle\Model\RefreshTokenManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -25,6 +27,9 @@ class AuthController extends AbstractController
      */
     private const SUPPORTED_LOCALES = ['en', 'da'];
 
+    /** Refresh-token lifetime in seconds (30 days). Mirrors gesdinet_jwt_refresh_token.ttl. */
+    private const REFRESH_TOKEN_TTL = 2592000;
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly UserRepository $users,
@@ -32,6 +37,8 @@ class AuthController extends AbstractController
         private readonly JWTTokenManagerInterface $jwtManager,
         private readonly EntityPresenter $presenter,
         private readonly GoogleTokenVerifier $googleVerifier,
+        private readonly RefreshTokenGeneratorInterface $refreshTokenGenerator,
+        private readonly RefreshTokenManagerInterface $refreshTokenManager,
     ) {
     }
 
@@ -81,10 +88,7 @@ class AuthController extends AbstractController
         $this->em->persist($user);
         $this->em->flush();
 
-        return $this->json([
-            'token' => $this->jwtManager->create($user),
-            'user' => $this->presenter->user($user),
-        ], Response::HTTP_CREATED);
+        return $this->authResponse($user, Response::HTTP_CREATED);
     }
 
     #[Route('/login', name: 'api_login', methods: ['POST'])]
@@ -103,10 +107,7 @@ class AuthController extends AbstractController
             return $this->json(['error' => 'Invalid credentials'], Response::HTTP_UNAUTHORIZED);
         }
 
-        return $this->json([
-            'token' => $this->jwtManager->create($user),
-            'user' => $this->presenter->user($user),
-        ]);
+        return $this->authResponse($user);
     }
 
     /**
@@ -137,10 +138,7 @@ class AuthController extends AbstractController
         // Link by verified email: an existing account is signed straight in.
         $existing = $this->users->findOneBy(['email' => $claims['email']]);
         if (null !== $existing) {
-            return $this->json([
-                'token' => $this->jwtManager->create($existing),
-                'user' => $this->presenter->user($existing),
-            ]);
+            return $this->authResponse($existing);
         }
 
         // First time we've seen this Google email → create a household + user.
@@ -157,10 +155,7 @@ class AuthController extends AbstractController
         $this->em->persist($user);
         $this->em->flush();
 
-        return $this->json([
-            'token' => $this->jwtManager->create($user),
-            'user' => $this->presenter->user($user),
-        ], Response::HTTP_CREATED);
+        return $this->authResponse($user, Response::HTTP_CREATED);
     }
 
     #[Route('/me', name: 'api_me', methods: ['GET'])]
@@ -197,6 +192,59 @@ class AuthController extends AbstractController
         $this->em->flush();
 
         return $this->json($this->presenter->user($user));
+    }
+
+    /**
+     * Revokes the given refresh token so it can no longer mint access tokens.
+     * The frontend calls this on sign-out; the short-lived access token is left
+     * to expire on its own (stateless JWT). Always returns 204, even for an
+     * unknown token, so logout is idempotent and leaks nothing.
+     */
+    /**
+     * Route target for the refresh endpoint. It exists so routing doesn't 404
+     * before the firewall runs — the refresh_jwt authenticator intercepts this
+     * path during the firewall phase and returns { token, refresh_token }, so
+     * this method body only runs if that authenticator didn't handle it.
+     */
+    #[Route('/token/refresh', name: 'api_token_refresh', methods: ['POST'])]
+    public function tokenRefresh(): JsonResponse
+    {
+        return $this->json(['error' => 'Unable to refresh token'], Response::HTTP_UNAUTHORIZED);
+    }
+
+    #[Route('/logout', name: 'api_logout', methods: ['POST'])]
+    public function logout(Request $request): JsonResponse
+    {
+        $data = $this->decode($request);
+        if ($data instanceof JsonResponse) {
+            return $data;
+        }
+
+        $refreshToken = (string) ($data['refresh_token'] ?? '');
+        if ('' !== $refreshToken) {
+            $stored = $this->refreshTokenManager->get($refreshToken);
+            if (null !== $stored) {
+                $this->refreshTokenManager->delete($stored);
+            }
+        }
+
+        return $this->json(null, Response::HTTP_NO_CONTENT);
+    }
+
+    /**
+     * Builds the standard auth response: a fresh access token, a persisted
+     * refresh token, and the serialized user. Shared by register/login/google.
+     */
+    private function authResponse(User $user, int $status = Response::HTTP_OK): JsonResponse
+    {
+        $refreshToken = $this->refreshTokenGenerator->createForUserWithTtl($user, self::REFRESH_TOKEN_TTL);
+        $this->refreshTokenManager->save($refreshToken);
+
+        return $this->json([
+            'token' => $this->jwtManager->create($user),
+            'refresh_token' => $refreshToken->getRefreshToken(),
+            'user' => $this->presenter->user($user),
+        ], $status);
     }
 
     /**
