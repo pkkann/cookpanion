@@ -13,7 +13,7 @@
     "ingredientsCount_other": "{{count}} ingredients"
   },
   "deleteTitle": "Delete recipe?",
-  "deleteMessage": "“{{title}}” will be permanently deleted.",
+  "deleteMessage": "“{{title}}” will be permanently deleted, along with any meals planned with it.",
   "toast": {
     "created": "Recipe created",
     "updated": "Recipe updated",

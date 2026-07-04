@@ -13,7 +13,7 @@
     "ingredientsCount_other": "{{count}} ingredienser"
   },
   "deleteTitle": "Slet opskrift?",
-  "deleteMessage": "“{{title}}” bliver slettet permanent.",
+  "deleteMessage": "“{{title}}” bliver slettet permanent sammen med eventuelle måltider, den er planlagt til.",
   "toast": {
     "created": "Opskrift oprettet",
     "updated": "Opskrift opdateret",

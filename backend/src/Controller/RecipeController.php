@@ -252,6 +252,14 @@ class RecipeController extends AbstractApiController
             return $recipe;
         }
 
+        // Planned meals are scheduled occurrences of this recipe and hold a
+        // non-nullable FK to it, so remove them first (otherwise the flush hits
+        // a foreign-key violation → 500). Recipe ingredients are cleaned up by
+        // the entity's cascade/orphanRemoval.
+        foreach ($this->plannedMeals->findBy(['recipe' => $recipe]) as $meal) {
+            $this->em->remove($meal);
+        }
+
         $this->em->remove($recipe);
         $this->em->flush();
 
