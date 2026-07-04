@@ -27,8 +27,12 @@ class IngredientController extends AbstractApiController
     public function list(): JsonResponse
     {
         $items = $this->ingredients->findBy(['household' => $this->household()], ['name' => 'ASC']);
+        $used = $this->ingredients->usedIdSet($this->household());
 
-        return $this->json(array_map($this->presenter->ingredient(...), $items));
+        return $this->json(array_map(
+            fn (Ingredient $i) => $this->presentWithUsage($i, isset($used[$i->getId()])),
+            $items,
+        ));
     }
 
     #[Route('', name: 'api_ingredients_create', methods: ['POST'])]
@@ -59,7 +63,8 @@ class IngredientController extends AbstractApiController
         $this->em->persist($ingredient);
         $this->em->flush();
 
-        return $this->json($this->presenter->ingredient($ingredient), Response::HTTP_CREATED);
+        // A brand-new ingredient is never referenced yet.
+        return $this->json($this->presentWithUsage($ingredient, false), Response::HTTP_CREATED);
     }
 
     #[Route('/{id}', name: 'api_ingredients_show', methods: ['GET'], requirements: ['id' => '\d+'])]
@@ -70,7 +75,7 @@ class IngredientController extends AbstractApiController
             return $ingredient;
         }
 
-        return $this->json($this->presenter->ingredient($ingredient));
+        return $this->json($this->presentWithUsage($ingredient, $this->ingredients->isInUse($ingredient)));
     }
 
     #[Route('/{id}', name: 'api_ingredients_update', methods: ['PUT'], requirements: ['id' => '\d+'])]
@@ -102,7 +107,7 @@ class IngredientController extends AbstractApiController
 
         $this->em->flush();
 
-        return $this->json($this->presenter->ingredient($ingredient));
+        return $this->json($this->presentWithUsage($ingredient, $this->ingredients->isInUse($ingredient)));
     }
 
     #[Route('/{id}', name: 'api_ingredients_delete', methods: ['DELETE'], requirements: ['id' => '\d+'])]
@@ -111,6 +116,17 @@ class IngredientController extends AbstractApiController
         $ingredient = $this->find($id);
         if ($ingredient instanceof JsonResponse) {
             return $ingredient;
+        }
+
+        // An ingredient referenced by stock or a recipe can't be removed (the FK
+        // is non-nullable). Refuse cleanly with 409 instead of letting the flush
+        // raise a foreign-key violation (500). The UI also hides delete via inUse,
+        // but this guards direct API calls and the fetch→delete race.
+        if ($this->ingredients->isInUse($ingredient)) {
+            return $this->json(
+                ['error' => 'This ingredient is used by a recipe or your kitchen stock, so it can\'t be deleted.'],
+                Response::HTTP_CONFLICT,
+            );
         }
 
         $this->em->remove($ingredient);
@@ -127,5 +143,15 @@ class IngredientController extends AbstractApiController
         }
 
         return $ingredient;
+    }
+
+    /**
+     * Presents an ingredient with an `inUse` flag the UI uses to disable delete.
+     *
+     * @return array<string, mixed>
+     */
+    private function presentWithUsage(Ingredient $ingredient, bool $inUse): array
+    {
+        return $this->presenter->ingredient($ingredient) + ['inUse' => $inUse];
     }
 }

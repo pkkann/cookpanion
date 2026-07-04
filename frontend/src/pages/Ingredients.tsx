@@ -15,6 +15,7 @@ import TextField from '@mui/material/TextField'
 import Stack from '@mui/material/Stack'
 import Skeleton from '@mui/material/Skeleton'
 import Alert from '@mui/material/Alert'
+import Tooltip from '@mui/material/Tooltip'
 import AddIcon from '@mui/icons-material/Add'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/DeleteOutlined'
@@ -196,14 +197,22 @@ export default function Ingredients() {
                   >
                     <EditIcon fontSize="small" />
                   </IconButton>
-                  <IconButton
-                    size="small"
-                    aria-label={t('common:aria.delete')}
-                    color="error"
-                    onClick={() => setToDelete(ing)}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
+                  {/* Ingredients referenced by stock or a recipe can't be
+                      deleted (the delete would fail server-side), so disable it
+                      and explain why. */}
+                  <Tooltip title={ing.inUse ? t('deleteDisabledInUse') : ''}>
+                    <span>
+                      <IconButton
+                        size="small"
+                        aria-label={t('common:aria.delete')}
+                        color="error"
+                        disabled={ing.inUse}
+                        onClick={() => setToDelete(ing)}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
                 </Box>
               </CardContent>
             </Card>

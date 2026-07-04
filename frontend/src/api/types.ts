@@ -31,6 +31,9 @@ export interface Ingredient {
   name: string
   category: string | null
   defaultUnit: string | null
+  // Referenced by kitchen stock or a recipe → can't be deleted. Present on
+  // ingredient endpoints; may be absent when an Ingredient is nested elsewhere.
+  inUse?: boolean
 }
 
 export interface StockItem {

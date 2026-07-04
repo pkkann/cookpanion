@@ -15,7 +15,8 @@
   "defaultUnit": "Default unit",
   "defaultUnitPlaceholder": "e.g. g, ml, pcs",
   "deleteTitle": "Delete ingredient?",
-  "deleteMessage": "“{{name}}” will be removed. This may affect stock and recipes that use it.",
+  "deleteMessage": "“{{name}}” will be removed.",
+  "deleteDisabledInUse": "In use by a recipe or your kitchen stock",
   "toast": {
     "added": "Ingredient added",
     "updated": "Ingredient updated",

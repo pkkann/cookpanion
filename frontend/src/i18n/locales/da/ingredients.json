@@ -15,7 +15,8 @@
   "defaultUnit": "Standardenhed",
   "defaultUnitPlaceholder": "f.eks. g, ml, stk",
   "deleteTitle": "Slet ingrediens?",
-  "deleteMessage": "“{{name}}” bliver fjernet. Det kan påvirke lager og opskrifter, der bruger den.",
+  "deleteMessage": "“{{name}}” bliver fjernet.",
+  "deleteDisabledInUse": "Bruges i en opskrift eller dit køkkenlager",
   "toast": {
     "added": "Ingrediens tilføjet",
     "updated": "Ingrediens opdateret",
