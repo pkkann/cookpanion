@@ -76,7 +76,8 @@ export default function CookDialog({
 
   const skipped = useMemo(() => rows.filter((r) => !isDeductible(r)), [rows])
 
-  // Rows where the amount used exceeds what's on hand — stock will floor at 0.
+  // Rows where the amount used exceeds what's on hand — the stock row will be
+  // used up and removed from the kitchen.
   const shortNames = rows
     .filter((r) => isDeductible(r) && usedAmount(r) > r.have)
     .map((r) => r.name)

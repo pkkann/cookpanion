@@ -174,9 +174,9 @@ class RecipeController extends AbstractApiController
 
     /**
      * Deducts the given amounts from the household's kitchen stock ("cooking" the
-     * recipe). All deductions are applied in a single flush; quantities are floored
-     * at zero (never negative) and stock rows that reach zero are kept. Ingredients
-     * with no stock row are silently skipped. Cooking also removes the recipe's next
+     * recipe). All deductions are applied in a single flush; a stock row depleted
+     * to zero (or below) is removed from the kitchen entirely. Ingredients with no
+     * stock row are silently skipped. Cooking also removes the recipe's next
      * upcoming planned meal from the plan (if any). Returns the updated stock list.
      */
     #[Route('/{id}/cook', name: 'api_recipes_cook', methods: ['POST'], requirements: ['id' => '\d+'])]
@@ -220,7 +220,13 @@ class RecipeController extends AbstractApiController
                 continue;
             }
 
-            $stock->setQuantity(max(0.0, $stock->getQuantity() - $quantity));
+            $newQuantity = $stock->getQuantity() - $quantity;
+            if ($newQuantity <= 0) {
+                // Fully used up — drop it from the kitchen rather than keeping a 0 row.
+                $this->em->remove($stock);
+            } else {
+                $stock->setQuantity($newQuantity);
+            }
         }
 
         // Cooking the recipe crosses off its next upcoming planned meal (today or

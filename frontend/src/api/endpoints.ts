@@ -86,7 +86,13 @@ export async function createStock(payload: StockCreatePayload): Promise<StockIte
   return data
 }
 
-export async function updateStock(id: number, payload: StockUpdatePayload): Promise<StockItem> {
+// Returns the updated item, or nothing (204) when the update empties the row
+// and the backend deletes it. Callers refetch the stock list rather than using
+// the return value.
+export async function updateStock(
+  id: number,
+  payload: StockUpdatePayload,
+): Promise<StockItem | void> {
   const { data } = await api.put<StockItem>(`/stock/${id}`, payload)
   return data
 }

@@ -98,6 +98,15 @@ class StockController extends AbstractApiController
             $item->setUnit($unit);
         }
 
+        // A stock row is never kept at zero: editing it down to 0 (or below)
+        // removes it from the kitchen, the same as running it out by cooking.
+        if ($item->getQuantity() <= 0) {
+            $this->em->remove($item);
+            $this->em->flush();
+
+            return new JsonResponse(null, Response::HTTP_NO_CONTENT);
+        }
+
         $this->em->flush();
 
         return $this->json($this->presenter->stockItem($item));

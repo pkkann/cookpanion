@@ -73,7 +73,7 @@ Returns `200` with the updated `User`. An unsupported locale returns `400`
 
 - `GET /stock` → `StockItem[]`
 - `POST /stock` body `{ "ingredientId": int, "quantity": float, "unit": string }` → `201 StockItem`
-- `PUT /stock/{id}` body `{ "quantity": float, "unit": string }` → `StockItem`
+- `PUT /stock/{id}` body `{ "quantity": float, "unit": string }` → `StockItem`, or `204` if the update leaves quantity ≤ 0 (the row is deleted — a stock row is never kept at zero).
 - `DELETE /stock/{id}` → `204`
 
 `StockItem` shape: `{ "id": int, "ingredient": Ingredient, "quantity": float, "unit": string }`
@@ -86,7 +86,7 @@ Returns `200` with the updated `User`. An unsupported locale returns `400`
 - `PUT /recipes/{id}` → `Recipe`
 - `DELETE /recipes/{id}` → `204`
 - `POST /recipes/{id}/cook` body `{ "items": [ { "ingredientId": int, "quantity": number } ] }` → `StockItem[]` (updated stock)
-  - Deducts each amount from the household's matching stock row in one transaction. Quantities are floored at 0 (never negative); rows that reach 0 are kept. Ingredients with no stock row are skipped. Returns the full updated stock list.
+  - Deducts each amount from the household's matching stock row in one transaction. A row depleted to 0 (or below) is removed from the kitchen. Ingredients with no stock row are skipped. Returns the full updated stock list.
   - Side effect: also removes the recipe's **next upcoming** planned meal (soonest date ≥ today) from the plan, if any. Only that one occurrence is removed; other planned days for the recipe are kept.
 - `POST /recipes/{id}/translate` body `{ "locale": "en" | "da" }` (defaults to the user's locale) → `RecipeTranslation`
   - Translates the recipe's title, description, instructions, and ingredient names into the locale (display-only; ingredient identity/units unchanged). Cached on the recipe per locale and returned from cache thereafter; the cache is cleared when the recipe is edited. `503` if AI isn't configured, `502` on translation failure.
