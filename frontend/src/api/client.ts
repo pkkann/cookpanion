@@ -1,8 +1,10 @@
 import axios, { AxiosError } from 'axios'
 import type { ApiError } from './types'
 
+// Relative by default: the SPA and API share one origin (served behind nginx),
+// so requests go to "/api" on whatever host loaded the page — no baked-in IP.
 export const API_URL: string =
-  (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:8000/api'
+  (import.meta.env.VITE_API_URL as string | undefined) ?? '/api'
 
 const TOKEN_KEY = 'recipe_ai_token'
 

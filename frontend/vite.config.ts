@@ -45,6 +45,10 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
     strictPort: true,
+    // The dev server sits behind the nginx proxy, so requests arrive with the
+    // external Host header (localhost, a LAN IP, a tunnel domain, …). Accept
+    // them all rather than maintaining an allowlist.
+    allowedHosts: true,
   },
   preview: {
     host: '0.0.0.0',
