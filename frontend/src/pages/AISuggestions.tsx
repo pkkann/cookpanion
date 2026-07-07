@@ -32,7 +32,6 @@ import { useIngredients } from '../api/hooks'
 import { queryKeys } from '../api/hooks'
 import { createIngredient, createRecipe, suggestRecipes } from '../api/endpoints'
 import { errorMessage, errorStatus } from '../api/client'
-import { splitInstructions } from '../utils/instructions'
 import type {
   Ingredient,
   RecipeIngredientPayload,
@@ -123,7 +122,7 @@ export default function AISuggestions() {
       await createRecipe({
         title: suggestion.title,
         description: suggestion.description,
-        instructions: splitInstructions(suggestion.instructions),
+        instructions: suggestion.instructions,
         servings: suggestion.servings,
         ingredients: recipeIngredients,
       })
@@ -345,7 +344,7 @@ export default function AISuggestions() {
                   {t('instructions')}
                 </Typography>
                 <Stack component="ol" spacing={0.75} sx={{ m: 0, pl: 2.5 }}>
-                  {splitInstructions(s.instructions).map((step, si) => (
+                  {s.instructions.map((step, si) => (
                     <Typography
                       key={si}
                       component="li"

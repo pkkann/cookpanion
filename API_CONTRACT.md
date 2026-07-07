@@ -174,7 +174,7 @@ Response `200`:
       "title": "string",
       "description": "string",
       "servings": 2,
-      "instructions": "string",
+      "instructions": ["step one", "step two"],
       "usesIngredients": [ { "name": "Eggs", "quantity": 3, "unit": "pcs" } ],
       "toBuy": [ { "name": "Milk", "quantity": 200, "unit": "ml" } ]
     }

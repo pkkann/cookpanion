@@ -177,7 +177,7 @@ export interface RecipeSuggestion {
   title: string
   description: string
   servings: number
-  instructions: string
+  instructions: string[]
   usesIngredients: SuggestionIngredient[]
   toBuy: SuggestionIngredient[]
 }

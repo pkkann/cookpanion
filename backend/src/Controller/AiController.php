@@ -171,7 +171,7 @@ class AiController extends AbstractApiController
               "title": "string",
               "description": "string",
               "servings": 2,
-              "instructions": "string",
+              "instructions": ["string"],
               "usesIngredients": [ { "name": "string", "quantity": 0, "unit": "string" } ],
               "toBuy": [ { "name": "string", "quantity": 0, "unit": "string" } ]
             }
@@ -198,7 +198,7 @@ class AiController extends AbstractApiController
         - "usesIngredients" lists ingredients taken from the available list, with realistic quantities and units.
         - "toBuy" lists any extra ingredients (respecting the maxToBuy limit).
         - "servings" is an integer.
-        - "instructions" is a concise step-by-step string.
+        - "instructions" is an ordered array of steps, one concise step per element (do NOT put all steps in a single string).
         PROMPT;
     }
 
@@ -215,7 +215,7 @@ class AiController extends AbstractApiController
               "title": "string",
               "description": "string",
               "servings": 2,
-              "instructions": "string",
+              "instructions": ["string"],
               "usesIngredients": [ { "name": "string", "quantity": 0, "unit": "string" } ],
               "toBuy": [ { "name": "string", "quantity": 0, "unit": "string" } ]
             }
@@ -238,7 +238,7 @@ class AiController extends AbstractApiController
         - List EVERY ingredient the recipe needs in "usesIngredients", with realistic quantities and units.
         - Leave "toBuy" as an empty array (the user is starting from scratch).
         - "servings" is an integer.
-        - "instructions" is a concise step-by-step string.
+        - "instructions" is an ordered array of steps, one concise step per element (do NOT put all steps in a single string).
         PROMPT;
     }
 
@@ -287,7 +287,7 @@ class AiController extends AbstractApiController
                 'title' => (string) ($s['title'] ?? ''),
                 'description' => (string) ($s['description'] ?? ''),
                 'servings' => (int) ($s['servings'] ?? 1),
-                'instructions' => (string) ($s['instructions'] ?? ''),
+                'instructions' => $this->normalizeSteps($s['instructions'] ?? []),
                 'usesIngredients' => $this->normalizeLines($s['usesIngredients'] ?? []),
                 'toBuy' => $this->normalizeLines($s['toBuy'] ?? []),
             ];
@@ -318,6 +318,68 @@ class AiController extends AbstractApiController
         }
 
         return $out;
+    }
+
+    /**
+     * Normalizes the model's "instructions" into an ordered list of step strings.
+     * Accepts either an array of steps (the requested schema) or a single string
+     * fallback, splitting the latter on line breaks or inline "1." / "2)" markers.
+     * Leading step markers are stripped and empty steps dropped.
+     *
+     * @return list<string>
+     */
+    private function normalizeSteps(mixed $instructions): array
+    {
+        if (\is_array($instructions)) {
+            $steps = [];
+            foreach ($instructions as $step) {
+                if (\is_scalar($step)) {
+                    $steps[] = (string) $step;
+                }
+            }
+        } elseif (\is_string($instructions)) {
+            $steps = $this->splitStepString($instructions);
+        } else {
+            return [];
+        }
+
+        $out = [];
+        foreach ($steps as $step) {
+            $clean = trim((string) preg_replace('/^\s*\d+[.)]\s+/', '', trim($step)));
+            if ('' !== $clean) {
+                $out[] = $clean;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Splits a single free-text instruction string into steps: prefers explicit
+     * line breaks, then falls back to inline "1. " / "2) " markers.
+     *
+     * @return list<string>
+     */
+    private function splitStepString(string $text): array
+    {
+        $text = trim($text);
+        if ('' === $text) {
+            return [];
+        }
+
+        $byLines = preg_split('/\r?\n+/', $text) ?: [];
+        if (\count($byLines) > 1) {
+            return array_values($byLines);
+        }
+
+        // The digit must be followed by a period/paren AND whitespace, so decimals
+        // like "3.5 dl" and ranges like "10-15 min" stay intact.
+        $byNumbers = preg_split('/\s*\d+[.)]\s+/', $text) ?: [];
+        if (\count($byNumbers) > 1) {
+            return array_values($byNumbers);
+        }
+
+        return [$text];
     }
 
     private function extractJsonObject(string $content): ?string
