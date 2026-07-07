@@ -99,7 +99,7 @@ export default function Dashboard() {
           p: { xs: 3, md: 4 },
           mb: 4,
           color: 'primary.contrastText',
-          background: 'linear-gradient(120deg, #c75d3c 0%, #e07a56 100%)',
+          bgcolor: 'primary.main',
           display: 'flex',
           flexWrap: 'wrap',
           gap: 2,

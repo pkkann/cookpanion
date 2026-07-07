@@ -23,7 +23,7 @@ export default function AuthShell({ title, subtitle, children, footer }: AuthShe
         alignItems: 'center',
         justifyContent: 'center',
         p: 2,
-        background: 'linear-gradient(135deg, #faf6f1 0%, #f0e4d8 100%)',
+        bgcolor: 'background.default',
       }}
     >
       <Paper elevation={0} sx={{ p: { xs: 3, sm: 5 }, width: '100%', maxWidth: 440, border: '1px solid', borderColor: 'divider' }}>

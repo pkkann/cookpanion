@@ -87,25 +87,16 @@ export default function Layout() {
         </Typography>
       </Toolbar>
       <Divider />
-      <List sx={{ px: 1, py: 1.5, flexGrow: 1 }}>
+      <List sx={{ flexGrow: 1 }}>
         {NAV_ITEMS.map((item) => {
           const active = isActivePath(location.pathname, item.path)
           return (
-            <ListItem key={item.path} disablePadding sx={{ mb: 0.5 }}>
+            <ListItem key={item.path} disablePadding>
               <ListItemButton
                 component={RouterLink}
                 to={item.path}
                 selected={active}
                 onClick={() => setMobileOpen(false)}
-                sx={{
-                  borderRadius: 2,
-                  '&.Mui-selected': {
-                    bgcolor: 'primary.main',
-                    color: 'primary.contrastText',
-                    '& .MuiListItemIcon-root': { color: 'primary.contrastText' },
-                    '&:hover': { bgcolor: 'primary.dark' },
-                  },
-                }}
               >
                 <ListItemIcon sx={{ minWidth: 40 }}>{item.icon}</ListItemIcon>
                 <ListItemText primary={t(`nav:${item.titleKey}`)} />
@@ -130,14 +121,7 @@ export default function Layout() {
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <AppBar
         position="fixed"
-        color="inherit"
-        elevation={0}
-        sx={{
-          zIndex: (t) => t.zIndex.drawer + 1,
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          bgcolor: 'background.paper',
-        }}
+        sx={{ zIndex: (t) => t.zIndex.drawer + 1 }}
       >
         <Toolbar>
           {!isDesktop && (
