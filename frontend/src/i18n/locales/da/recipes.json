@@ -14,6 +14,13 @@
   },
   "deleteTitle": "Slet opskrift?",
   "deleteMessage": "“{{title}}” bliver slettet permanent sammen med eventuelle måltider, den er planlagt til.",
+  "quickPlan": {
+    "aria": "Føj til madplan",
+    "label": "Planlæg",
+    "dateLabel": "Dato",
+    "add": "Tilføj til plan",
+    "toast": "“{{title}}” tilføjet til din plan"
+  },
   "toast": {
     "created": "Opskrift oprettet",
     "updated": "Opskrift opdateret",

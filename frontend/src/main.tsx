@@ -6,6 +6,7 @@ import CssBaseline from '@mui/material/CssBaseline'
 import App from './App.tsx'
 import theme from './theme/theme'
 import { SnackbarProvider } from './components/SnackbarProvider'
+import DateLocalizationProvider from './components/DateLocalizationProvider'
 import './i18n' // initializes i18next before the tree renders
 
 const queryClient = new QueryClient({
@@ -23,9 +24,11 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <SnackbarProvider>
-          <App />
-        </SnackbarProvider>
+        <DateLocalizationProvider>
+          <SnackbarProvider>
+            <App />
+          </SnackbarProvider>
+        </DateLocalizationProvider>
       </ThemeProvider>
     </QueryClientProvider>
   </StrictMode>,

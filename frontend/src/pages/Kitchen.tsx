@@ -1,18 +1,17 @@
 import { useMemo, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { FormEvent, Key } from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
-import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
 import Dialog from '@mui/material/Dialog'
 import DialogTitle from '@mui/material/DialogTitle'
 import DialogContent from '@mui/material/DialogContent'
 import DialogActions from '@mui/material/DialogActions'
 import TextField from '@mui/material/TextField'
-import Autocomplete from '@mui/material/Autocomplete'
+import Autocomplete, { createFilterOptions } from '@mui/material/Autocomplete'
 import Stack from '@mui/material/Stack'
 import Skeleton from '@mui/material/Skeleton'
 import Alert from '@mui/material/Alert'
@@ -28,6 +27,7 @@ import ConfirmDialog from '../components/ConfirmDialog'
 import UnitSelect from '../components/UnitSelect'
 import { useNotify } from '../components/SnackbarProvider'
 import {
+  useCreateIngredient,
   useCreateStock,
   useDeleteStock,
   useIngredients,
@@ -39,6 +39,15 @@ import { errorMessage } from '../api/client'
 import { useIsMobile } from '../utils/useIsMobile'
 import { useTranslation } from 'react-i18next'
 
+// A synthetic Autocomplete option representing "create this new ingredient".
+type NewIngredientOption = { inputValue: string; isNew: true }
+type IngredientOption = Ingredient | NewIngredientOption
+
+const isNewOption = (o: IngredientOption): o is NewIngredientOption =>
+  (o as NewIngredientOption).isNew === true
+
+const filterIngredients = createFilterOptions<IngredientOption>()
+
 export default function Kitchen() {
   const { t } = useTranslation(['kitchen', 'common', 'errors'])
   const notify = useNotify()
@@ -48,13 +57,15 @@ export default function Kitchen() {
   const createMut = useCreateStock()
   const updateMut = useUpdateStock()
   const deleteMut = useDeleteStock()
+  const createIngredientMut = useCreateIngredient()
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<StockItem | null>(null)
   const [toDelete, setToDelete] = useState<StockItem | null>(null)
 
   // form fields
-  const [ingredient, setIngredient] = useState<Ingredient | null>(null)
+  const [ingredient, setIngredient] = useState<IngredientOption | null>(null)
+  const [ingredientInput, setIngredientInput] = useState('')
   const [quantity, setQuantity] = useState('')
   const [unit, setUnit] = useState('')
 
@@ -74,6 +85,7 @@ export default function Kitchen() {
   const openAdd = () => {
     setEditing(null)
     setIngredient(null)
+    setIngredientInput('')
     setQuantity('')
     setUnit('')
     setDialogOpen(true)
@@ -99,8 +111,23 @@ export default function Kitchen() {
         notify(t('toast.updated'), 'success')
       } else {
         if (!ingredient) return
+        let ingredientId: number
+        if (isNewOption(ingredient)) {
+          // Create the ingredient first (the chosen unit becomes the
+          // ingredient's default), then stock it.
+          const created = await createIngredientMut.mutateAsync({
+            name: ingredient.inputValue.trim(),
+            defaultUnit: unit.trim() || null,
+          })
+          ingredientId = created.id
+        } else {
+          ingredientId = ingredient.id
+        }
+        // If the stock call below fails after the ingredient was created, the
+        // ingredient persists; a retry matches it as an existing option, so no
+        // duplicate is created.
         await createMut.mutateAsync({
-          ingredientId: ingredient.id,
+          ingredientId,
           quantity: qty,
           unit: unit.trim(),
         })
@@ -123,8 +150,15 @@ export default function Kitchen() {
     }
   }
 
-  const saving = createMut.isPending || updateMut.isPending
+  const saving = createMut.isPending || updateMut.isPending || createIngredientMut.isPending
   const noIngredientsAtAll = (ingredients?.length ?? 0) === 0
+
+  // The typed name matches an ingredient that's already stocked (so it's absent
+  // from availableIngredients and we don't offer "Add") — surface a hint instead.
+  const trimmedInput = ingredientInput.trim().toLowerCase()
+  const matchesStockedName =
+    trimmedInput.length > 0 &&
+    (stock ?? []).some((s) => s.ingredient.name.toLowerCase() === trimmedInput)
 
   return (
     <Box>
@@ -136,7 +170,7 @@ export default function Kitchen() {
             variant="contained"
             startIcon={<AddIcon />}
             onClick={openAdd}
-            disabled={!isLoading && availableIngredients.length === 0}
+            disabled={isLoading}
           >
             {t('addStock')}
           </Button>
@@ -163,15 +197,9 @@ export default function Kitchen() {
             noIngredientsAtAll ? t('emptyDescriptionNoIngredients') : t('emptyDescription')
           }
           action={
-            noIngredientsAtAll ? (
-              <Button component={RouterLink} to="/ingredients" variant="contained">
-                {t('goToIngredients')}
-              </Button>
-            ) : (
-              <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd}>
-                {t('addStock')}
-              </Button>
-            )
+            <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd}>
+              {t('addStock')}
+            </Button>
           }
         />
       ) : (
@@ -194,9 +222,6 @@ export default function Kitchen() {
                   <Typography variant="h6" color="primary" sx={{ mt: 0.5 }}>
                     {item.quantity} {item.unit}
                   </Typography>
-                  {item.ingredient.category && (
-                    <Chip size="small" label={item.ingredient.category} sx={{ mt: 1 }} />
-                  )}
                 </Box>
                 <Box sx={{ flexShrink: 0 }}>
                   <IconButton
@@ -235,13 +260,52 @@ export default function Kitchen() {
                 disabled
               />
             ) : (
-              <Autocomplete
+              <Autocomplete<IngredientOption>
                 options={availableIngredients}
-                getOptionLabel={(o) => o.name}
                 value={ingredient}
+                selectOnFocus
+                clearOnBlur
+                handleHomeEndKeys
+                onInputChange={(_e, val) => setIngredientInput(val)}
+                getOptionLabel={(o) =>
+                  typeof o === 'string' ? o : isNewOption(o) ? o.inputValue : o.name
+                }
+                isOptionEqualToValue={(o, v) =>
+                  isNewOption(o) || isNewOption(v)
+                    ? isNewOption(o) && isNewOption(v) && o.inputValue === v.inputValue
+                    : o.id === v.id
+                }
+                filterOptions={(options, params) => {
+                  const filtered = filterIngredients(options, params)
+                  const typed = params.inputValue.trim()
+                  // Offer "Add" only for a genuinely new name: dedupe against the
+                  // full ingredient list (there's no backend uniqueness constraint),
+                  // case-insensitive.
+                  if (
+                    typed &&
+                    !(ingredients ?? []).some(
+                      (i) => i.name.toLowerCase() === typed.toLowerCase(),
+                    )
+                  ) {
+                    filtered.push({ inputValue: typed, isNew: true })
+                  }
+                  return filtered
+                }}
+                renderOption={(props, option) => {
+                  const { key, ...rest } = props as typeof props & { key: Key }
+                  return (
+                    <li key={key} {...rest}>
+                      {isNewOption(option)
+                        ? t('addNewIngredient', { name: option.inputValue })
+                        : option.name}
+                    </li>
+                  )
+                }}
                 onChange={(_e, val) => {
                   setIngredient(val)
-                  if (val?.defaultUnit && !unit) setUnit(val.defaultUnit)
+                  if (val && !isNewOption(val) && val.defaultUnit && !unit) {
+                    setUnit(val.defaultUnit)
+                  }
                 }}
                 renderInput={(params) => (
                   <TextField
@@ -250,6 +314,11 @@ export default function Kitchen() {
                     required
                     margin="normal"
                     autoFocus
+                    helperText={
+                      matchesStockedName
+                        ? t('alreadyStockedHint', { name: ingredientInput.trim() })
+                        : undefined
+                    }
                   />
                 )}
               />

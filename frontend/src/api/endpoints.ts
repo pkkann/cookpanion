@@ -5,13 +5,11 @@ import type {
   RecipeTranslation,
   Ingredient,
   IngredientPayload,
-  LoginPayload,
   PlannedMeal,
   PlannedMealCreatePayload,
   PlannedMealUpdatePayload,
   Recipe,
   RecipePayload,
-  RegisterPayload,
   StockCreatePayload,
   StockItem,
   StockUpdatePayload,
@@ -22,16 +20,6 @@ import type {
 import type { Language } from '../i18n/config'
 
 // ---- Auth ----
-export async function register(payload: RegisterPayload): Promise<AuthResponse> {
-  const { data } = await api.post<AuthResponse>('/register', payload)
-  return data
-}
-
-export async function login(payload: LoginPayload): Promise<AuthResponse> {
-  const { data } = await api.post<AuthResponse>('/login', payload)
-  return data
-}
-
 export async function googleAuth(credential: string): Promise<AuthResponse> {
   const { data } = await api.post<AuthResponse>('/auth/google', { credential })
   return data

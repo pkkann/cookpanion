@@ -23,7 +23,6 @@
   "addToKitchen": "Add to kitchen",
   "addAllToKitchen": "Add all to kitchen",
   "checkManually": "Check manually (unit differs from your kitchen): {{list}}",
-  "uncategorized": "Other",
   "aria": {
     "decreaseServings": "decrease servings",
     "increaseServings": "increase servings"

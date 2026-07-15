@@ -14,6 +14,13 @@
   },
   "deleteTitle": "Delete recipe?",
   "deleteMessage": "“{{title}}” will be permanently deleted, along with any meals planned with it.",
+  "quickPlan": {
+    "aria": "Add to meal plan",
+    "label": "Plan",
+    "dateLabel": "Date",
+    "add": "Add to plan",
+    "toast": "Added “{{title}}” to your plan"
+  },
   "toast": {
     "created": "Recipe created",
     "updated": "Recipe updated",

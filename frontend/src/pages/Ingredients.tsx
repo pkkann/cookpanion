@@ -55,19 +55,16 @@ export default function Ingredients() {
 
   // form fields
   const [name, setName] = useState('')
-  const [category, setCategory] = useState('')
   const [defaultUnit, setDefaultUnit] = useState('')
 
   const openCreate = () => {
     setName('')
-    setCategory('')
     setDefaultUnit('')
     setEditor({ open: true, editing: null })
   }
 
   const openEdit = (ing: Ingredient) => {
     setName(ing.name)
-    setCategory(ing.category ?? '')
     setDefaultUnit(ing.defaultUnit ?? '')
     setEditor({ open: true, editing: ing })
   }
@@ -80,18 +77,15 @@ export default function Ingredients() {
     if (!trimmedName) return
     try {
       if (editor.editing) {
-        // On edit the user can override the category by hand.
         await updateMut.mutateAsync({
           id: editor.editing.id,
           payload: {
             name: trimmedName,
-            category: category.trim() || null,
             defaultUnit: defaultUnit.trim() || null,
           },
         })
         notify(t('toast.updated'), 'success')
       } else {
-        // On create, omit category so the backend assigns it via AI.
         await createMut.mutateAsync({
           name: trimmedName,
           defaultUnit: defaultUnit.trim() || null,
@@ -179,7 +173,6 @@ export default function Ingredients() {
                     {ing.name}
                   </Typography>
                   <Stack direction="row" spacing={1} useFlexGap sx={{ mt: 1, flexWrap: 'wrap' }}>
-                    {ing.category && <Chip size="small" label={ing.category} />}
                     {ing.defaultUnit && (
                       <Chip
                         size="small"
@@ -234,20 +227,6 @@ export default function Ingredients() {
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
-            {editor.editing ? (
-              <TextField
-                label={t('category')}
-                fullWidth
-                margin="normal"
-                placeholder={t('categoryPlaceholder')}
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              />
-            ) : (
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                {t('categoryAutoHint')}
-              </Typography>
-            )}
             <UnitSelect
               label={t('defaultUnit')}
               fullWidth

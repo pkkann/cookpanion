@@ -14,21 +14,16 @@ Shared contract between the Symfony backend (`backend/`) and the React SPA (`fro
 
 - **User**: id, email, name, locale (`"en"` | `"da"`, default `"en"`), household (belongs to one household)
 - **Household**: id, name, members[]
-- **Ingredient**: id, name, category (nullable), defaultUnit (e.g. "g", "ml", "pcs") — scoped to household
+- **Ingredient**: id, name, defaultUnit (e.g. "g", "ml", "pcs") — scoped to household
 - **StockItem** (what's in the kitchen): id, ingredient, quantity (float), unit — scoped to household; one row per ingredient
 - **Recipe**: id, title, description, instructions (markdown/plain text), servings (int), author (User), createdAt — scoped to household
 - **RecipeIngredient**: ingredientId, quantity (float), unit — embedded in a Recipe
 
 ## Auth
 
-### POST /register
-Body: `{ "email": string, "password": string, "name": string, "householdName": string }`
-Creates a user + a new household they own. Returns `201`:
-`{ "token": string, "refresh_token": string, "user": User }`
-
-### POST /login
-Body: `{ "email": string, "password": string }`
-Returns `200`: `{ "token": string, "refresh_token": string, "user": User }`
+Sign-in is **Google-only**. `POST /auth/google` is the single entry point for both
+signing in and signing up (a verified Google email that matches an account logs in;
+a new email creates a user + household). There are no email/password endpoints.
 
 ### POST /auth/google
 Body: `{ "credential": string }` — the Google Identity Services ID token obtained by the
@@ -61,13 +56,12 @@ Returns `200` with the updated `User`. An unsupported locale returns `400`
 ## Ingredients  `/api/ingredients`
 
 - `GET /ingredients` → `Ingredient[]`
-- `POST /ingredients` body `{ "name", "category"?, "defaultUnit"? }` → `201 Ingredient`
-  - When `category` is omitted or blank, it is assigned automatically by AI from the name (falls back to `null` when AI is unavailable).
+- `POST /ingredients` body `{ "name", "defaultUnit"? }` → `201 Ingredient`
 - `GET /ingredients/{id}` → `Ingredient`
-- `PUT /ingredients/{id}` body `{ "name", "category"?, "defaultUnit"? }` → `Ingredient`
+- `PUT /ingredients/{id}` body `{ "name", "defaultUnit"? }` → `Ingredient`
 - `DELETE /ingredients/{id}` → `204`
 
-`Ingredient` shape: `{ "id": int, "name": string, "category": string|null, "defaultUnit": string|null }`
+`Ingredient` shape: `{ "id": int, "name": string, "defaultUnit": string|null }`
 
 ## Kitchen stock  `/api/stock`
 
@@ -116,7 +110,7 @@ Recipe request body:
   "author": { "id": 1, "name": "string" },
   "createdAt": "2026-07-02T12:00:00+00:00",
   "ingredients": [
-    { "ingredient": { "id": 1, "name": "Flour", "category": null, "defaultUnit": "g" }, "quantity": 200, "unit": "g" }
+    { "ingredient": { "id": 1, "name": "Flour", "defaultUnit": "g" }, "quantity": 200, "unit": "g" }
   ]
 }
 ```

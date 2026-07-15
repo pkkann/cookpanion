@@ -6,7 +6,6 @@ import { todayIso } from './date'
 export interface PlanBuyItem {
   ingredientId: number
   name: string
-  category: string | null
   /** Amount to buy, in `unit`. */
   shortfall: number
   unit: string
@@ -27,7 +26,6 @@ export interface PlanShoppingList {
 interface Demand {
   ingredientId: number
   name: string
-  category: string | null
   unit: string
   needed: number
 }
@@ -60,7 +58,6 @@ export function planShoppingList(meals: PlannedMeal[], stock: StockItem[]): Plan
         demand.set(key, {
           ingredientId: ri.ingredient.id,
           name: ri.ingredient.name,
-          category: ri.ingredient.category,
           unit: ri.unit,
           needed,
         })
@@ -81,7 +78,6 @@ export function planShoppingList(meals: PlannedMeal[], stock: StockItem[]): Plan
       toBuy.push({
         ingredientId: d.ingredientId,
         name: d.name,
-        category: d.category,
         shortfall: a.shortfall,
         unit: d.unit,
       })

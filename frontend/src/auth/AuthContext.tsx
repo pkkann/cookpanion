@@ -4,19 +4,15 @@ import { clearSession, getRefreshToken, getToken, setSession } from '../api/clie
 import {
   getMe,
   googleAuth as googleAuthRequest,
-  login as loginRequest,
   logout as logoutRequest,
-  register as registerRequest,
 } from '../api/endpoints'
-import type { LoginPayload, RegisterPayload, User } from '../api/types'
+import type { User } from '../api/types'
 import i18n from '../i18n'
 import type { Language } from '../i18n/config'
 
 interface AuthContextValue {
   user: User | null
   initializing: boolean
-  login: (payload: LoginPayload) => Promise<void>
-  register: (payload: RegisterPayload) => Promise<void>
   loginWithGoogle: (credential: string) => Promise<void>
   logout: () => void
   setUserLocale: (locale: Language) => void
@@ -54,18 +50,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const login = async (payload: LoginPayload) => {
-    const res = await loginRequest(payload)
-    setSession(res.token, res.refresh_token)
-    setUser(res.user)
-  }
-
-  const register = async (payload: RegisterPayload) => {
-    const res = await registerRequest(payload)
-    setSession(res.token, res.refresh_token)
-    setUser(res.user)
-  }
-
   const loginWithGoogle = async (credential: string) => {
     const res = await googleAuthRequest(credential)
     setSession(res.token, res.refresh_token)
@@ -96,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user?.locale])
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, initializing, login, register, loginWithGoogle, logout, setUserLocale }),
+    () => ({ user, initializing, loginWithGoogle, logout, setUserLocale }),
     [user, initializing, setUserLocale],
   )
 

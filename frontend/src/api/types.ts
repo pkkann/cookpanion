@@ -29,7 +29,6 @@ export interface RefreshResponse {
 export interface Ingredient {
   id: number
   name: string
-  category: string | null
   defaultUnit: string | null
   // Referenced by kitchen stock or a recipe → can't be deleted. Present on
   // ingredient endpoints; may be absent when an Ingredient is nested elsewhere.
@@ -76,18 +75,6 @@ export interface PlannedMeal {
 
 // ---- Request payloads ----
 
-export interface RegisterPayload {
-  email: string
-  password: string
-  name: string
-  householdName: string
-}
-
-export interface LoginPayload {
-  email: string
-  password: string
-}
-
 export interface GoogleAuthPayload {
   /** The Google Identity Services ID token from the sign-in button. */
   credential: string
@@ -95,7 +82,6 @@ export interface GoogleAuthPayload {
 
 export interface IngredientPayload {
   name: string
-  category?: string | null
   defaultUnit?: string | null
 }
 

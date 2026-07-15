@@ -16,9 +16,6 @@ class Ingredient
     #[ORM\Column(length: 255)]
     private string $name;
 
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $category = null;
-
     #[ORM\Column(length: 32, nullable: true)]
     private ?string $defaultUnit = null;
 
@@ -39,18 +36,6 @@ class Ingredient
     public function setName(string $name): static
     {
         $this->name = $name;
-
-        return $this;
-    }
-
-    public function getCategory(): ?string
-    {
-        return $this->category;
-    }
-
-    public function setCategory(?string $category): static
-    {
-        $this->category = $category;
 
         return $this;
     }

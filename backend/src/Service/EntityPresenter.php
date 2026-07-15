@@ -17,14 +17,13 @@ use App\Entity\User;
 final class EntityPresenter
 {
     /**
-     * @return array{id: int|null, name: string, category: string|null, defaultUnit: string|null}
+     * @return array{id: int|null, name: string, defaultUnit: string|null}
      */
     public function ingredient(Ingredient $ingredient): array
     {
         return [
             'id' => $ingredient->getId(),
             'name' => $ingredient->getName(),
-            'category' => $ingredient->getCategory(),
             'defaultUnit' => $ingredient->getDefaultUnit(),
         ];
     }

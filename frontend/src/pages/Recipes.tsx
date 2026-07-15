@@ -21,6 +21,7 @@ import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import ConfirmDialog from '../components/ConfirmDialog'
 import RecipeFormDialog from '../components/RecipeFormDialog'
+import QuickPlanButton from '../components/QuickPlanButton'
 import { useNotify } from '../components/SnackbarProvider'
 import { useDeleteRecipe, useRecipes } from '../api/hooks'
 import type { Recipe } from '../api/types'
@@ -151,6 +152,7 @@ export default function Recipes() {
                 </CardContent>
               </CardActionArea>
               <CardActions sx={{ justifyContent: 'flex-end', px: 2, pb: 1.5 }}>
+                <QuickPlanButton recipe={recipe} variant="icon" />
                 <IconButton
                   size="small"
                   aria-label={t('common:aria.edit')}

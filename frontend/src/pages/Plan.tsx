@@ -29,6 +29,7 @@ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'
 import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import ConfirmDialog from '../components/ConfirmDialog'
+import DateField from '../components/DateField'
 import { useNotify } from '../components/SnackbarProvider'
 import {
   useCreatePlannedMeal,
@@ -102,22 +103,10 @@ export default function Plan() {
     [plannedMeals, stock],
   )
 
-  // Group the buy list by ingredient category for a grocery-list feel.
-  const buyByCategory = useMemo(() => {
-    const map = new Map<string, PlanBuyItem[]>()
-    for (const item of shopping.toBuy) {
-      const key = item.category ?? ''
-      const arr = map.get(key)
-      if (arr) arr.push(item)
-      else map.set(key, [item])
-    }
-    return [...map.entries()].sort(([a], [b]) => {
-      // Uncategorized ("") sorts last.
-      if (a === '') return 1
-      if (b === '') return -1
-      return a.localeCompare(b)
-    })
-  }, [shopping])
+  const plannedDates = useMemo(
+    () => new Set((plannedMeals ?? []).map((m) => m.date)),
+    [plannedMeals],
+  )
 
   const stockById = useMemo(() => {
     const m = new Map<number, StockItem>()
@@ -329,39 +318,32 @@ export default function Plan() {
               </Alert>
             ) : (
               <>
-                {buyByCategory.map(([category, items]) => (
-                  <Box key={category || 'uncategorized'} sx={{ mb: 1.5 }}>
-                    <Typography variant="overline" color="text.secondary">
-                      {category || t('uncategorized')}
-                    </Typography>
-                    <Stack spacing={0.25}>
-                      {items.map((item) => (
-                        <Stack
-                          key={`${item.ingredientId}-${item.unit}`}
-                          direction="row"
-                          spacing={1}
-                          sx={{ alignItems: 'center', justifyContent: 'space-between' }}
-                        >
-                          <Typography variant="body2">
-                            {`${item.name} — ${formatQuantity(item.shortfall)} ${item.unit}`.trim()}
-                          </Typography>
-                          <Tooltip title={t('addToKitchen')}>
-                            <span>
-                              <IconButton
-                                size="small"
-                                disabled={stockBusy}
-                                aria-label={t('addToKitchen')}
-                                onClick={() => handleAddToKitchen(item)}
-                              >
-                                <AddIcon fontSize="small" />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                        </Stack>
-                      ))}
+                <Stack spacing={0.25} sx={{ mb: 1.5 }}>
+                  {shopping.toBuy.map((item) => (
+                    <Stack
+                      key={`${item.ingredientId}-${item.unit}`}
+                      direction="row"
+                      spacing={1}
+                      sx={{ alignItems: 'center', justifyContent: 'space-between' }}
+                    >
+                      <Typography variant="body2">
+                        {`${item.name} — ${formatQuantity(item.shortfall)} ${item.unit}`.trim()}
+                      </Typography>
+                      <Tooltip title={t('addToKitchen')}>
+                        <span>
+                          <IconButton
+                            size="small"
+                            disabled={stockBusy}
+                            aria-label={t('addToKitchen')}
+                            onClick={() => handleAddToKitchen(item)}
+                          >
+                            <AddIcon fontSize="small" />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
                     </Stack>
-                  </Box>
-                ))}
+                  ))}
+                </Stack>
                 <Button
                   size="small"
                   startIcon={<AddIcon />}
@@ -414,15 +396,14 @@ export default function Plan() {
               />
             )}
 
-            <TextField
+            <DateField
               label={t('date')}
-              type="date"
+              value={date}
+              onChange={setDate}
               fullWidth
               required
               margin="normal"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              slotProps={{ inputLabel: { shrink: true } }}
+              markedDates={plannedDates}
             />
 
             <Box sx={{ mt: 2 }}>

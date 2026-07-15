@@ -1,7 +1,5 @@
 {
   "generic": "Something went wrong",
-  "login": "Login failed. Check your credentials.",
-  "register": "Registration failed. Please try again.",
   "googleSignIn": "Google sign-in failed",
   "loadIngredients": "Failed to load ingredients",
   "saveIngredient": "Could not save ingredient",

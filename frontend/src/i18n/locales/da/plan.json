@@ -23,7 +23,6 @@
   "addToKitchen": "Tilføj til køkken",
   "addAllToKitchen": "Tilføj alle til køkken",
   "checkManually": "Tjek manuelt (enhed afviger fra dit køkken): {{list}}",
-  "uncategorized": "Andet",
   "aria": {
     "decreaseServings": "reducer portioner",
     "increaseServings": "øg portioner"

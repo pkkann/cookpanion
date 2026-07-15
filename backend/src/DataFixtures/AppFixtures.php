@@ -31,26 +31,25 @@ class AppFixtures extends Fixture
         $user->setPassword($this->passwordHasher->hashPassword($user, 'demo1234'));
         $manager->persist($user);
 
-        // ingredient name => [category, defaultUnit]
+        // ingredient name => defaultUnit
         $catalog = [
-            'Eggs' => ['Dairy & Eggs', 'pcs'],
-            'Flour' => ['Baking', 'g'],
-            'Milk' => ['Dairy & Eggs', 'ml'],
-            'Butter' => ['Dairy & Eggs', 'g'],
-            'Tomato' => ['Vegetables', 'pcs'],
-            'Onion' => ['Vegetables', 'pcs'],
-            'Pasta' => ['Pantry', 'g'],
-            'Chicken breast' => ['Meat', 'g'],
-            'Rice' => ['Pantry', 'g'],
-            'Cheese' => ['Dairy & Eggs', 'g'],
+            'Eggs' => 'pcs',
+            'Flour' => 'g',
+            'Milk' => 'ml',
+            'Butter' => 'g',
+            'Tomato' => 'pcs',
+            'Onion' => 'pcs',
+            'Pasta' => 'g',
+            'Chicken breast' => 'g',
+            'Rice' => 'g',
+            'Cheese' => 'g',
         ];
 
         /** @var array<string, Ingredient> $ingredients */
         $ingredients = [];
-        foreach ($catalog as $name => [$category, $unit]) {
+        foreach ($catalog as $name => $unit) {
             $ingredient = (new Ingredient())
                 ->setName($name)
-                ->setCategory($category)
                 ->setDefaultUnit($unit)
                 ->setHousehold($household);
             $manager->persist($ingredient);

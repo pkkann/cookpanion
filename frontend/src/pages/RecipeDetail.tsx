@@ -36,6 +36,7 @@ import ConfirmDialog from '../components/ConfirmDialog'
 import RecipeFormDialog from '../components/RecipeFormDialog'
 import CookDialog from '../components/CookDialog'
 import type { CookRow } from '../components/CookDialog'
+import QuickPlanButton from '../components/QuickPlanButton'
 import { useNotify } from '../components/SnackbarProvider'
 import {
   useCreateStock,
@@ -371,6 +372,7 @@ export default function RecipeDetail() {
               >
                 {t('cook.button')}
               </Button>
+              <QuickPlanButton recipe={recipe} variant="button" fullWidth={isMobile} />
               <Button
                 variant="outlined"
                 fullWidth={isMobile}

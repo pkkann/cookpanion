@@ -101,7 +101,10 @@ export default function AISuggestions() {
       const recipeIngredients: RecipeIngredientPayload[] = []
       let createdAny = false
 
-      for (const used of suggestion.usesIngredients) {
+      // A recipe needs ALL of its ingredients: the ones the household already
+      // has (`usesIngredients`) and the ones it still needs to buy (`toBuy`).
+      // Missing ingredients are created on the fly so the recipe is complete.
+      for (const used of [...suggestion.usesIngredients, ...suggestion.toBuy]) {
         const key = used.name.trim().toLowerCase()
         let ingredient = byName.get(key)
         if (!ingredient) {

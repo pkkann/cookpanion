@@ -3,7 +3,6 @@ import { AuthProvider } from './auth/AuthContext'
 import ProtectedRoute from './auth/ProtectedRoute'
 import Layout from './components/Layout'
 import Login from './pages/Login'
-import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import Ingredients from './pages/Ingredients'
 import Kitchen from './pages/Kitchen'
@@ -18,7 +17,7 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/register" element={<Navigate to="/login" replace />} />
 
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
