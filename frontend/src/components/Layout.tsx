@@ -24,6 +24,7 @@ import KitchenIcon from '@mui/icons-material/Kitchen'
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu'
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
+import DownloadIcon from '@mui/icons-material/Download'
 import LocalDiningIcon from '@mui/icons-material/LocalDining'
 import SettingsIcon from '@mui/icons-material/Settings'
 import LogoutIcon from '@mui/icons-material/Logout'
@@ -45,6 +46,7 @@ const NAV_ITEMS: NavItem[] = [
   { title: 'Recipes', path: '/recipes', icon: <RestaurantMenuIcon /> },
   { title: 'Meal plan', path: '/plan', icon: <CalendarMonthIcon /> },
   { title: 'AI Suggestions', path: '/suggestions', icon: <AutoAwesomeIcon /> },
+  { title: 'Import recipe', path: '/import', icon: <DownloadIcon /> },
 ]
 
 function isActivePath(current: string, target: string): boolean {

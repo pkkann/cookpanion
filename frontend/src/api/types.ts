@@ -175,6 +175,31 @@ export interface SuggestResponse {
   suggestions: RecipeSuggestion[]
 }
 
+// ---- AI recipe import ----
+
+export interface ImportRecipePayload {
+  /** Provide one of these. When both are set, text wins. */
+  url?: string
+  text?: string
+}
+
+export interface ImportedRecipeIngredient {
+  name: string
+  quantity: number
+  unit: string
+}
+
+/** A recipe the AI extracted from a URL or pasted text. Ingredients are name-based. */
+export interface ImportedRecipe {
+  title: string
+  description: string
+  servings: number
+  prepTimeMinutes: number
+  cookTimeMinutes: number
+  instructions: string[]
+  ingredients: ImportedRecipeIngredient[]
+}
+
 // ---- Errors ----
 
 export interface ApiError {

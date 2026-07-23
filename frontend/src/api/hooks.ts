@@ -138,6 +138,11 @@ export function useCookRecipe() {
   })
 }
 
+// ---- AI recipe import ----
+export function useImportRecipe() {
+  return useMutation({ mutationFn: api.importRecipe })
+}
+
 // ---- Meal plan ----
 export function usePlannedMeals() {
   return useQuery({ queryKey: queryKeys.plannedMeals, queryFn: api.listPlannedMeals })

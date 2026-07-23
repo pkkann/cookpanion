@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { FormEvent, Key } from 'react'
 import Dialog from '@mui/material/Dialog'
 import DialogTitle from '@mui/material/DialogTitle'
 import DialogContent from '@mui/material/DialogContent'
 import DialogActions from '@mui/material/DialogActions'
 import Button from '@mui/material/Button'
 import TextField from '@mui/material/TextField'
-import Autocomplete from '@mui/material/Autocomplete'
+import Autocomplete, { createFilterOptions } from '@mui/material/Autocomplete'
 import Box from '@mui/material/Box'
 import Stack from '@mui/material/Stack'
 import IconButton from '@mui/material/IconButton'
@@ -16,16 +16,32 @@ import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/DeleteOutlined'
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
-import { useCreateRecipe, useIngredients, useUpdateRecipe } from '../api/hooks'
+import { useCreateIngredient, useCreateRecipe, useIngredients, useUpdateRecipe } from '../api/hooks'
 import UnitSelect from './UnitSelect'
 import { useNotify } from './SnackbarProvider'
 import { errorMessage } from '../api/client'
-import type { Ingredient, Recipe, RecipePayload } from '../api/types'
+import type {
+  ImportedRecipe,
+  Ingredient,
+  Recipe,
+  RecipeIngredientPayload,
+  RecipePayload,
+} from '../api/types'
 import { useIsMobile } from '../utils/useIsMobile'
+
+// A synthetic Autocomplete option representing "create this new ingredient"
+// (mirrors the pattern used on the Kitchen page).
+type NewIngredientOption = { inputValue: string; isNew: true }
+type IngredientOption = Ingredient | NewIngredientOption
+
+const isNewOption = (o: IngredientOption): o is NewIngredientOption =>
+  (o as NewIngredientOption).isNew === true
+
+const filterIngredients = createFilterOptions<IngredientOption>()
 
 interface RowState {
   key: string
-  ingredient: Ingredient | null
+  ingredient: IngredientOption | null
   quantity: string
   unit: string
 }
@@ -38,7 +54,11 @@ interface StepState {
 interface RecipeFormDialogProps {
   open: boolean
   recipe: Recipe | null // null => create
+  /** Optional prefill for a create (e.g. an AI-imported recipe) to review before saving. */
+  draft?: ImportedRecipe | null
   onClose: () => void
+  /** Called with the created/updated recipe after a successful save. */
+  onSaved?: (recipe: Recipe) => void
 }
 
 let rowCounter = 0
@@ -52,12 +72,19 @@ const newRow = (): RowState => ({
 let stepCounter = 0
 const newStep = (text = ''): StepState => ({ key: `step-${stepCounter++}`, text })
 
-export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDialogProps) {
+export default function RecipeFormDialog({
+  open,
+  recipe,
+  draft,
+  onClose,
+  onSaved,
+}: RecipeFormDialogProps) {
   const notify = useNotify()
   const isMobile = useIsMobile()
   const { data: ingredients } = useIngredients()
   const createMut = useCreateRecipe()
   const updateMut = useUpdateRecipe()
+  const createIngredientMut = useCreateIngredient()
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -67,7 +94,7 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
   const [steps, setSteps] = useState<StepState[]>([newStep()])
   const [rows, setRows] = useState<RowState[]>([newRow()])
 
-  // Reset form whenever the dialog opens for a given recipe (or fresh create).
+  // Reset form whenever the dialog opens for a given recipe / draft (or fresh create).
   useEffect(() => {
     if (!open) return
     if (recipe) {
@@ -91,6 +118,34 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
             }))
           : [newRow()],
       )
+    } else if (draft) {
+      // Prefill from an imported recipe. Ingredients are name-based: match existing
+      // ones for display; unmatched names become "new" options and are created on save.
+      const byName = new Map<string, Ingredient>()
+      for (const ing of ingredients ?? []) byName.set(ing.name.trim().toLowerCase(), ing)
+
+      setTitle(draft.title)
+      setDescription(draft.description ?? '')
+      setServings(String(draft.servings || 1))
+      setPrepTime(draft.prepTimeMinutes ? String(draft.prepTimeMinutes) : '')
+      setCookTime(draft.cookTimeMinutes ? String(draft.cookTimeMinutes) : '')
+      setSteps(
+        draft.instructions.length > 0
+          ? draft.instructions.map((text) => newStep(text))
+          : [newStep()],
+      )
+      setRows(
+        draft.ingredients.length > 0
+          ? draft.ingredients.map((di) => ({
+              key: `row-${rowCounter++}`,
+              ingredient:
+                byName.get(di.name.trim().toLowerCase()) ??
+                ({ inputValue: di.name, isNew: true } as NewIngredientOption),
+              quantity: di.quantity != null ? String(di.quantity) : '',
+              unit: di.unit ?? '',
+            }))
+          : [newRow()],
+      )
     } else {
       setTitle('')
       setDescription('')
@@ -100,7 +155,10 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
       setSteps([newStep()])
       setRows([newRow()])
     }
-  }, [open, recipe])
+    // `ingredients` is intentionally omitted: it's only read to seed row display, and
+    // re-running when it loads would discard edits. Save-time resolution is authoritative.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, recipe, draft])
 
   const updateRow = (key: string, patch: Partial<RowState>) => {
     setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)))
@@ -122,10 +180,13 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
       return next
     })
 
-  const saving = createMut.isPending || updateMut.isPending
+  const saving = createMut.isPending || updateMut.isPending || createIngredientMut.isPending
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
+
+    const trimmedTitle = title.trim()
+    if (!trimmedTitle) return
 
     const parseMinutes = (v: string): number | null => {
       const trimmed = v.trim()
@@ -134,37 +195,67 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
     }
 
     const validRows = rows.filter((r) => r.ingredient && r.quantity !== '' && r.unit.trim())
-    const payload: RecipePayload = {
-      title: title.trim(),
-      description: description.trim(),
-      instructions: steps.map((s) => s.text.trim()).filter(Boolean),
-      servings: Math.max(1, Math.round(Number(servings) || 1)),
-      prepTimeMinutes: parseMinutes(prepTime),
-      cookTimeMinutes: parseMinutes(cookTime),
-      ingredients: validRows.map((r) => ({
-        ingredientId: r.ingredient!.id,
-        quantity: Number(r.quantity),
-        unit: r.unit.trim(),
-      })),
-    }
-
-    if (!payload.title) return
 
     try {
+      // Resolve each row to an ingredient id, creating new ones (deduped by name).
+      const byName = new Map<string, Ingredient>()
+      for (const ing of ingredients ?? []) byName.set(ing.name.trim().toLowerCase(), ing)
+
+      const ingredientPayloads: RecipeIngredientPayload[] = []
+      for (const r of validRows) {
+        const opt = r.ingredient!
+        let resolved: Ingredient
+        if (isNewOption(opt)) {
+          const key = opt.inputValue.trim().toLowerCase()
+          resolved =
+            byName.get(key) ??
+            (await createIngredientMut.mutateAsync({
+              name: opt.inputValue.trim(),
+              defaultUnit: r.unit.trim() || null,
+            }))
+          byName.set(key, resolved)
+        } else {
+          resolved = opt
+        }
+        ingredientPayloads.push({
+          ingredientId: resolved.id,
+          quantity: Number(r.quantity),
+          unit: r.unit.trim(),
+        })
+      }
+
+      const payload: RecipePayload = {
+        title: trimmedTitle,
+        description: description.trim(),
+        instructions: steps.map((s) => s.text.trim()).filter(Boolean),
+        servings: Math.max(1, Math.round(Number(servings) || 1)),
+        prepTimeMinutes: parseMinutes(prepTime),
+        cookTimeMinutes: parseMinutes(cookTime),
+        ingredients: ingredientPayloads,
+      }
+
+      let saved: Recipe
       if (recipe) {
-        await updateMut.mutateAsync({ id: recipe.id, payload })
+        saved = await updateMut.mutateAsync({ id: recipe.id, payload })
         notify('Recipe updated', 'success')
       } else {
-        await createMut.mutateAsync(payload)
+        saved = await createMut.mutateAsync(payload)
         notify('Recipe created', 'success')
       }
+      onSaved?.(saved)
       onClose()
     } catch (err) {
       notify(errorMessage(err, 'Could not save recipe'), 'error')
     }
   }
 
-  const options = ingredients ?? []
+  const baseOptions: IngredientOption[] = ingredients ?? []
+  // Ensure a row's current "new" value is present in its options so MUI doesn't
+  // warn about a value with no matching option.
+  const optionsFor = (row: RowState): IngredientOption[] =>
+    row.ingredient && isNewOption(row.ingredient)
+      ? [row.ingredient, ...baseOptions]
+      : baseOptions
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth fullScreen={isMobile}>
@@ -232,16 +323,46 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
                 spacing={1}
                 sx={{ alignItems: { xs: 'stretch', sm: 'flex-start' } }}
               >
-                <Autocomplete
+                <Autocomplete<IngredientOption>
                   sx={{ flex: 2, minWidth: 0 }}
-                  options={options}
-                  getOptionLabel={(o) => o.name}
-                  isOptionEqualToValue={(o, v) => o.id === v.id}
+                  options={optionsFor(row)}
                   value={row.ingredient}
+                  selectOnFocus
+                  clearOnBlur
+                  handleHomeEndKeys
+                  getOptionLabel={(o) =>
+                    typeof o === 'string' ? o : isNewOption(o) ? o.inputValue : o.name
+                  }
+                  isOptionEqualToValue={(o, v) =>
+                    isNewOption(o) || isNewOption(v)
+                      ? isNewOption(o) && isNewOption(v) && o.inputValue === v.inputValue
+                      : o.id === v.id
+                  }
+                  filterOptions={(opts, params) => {
+                    const filtered = filterIngredients(opts, params)
+                    const typed = params.inputValue.trim()
+                    // Offer "Add" only for a genuinely new name (case-insensitive).
+                    if (
+                      typed &&
+                      !(ingredients ?? []).some((i) => i.name.toLowerCase() === typed.toLowerCase())
+                    ) {
+                      filtered.push({ inputValue: typed, isNew: true })
+                    }
+                    return filtered
+                  }}
+                  renderOption={(props, option) => {
+                    const { key, ...rest } = props as typeof props & { key: Key }
+                    return (
+                      <li key={key} {...rest}>
+                        {isNewOption(option) ? `Add “${option.inputValue}”` : option.name}
+                      </li>
+                    )
+                  }}
                   onChange={(_e, val) =>
                     updateRow(row.key, {
                       ingredient: val,
-                      unit: row.unit || val?.defaultUnit || '',
+                      unit:
+                        row.unit || (val && !isNewOption(val) ? (val.defaultUnit ?? '') : row.unit),
                     })
                   }
                   renderInput={(params) => (

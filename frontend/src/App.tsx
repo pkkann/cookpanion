@@ -12,6 +12,7 @@ import Kitchen from './pages/Kitchen'
 import Recipes from './pages/Recipes'
 import RecipeDetail from './pages/RecipeDetail'
 import AISuggestions from './pages/AISuggestions'
+import ImportRecipe from './pages/ImportRecipe'
 import Plan from './pages/Plan'
 
 export default function App() {
@@ -33,6 +34,7 @@ export default function App() {
               <Route path="/recipes/:id" element={<RecipeDetail />} />
               <Route path="/plan" element={<Plan />} />
               <Route path="/suggestions" element={<AISuggestions />} />
+              <Route path="/import" element={<ImportRecipe />} />
               <Route path="/settings" element={<Settings />} />
             </Route>
           </Route>

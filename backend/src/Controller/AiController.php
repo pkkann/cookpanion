@@ -13,10 +13,14 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 #[Route('/api/ai')]
 class AiController extends AbstractApiController
 {
+    /** Cap on characters of source content sent to the model when importing. */
+    private const IMPORT_MAX_CHARS = 12000;
+
     public function __construct(
         private readonly StockItemRepository $stock,
         private readonly IngredientRepository $ingredients,
@@ -26,6 +30,7 @@ class AiController extends AbstractApiController
         #[Autowire('%env(ANTHROPIC_API_KEY)%')]
         private readonly string $anthropicApiKey,
         private readonly LoggerInterface $logger,
+        private readonly HttpClientInterface $httpClient,
     ) {
     }
 
@@ -93,6 +98,223 @@ class AiController extends AbstractApiController
         }
 
         return $this->json(['suggestions' => $suggestions]);
+    }
+
+    /**
+     * Builds a recipe from a pasted URL or block of text. Fetches and strips the
+     * page when a URL is given, then asks the AI to extract a single structured
+     * recipe. The result is always in English (translated when the source isn't).
+     */
+    #[Route('/import-recipe', name: 'api_ai_import_recipe', methods: ['POST'])]
+    public function importRecipe(Request $request): JsonResponse
+    {
+        if ('' === trim($this->anthropicApiKey)) {
+            return $this->json(['error' => 'AI is not configured. Add ANTHROPIC_API_KEY.'], Response::HTTP_SERVICE_UNAVAILABLE);
+        }
+
+        $data = $this->decode($request);
+        if ($data instanceof JsonResponse) {
+            return $data;
+        }
+
+        $text = trim((string) ($data['text'] ?? ''));
+        $url = trim((string) ($data['url'] ?? ''));
+
+        if ('' === $text && '' === $url) {
+            return $this->json(
+                ['error' => 'Validation failed', 'details' => ['source' => 'Provide a URL or text to import from.']],
+                Response::HTTP_BAD_REQUEST,
+            );
+        }
+
+        // Pasted text wins when both are present; otherwise fetch the URL.
+        if ('' !== $text) {
+            $source = $text;
+        } else {
+            $source = $this->fetchUrlText($url);
+            if ($source instanceof JsonResponse) {
+                return $source;
+            }
+        }
+
+        // Bound the prompt size regardless of source.
+        $source = mb_substr($source, 0, self::IMPORT_MAX_CHARS);
+
+        try {
+            $messages = new MessageBag(
+                Message::forSystem('You extract a single recipe from the provided content and respond ONLY with a single valid JSON object. No markdown, no code fences, no commentary.'),
+                Message::ofUser($this->buildImportPrompt($source)),
+            );
+            $result = $this->recipeAgent->call($messages, ['max_tokens' => 4096]);
+            $content = $result->getContent();
+        } catch (\Throwable $e) {
+            $this->logger->error('AI recipe import failed', ['exception' => $e]);
+
+            return $this->json(['error' => 'AI request failed. Please try again later.'], Response::HTTP_BAD_GATEWAY);
+        }
+
+        $recipe = $this->parseImportedRecipe(\is_string($content) ? $content : '');
+        if (null === $recipe) {
+            return $this->json(['error' => "Couldn't find a recipe in that content."], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        return $this->json(['recipe' => $recipe]);
+    }
+
+    /**
+     * Fetches a URL and reduces it to readable text, or returns an error response.
+     */
+    private function fetchUrlText(string $url): string|JsonResponse
+    {
+        $parts = parse_url($url);
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        $host = (string) ($parts['host'] ?? '');
+        if (!\in_array($scheme, ['http', 'https'], true) || '' === $host) {
+            return $this->json(
+                ['error' => 'Validation failed', 'details' => ['url' => 'Enter a valid http(s) URL.']],
+                Response::HTTP_BAD_REQUEST,
+            );
+        }
+        // Basic SSRF guard: never let the server fetch localhost or private/reserved IPs.
+        if ($this->isBlockedHost($host)) {
+            return $this->json(
+                ['error' => 'Validation failed', 'details' => ['url' => 'That URL is not allowed.']],
+                Response::HTTP_BAD_REQUEST,
+            );
+        }
+
+        try {
+            $response = $this->httpClient->request('GET', $url, [
+                'timeout' => 10,
+                'max_duration' => 15,
+                'max_redirects' => 3,
+                'headers' => ['User-Agent' => 'CookpanionRecipeImporter/1.0'],
+            ]);
+            if ($response->getStatusCode() >= 400) {
+                return $this->json(['error' => 'Could not fetch that URL.'], Response::HTTP_BAD_GATEWAY);
+            }
+            $html = $response->getContent(false);
+        } catch (\Throwable $e) {
+            $this->logger->error('Recipe import URL fetch failed', ['exception' => $e, 'url' => $url]);
+
+            return $this->json(['error' => 'Could not fetch that URL.'], Response::HTTP_BAD_GATEWAY);
+        }
+
+        $textContent = $this->htmlToText($html);
+        if ('' === trim($textContent)) {
+            return $this->json(['error' => "That page didn't contain any readable text."], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        return $textContent;
+    }
+
+    /**
+     * True for hosts the server must not fetch: localhost and any name that
+     * resolves to a private or reserved IP range.
+     */
+    private function isBlockedHost(string $host): bool
+    {
+        $host = strtolower(trim($host, '[]')); // strip IPv6 brackets
+        if ('localhost' === $host || str_ends_with($host, '.localhost')) {
+            return true;
+        }
+
+        $ip = filter_var($host, \FILTER_VALIDATE_IP) ? $host : gethostbyname($host);
+
+        // A valid PUBLIC (non-private, non-reserved) IP is allowed; anything else
+        // — private/reserved ranges, or a name that failed to resolve — is blocked.
+        return false === filter_var($ip, \FILTER_VALIDATE_IP, \FILTER_FLAG_NO_PRIV_RANGE | \FILTER_FLAG_NO_RES_RANGE);
+    }
+
+    /** Reduces an HTML document to readable plain text. */
+    private function htmlToText(string $html): string
+    {
+        // Drop script/style/noscript blocks entirely, then strip remaining tags.
+        $html = preg_replace('#<(script|style|noscript)\b[^>]*>.*?</\1>#is', ' ', $html) ?? $html;
+        $text = strip_tags($html);
+        $text = html_entity_decode($text, \ENT_QUOTES | \ENT_HTML5, 'UTF-8');
+        $text = preg_replace('/[ \t\x{00A0}]+/u', ' ', $text) ?? $text;
+        $text = preg_replace('/\s*\n\s*/', "\n", $text) ?? $text;
+
+        return trim($text);
+    }
+
+    private function buildImportPrompt(string $source): string
+    {
+        $schema = <<<'JSON'
+        {
+          "title": "string",
+          "description": "string",
+          "servings": 2,
+          "prepTimeMinutes": 0,
+          "cookTimeMinutes": 0,
+          "instructions": ["string"],
+          "ingredients": [ { "name": "string", "quantity": 0, "unit": "string" } ]
+        }
+        JSON;
+
+        return <<<PROMPT
+        Extract a single recipe from the CONTENT below and return it as JSON.
+
+        Always write every value in ENGLISH. If the content is in another language, translate the title, description, instructions and ingredient names into English.
+
+        Return ONLY a JSON object exactly matching this schema (no extra keys, no prose, no markdown):
+        {$schema}
+
+        Rules:
+        - "servings" is an integer (make a sensible best guess if it is not stated).
+        - "prepTimeMinutes" and "cookTimeMinutes" are whole-minute integers; use 0 when unknown.
+        - "ingredients" lists every ingredient with a numeric "quantity" and a short "unit" (use "" when there is no unit). Convert written amounts to numbers (e.g. "two cups" -> quantity 2, unit "cup").
+        - "instructions" is an ordered array of concise steps, one step per element.
+        - If the content is NOT a recipe, return the schema with an empty "title".
+
+        CONTENT:
+        {$source}
+        PROMPT;
+    }
+
+    /**
+     * Validates and normalizes the model's imported-recipe JSON. Returns null when
+     * no recipe could be extracted (empty/invalid JSON or missing title).
+     *
+     * @return array<string, mixed>|null
+     */
+    private function parseImportedRecipe(string $content): ?array
+    {
+        $content = trim($content);
+        if ('' === $content) {
+            return null;
+        }
+
+        $json = $this->extractJsonObject($content);
+        if (null === $json) {
+            return null;
+        }
+
+        try {
+            $decoded = json_decode($json, true, 512, \JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return null;
+        }
+
+        if (!\is_array($decoded)) {
+            return null;
+        }
+
+        $title = trim((string) ($decoded['title'] ?? ''));
+        if ('' === $title) {
+            return null;
+        }
+
+        return [
+            'title' => $title,
+            'description' => (string) ($decoded['description'] ?? ''),
+            'servings' => max(1, (int) ($decoded['servings'] ?? 1)),
+            'prepTimeMinutes' => max(0, (int) ($decoded['prepTimeMinutes'] ?? 0)),
+            'cookTimeMinutes' => max(0, (int) ($decoded['cookTimeMinutes'] ?? 0)),
+            'instructions' => $this->normalizeSteps($decoded['instructions'] ?? []),
+            'ingredients' => $this->normalizeLines($decoded['ingredients'] ?? []),
+        ];
     }
 
     /**

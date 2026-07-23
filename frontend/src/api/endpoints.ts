@@ -2,6 +2,8 @@ import { api } from './client'
 import type {
   AuthResponse,
   CookPayload,
+  ImportedRecipe,
+  ImportRecipePayload,
   Ingredient,
   IngredientPayload,
   PlannedMeal,
@@ -151,4 +153,10 @@ export async function deletePlannedMeal(id: number): Promise<void> {
 export async function suggestRecipes(payload: SuggestPayload): Promise<SuggestResponse> {
   const { data } = await api.post<SuggestResponse>('/ai/suggest-recipes', payload)
   return data
+}
+
+// ---- AI recipe import ----
+export async function importRecipe(payload: ImportRecipePayload): Promise<ImportedRecipe> {
+  const { data } = await api.post<{ recipe: ImportedRecipe }>('/ai/import-recipe', payload)
+  return data.recipe
 }

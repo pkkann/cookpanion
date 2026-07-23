@@ -185,6 +185,32 @@ so the frontend can show a friendly message.
 The frontend offers a "Save as recipe" action that POSTs a suggestion to `/api/recipes`
 (mapping suggestion `usesIngredients` to existing ingredients by name, creating missing ones first is a frontend/back convenience — backend `POST /recipes` accepts `ingredients` by `ingredientId`).
 
+## AI recipe import  `/api/ai/import-recipe`
+
+`POST /ai/import-recipe`
+Body: `{ "url"?: string, "text"?: string }` — provide one. When both are present, `text` wins.
+- With `url`, the backend fetches the page (http/https only; localhost and private/reserved IPs are refused) and reduces it to text before extraction.
+- The extracted recipe is **always in English** — content in another language is translated.
+
+Response `200`:
+```json
+{
+  "recipe": {
+    "title": "string",
+    "description": "string",
+    "servings": 4,
+    "prepTimeMinutes": 15,
+    "cookTimeMinutes": 30,
+    "instructions": ["step one", "step two"],
+    "ingredients": [ { "name": "Flour", "quantity": 200, "unit": "g" } ]
+  }
+}
+```
+
+`ingredients` are name-based (not ids); the frontend pre-fills the recipe form for review, matching names to existing ingredients and creating any missing ones on save.
+
+Errors: `400` when neither field is given or the URL is invalid/disallowed; `503` when `ANTHROPIC_API_KEY` is unset; `502` when the URL can't be fetched or the AI call fails; `422` when no recipe could be extracted from the content.
+
 ## Conventions
 
 - Backend port `8000` (nginx), frontend dev port `5173` (Vite).
