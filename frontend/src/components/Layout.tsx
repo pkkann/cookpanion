@@ -29,6 +29,7 @@ import LocalDiningIcon from '@mui/icons-material/LocalDining'
 import SettingsIcon from '@mui/icons-material/Settings'
 import LogoutIcon from '@mui/icons-material/Logout'
 import { useAuth } from '../auth/AuthContext'
+import { useT } from '../i18n/LanguageProvider'
 
 const DRAWER_WIDTH = 248
 
@@ -59,6 +60,7 @@ export default function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
+  const t = useT()
 
   const [mobileOpen, setMobileOpen] = useState(false)
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
@@ -97,7 +99,7 @@ export default function Layout() {
                 onClick={() => setMobileOpen(false)}
               >
                 <ListItemIcon sx={{ minWidth: 40 }}>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.title} />
+                <ListItemText primary={t(item.title)} />
               </ListItemButton>
             </ListItem>
           )
@@ -106,7 +108,7 @@ export default function Layout() {
       <Divider />
       <Box sx={{ p: 2 }}>
         <Typography variant="caption" color="text.secondary">
-          Household
+          {t('Household')}
         </Typography>
         <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
           {user?.household?.name ?? '—'}
@@ -126,7 +128,7 @@ export default function Layout() {
             <IconButton
               edge="start"
               color="inherit"
-              aria-label="open navigation"
+              aria-label={t('open navigation')}
               onClick={() => setMobileOpen(true)}
               sx={{ mr: 1 }}
             >
@@ -151,7 +153,7 @@ export default function Layout() {
                 {user?.household?.name}
               </Typography>
             </Box>
-            <Tooltip title="Account">
+            <Tooltip title={t('Account')}>
               <IconButton onClick={(e) => setMenuAnchor(e.currentTarget)} size="small">
                 <Avatar sx={{ bgcolor: 'primary.main', width: 36, height: 36 }}>
                   {initials}
@@ -180,13 +182,13 @@ export default function Layout() {
                 <ListItemIcon>
                   <SettingsIcon fontSize="small" />
                 </ListItemIcon>
-                Settings
+                {t('Settings')}
               </MenuItem>
               <MenuItem onClick={handleLogout}>
                 <ListItemIcon>
                   <LogoutIcon fontSize="small" />
                 </ListItemIcon>
-                Log out
+                {t('Log out')}
               </MenuItem>
             </Menu>
           </Box>

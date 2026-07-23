@@ -7,14 +7,20 @@ import {
   joinHousehold as joinHouseholdRequest,
   logout as logoutRequest,
   updateHousehold as updateHouseholdRequest,
+  updateHouseholdLanguage as updateHouseholdLanguageRequest,
+  updateMe as updateMeRequest,
 } from '../api/endpoints'
 import type { User } from '../api/types'
+import type { Language } from '../i18n/strings'
+import { useLanguage } from '../i18n/LanguageProvider'
 
 interface AuthContextValue {
   user: User | null
   initializing: boolean
   loginWithGoogle: (credential: string) => Promise<void>
   updateHousehold: (name: string) => Promise<void>
+  setHouseholdLanguage: (language: Language) => Promise<void>
+  setUserLanguage: (language: Language) => Promise<void>
   joinHousehold: (code: string) => Promise<void>
   logout: () => void
 }
@@ -24,6 +30,13 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [initializing, setInitializing] = useState(true)
+  const { setLang } = useLanguage()
+
+  // The signed-in user's stored language is authoritative for the UI; adopt it
+  // whenever the user (re)loads so it follows the account across devices.
+  useEffect(() => {
+    if (user?.language) setLang(user.language)
+  }, [user?.language, setLang])
 
   // On boot, if we hold a token, hydrate the current user from /me.
   useEffect(() => {
@@ -62,6 +75,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(updated)
   }
 
+  const setHouseholdLanguage = async (language: Language) => {
+    const updated = await updateHouseholdLanguageRequest(language)
+    setUser(updated)
+  }
+
+  const setUserLanguage = async (language: Language) => {
+    setLang(language) // reflect immediately, then persist
+    const updated = await updateMeRequest({ language })
+    setUser(updated)
+  }
+
   const joinHousehold = async (code: string) => {
     const updated = await joinHouseholdRequest(code)
     setUser(updated)
@@ -83,9 +107,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       initializing,
       loginWithGoogle,
       updateHousehold,
+      setHouseholdLanguage,
+      setUserLanguage,
       joinHousehold,
       logout,
     }),
+    // Handlers are stable enough (they only close over stable setters/imports);
+    // the value is intentionally recomputed only when user/initializing change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [user, initializing],
   )
 

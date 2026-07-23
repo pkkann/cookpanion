@@ -18,6 +18,7 @@ import type {
   SuggestResponse,
   User,
 } from './types'
+import type { Language } from '../i18n/strings'
 
 // ---- Auth ----
 export async function googleAuth(credential: string): Promise<AuthResponse> {
@@ -35,9 +36,21 @@ export async function getMe(): Promise<User> {
   return data
 }
 
+/** Update the current user's preferred display language. Returns the updated user. */
+export async function updateMe(payload: { language: Language }): Promise<User> {
+  const { data } = await api.patch<User>('/me', payload)
+  return data
+}
+
 /** Rename the current user's household. Returns the updated user. */
 export async function updateHousehold(name: string): Promise<User> {
   const { data } = await api.patch<User>('/household', { name })
+  return data
+}
+
+/** Set the household's content language (steers AI + imports). Returns the updated user. */
+export async function updateHouseholdLanguage(language: Language): Promise<User> {
+  const { data } = await api.patch<User>('/household', { language })
   return data
 }
 
@@ -159,4 +172,10 @@ export async function suggestRecipes(payload: SuggestPayload): Promise<SuggestRe
 export async function importRecipe(payload: ImportRecipePayload): Promise<ImportedRecipe> {
   const { data } = await api.post<{ recipe: ImportedRecipe }>('/ai/import-recipe', payload)
   return data.recipe
+}
+
+/** Re-translate all recipes & ingredient names into the household's content language. */
+export async function retranslateContent(): Promise<{ recipes: number; ingredients: number }> {
+  const { data } = await api.post<{ recipes: number; ingredients: number }>('/ai/retranslate')
+  return data
 }

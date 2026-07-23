@@ -1,16 +1,22 @@
 // Types mirroring API_CONTRACT.md shapes. Keep in sync with the backend contract.
 
+import type { Language } from '../i18n/strings'
+
 export interface Household {
   id: number
   name: string
   /** Shareable code embedded in the household's invite link. */
   inviteCode: string
+  /** Content language for AI-generated / imported recipes and ingredients. */
+  language: Language
 }
 
 export interface User {
   id: number
   email: string
   name: string
+  /** The user's preferred UI/display language (follows the account across devices). */
+  language: Language
   household: Household
 }
 

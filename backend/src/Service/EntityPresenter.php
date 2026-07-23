@@ -45,7 +45,7 @@ final class EntityPresenter
     /**
      * The full user shape used by /register, /login and /me.
      *
-     * @return array{id: int|null, email: string, name: string, household: array{id: int|null, name: string, inviteCode: string|null}}
+     * @return array{id: int|null, email: string, name: string, language: string, household: array{id: int|null, name: string, inviteCode: string|null, language: string}}
      */
     public function user(User $user): array
     {
@@ -55,10 +55,12 @@ final class EntityPresenter
             'id' => $user->getId(),
             'email' => $user->getEmail(),
             'name' => $user->getName(),
+            'language' => $user->getLanguage(),
             'household' => [
                 'id' => $household?->getId(),
                 'name' => $household?->getName() ?? '',
                 'inviteCode' => $household?->getInviteCode(),
+                'language' => $household?->getLanguage() ?? 'en',
             ],
         ];
     }

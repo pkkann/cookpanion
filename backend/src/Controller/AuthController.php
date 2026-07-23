@@ -25,6 +25,9 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/api')]
 class AuthController extends AbstractController
 {
+    /** Content languages the household can be set to. Keep in sync with the frontend. */
+    private const SUPPORTED_LANGUAGES = ['en', 'da'];
+
     /** Refresh-token lifetime in seconds (30 days). Mirrors gesdinet_jwt_refresh_token.ttl. */
     private const REFRESH_TOKEN_TTL = 2592000;
 
@@ -101,6 +104,34 @@ class AuthController extends AbstractController
         return $this->json($this->presenter->user($user));
     }
 
+    #[Route('/me', name: 'api_me_update', methods: ['PATCH'])]
+    public function updateMe(Request $request): JsonResponse
+    {
+        $data = $this->decode($request);
+        if ($data instanceof JsonResponse) {
+            return $data;
+        }
+
+        /** @var User $user */
+        $user = $this->getUser();
+
+        // Personal UI/display language.
+        if (\array_key_exists('language', $data)) {
+            $language = (string) $data['language'];
+            if (!\in_array($language, self::SUPPORTED_LANGUAGES, true)) {
+                return $this->json(
+                    ['error' => 'Validation failed', 'details' => ['language' => 'Must be one of: '.implode(', ', self::SUPPORTED_LANGUAGES)]],
+                    Response::HTTP_BAD_REQUEST,
+                );
+            }
+            $user->setLanguage($language);
+        }
+
+        $this->em->flush();
+
+        return $this->json($this->presenter->user($user));
+    }
+
     #[Route('/household', name: 'api_household_update', methods: ['PATCH'])]
     public function updateHousehold(Request $request): JsonResponse
     {
@@ -111,16 +142,32 @@ class AuthController extends AbstractController
 
         /** @var User $user */
         $user = $this->getUser();
+        $household = $user->getHousehold();
 
-        $name = trim((string) ($data['name'] ?? ''));
-        if ('' === $name) {
-            return $this->json(
-                ['error' => 'Validation failed', 'details' => ['name' => 'Household name is required.']],
-                Response::HTTP_BAD_REQUEST,
-            );
+        // Name update (when provided) must be non-empty.
+        if (\array_key_exists('name', $data)) {
+            $name = trim((string) $data['name']);
+            if ('' === $name) {
+                return $this->json(
+                    ['error' => 'Validation failed', 'details' => ['name' => 'Household name is required.']],
+                    Response::HTTP_BAD_REQUEST,
+                );
+            }
+            $household?->setName($name);
         }
 
-        $user->getHousehold()?->setName($name);
+        // Content language: the language AI-generated / imported content is written in.
+        if (\array_key_exists('language', $data)) {
+            $language = (string) $data['language'];
+            if (!\in_array($language, self::SUPPORTED_LANGUAGES, true)) {
+                return $this->json(
+                    ['error' => 'Validation failed', 'details' => ['language' => 'Must be one of: '.implode(', ', self::SUPPORTED_LANGUAGES)]],
+                    Response::HTTP_BAD_REQUEST,
+                );
+            }
+            $household?->setLanguage($language);
+        }
+
         $this->em->flush();
 
         return $this->json($this->presenter->user($user));

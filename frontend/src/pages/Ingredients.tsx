@@ -45,6 +45,8 @@ import {
 import type { Ingredient } from '../api/types'
 import { errorMessage } from '../api/client'
 import { useIsMobile } from '../utils/useIsMobile'
+import { useT } from '../i18n/LanguageProvider'
+import type { TFunc } from '../i18n/LanguageProvider'
 
 interface EditorState {
   open: boolean
@@ -60,15 +62,16 @@ function sectionLetter(name: string): string {
 }
 
 /** Why an ingredient can't be deleted (empty when it can). */
-function deleteReason(ing: Ingredient): string {
+function deleteReason(ing: Ingredient, t: TFunc): string {
   if (ing.usedInKitchen && ing.usedInRecipes)
-    return "It's in your kitchen and used in recipes, so it can't be deleted."
-  if (ing.usedInKitchen) return "It's in your kitchen, so it can't be deleted."
-  if (ing.usedInRecipes) return "It's used in a recipe, so it can't be deleted."
+    return t("It's in your kitchen and used in recipes, so it can't be deleted.")
+  if (ing.usedInKitchen) return t("It's in your kitchen, so it can't be deleted.")
+  if (ing.usedInRecipes) return t("It's used in a recipe, so it can't be deleted.")
   return ''
 }
 
 export default function Ingredients() {
+  const t = useT()
   const notify = useNotify()
   const isMobile = useIsMobile()
   const { data: ingredients, isLoading, isError, error } = useIngredients()
@@ -118,18 +121,18 @@ export default function Ingredients() {
             alwaysInStock,
           },
         })
-        notify('Ingredient updated', 'success')
+        notify(t('Ingredient updated'), 'success')
       } else {
         await createMut.mutateAsync({
           name: trimmedName,
           defaultUnit: defaultUnit.trim() || null,
           alwaysInStock,
         })
-        notify('Ingredient added', 'success')
+        notify(t('Ingredient added'), 'success')
       }
       closeEditor()
     } catch (err) {
-      notify(errorMessage(err, 'Could not save ingredient'), 'error')
+      notify(errorMessage(err, t('Could not save ingredient')), 'error')
     }
   }
 
@@ -137,10 +140,10 @@ export default function Ingredients() {
     if (!toDelete) return
     try {
       await deleteMut.mutateAsync(toDelete.id)
-      notify('Ingredient deleted', 'success')
+      notify(t('Ingredient deleted'), 'success')
       setToDelete(null)
     } catch (err) {
-      notify(errorMessage(err, 'Could not delete ingredient'), 'error')
+      notify(errorMessage(err, t('Could not delete ingredient')), 'error')
     }
   }
 
@@ -176,24 +179,26 @@ export default function Ingredients() {
   const total = sorted.length
   const filtering = query.trim() !== '' || usage !== 'all'
   const countLabel = filtering
-    ? `${filtered.length} of ${total}`
-    : `${total} ${total === 1 ? 'ingredient' : 'ingredients'}`
+    ? t('{shown} of {total}', { shown: filtered.length, total })
+    : total === 1
+      ? t('1 ingredient')
+      : t('{count} ingredients', { count: total })
 
   return (
     <Box>
       <PageHeader
-        title="Ingredients"
-        subtitle="The building blocks your household cooks with."
+        title={t('Ingredients')}
+        subtitle={t('The building blocks your household cooks with.')}
         action={
           <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>
-            Add ingredient
+            {t('Add ingredient')}
           </Button>
         }
       />
 
       {isError && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          {errorMessage(error, 'Failed to load ingredients')}
+          {errorMessage(error, t('Failed to load ingredients'))}
         </Alert>
       )}
 
@@ -206,11 +211,11 @@ export default function Ingredients() {
       ) : total === 0 ? (
         <EmptyState
           icon={<LocalDiningIcon fontSize="inherit" />}
-          title="No ingredients yet"
-          description="Add the ingredients your household uses so you can track stock and build recipes."
+          title={t('No ingredients yet')}
+          description={t('Add the ingredients your household uses so you can track stock and build recipes.')}
           action={
             <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>
-              Add your first ingredient
+              {t('Add your first ingredient')}
             </Button>
           }
         />
@@ -225,7 +230,7 @@ export default function Ingredients() {
             <TextField
               fullWidth
               size="small"
-              placeholder="Search ingredients…"
+              placeholder={t('Search ingredients…')}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               slotProps={{
@@ -237,7 +242,7 @@ export default function Ingredients() {
                   ),
                   endAdornment: query ? (
                     <InputAdornment position="end">
-                      <IconButton size="small" aria-label="clear search" onClick={() => setQuery('')}>
+                      <IconButton size="small" aria-label={t('clear search')} onClick={() => setQuery('')}>
                         <ClearIcon fontSize="small" />
                       </IconButton>
                     </InputAdornment>
@@ -252,9 +257,9 @@ export default function Ingredients() {
               onChange={(_e, val: UsageFilter | null) => val && setUsage(val)}
               sx={{ flexShrink: 0 }}
             >
-              <ToggleButton value="all">All</ToggleButton>
-              <ToggleButton value="inUse">Used</ToggleButton>
-              <ToggleButton value="unused">Unused</ToggleButton>
+              <ToggleButton value="all">{t('All')}</ToggleButton>
+              <ToggleButton value="inUse">{t('Used')}</ToggleButton>
+              <ToggleButton value="unused">{t('Unused')}</ToggleButton>
             </ToggleButtonGroup>
           </Stack>
 
@@ -265,7 +270,7 @@ export default function Ingredients() {
           {filtered.length === 0 ? (
             <Paper variant="outlined" sx={{ p: 4, textAlign: 'center' }}>
               <Typography color="text.secondary" gutterBottom>
-                No ingredients match your search.
+                {t('No ingredients match your search.')}
               </Typography>
               <Button
                 onClick={() => {
@@ -273,7 +278,7 @@ export default function Ingredients() {
                   setUsage('all')
                 }}
               >
-                Clear filters
+                {t('Clear filters')}
               </Button>
             </Paper>
           ) : (
@@ -304,18 +309,18 @@ export default function Ingredients() {
                             <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
                               <IconButton
                                 size="small"
-                                aria-label={`edit ${ing.name}`}
+                                aria-label={t('edit {name}', { name: ing.name })}
                                 onClick={() => openEdit(ing)}
                               >
                                 <EditIcon fontSize="small" />
                               </IconButton>
                               {/* Ingredients referenced by stock or a recipe can't be deleted
                                   (the delete would fail server-side), so disable it and explain. */}
-                              <Tooltip title={deleteReason(ing)}>
+                              <Tooltip title={deleteReason(ing, t)}>
                                 <span>
                                   <IconButton
                                     size="small"
-                                    aria-label={`delete ${ing.name}`}
+                                    aria-label={t('delete {name}', { name: ing.name })}
                                     color="error"
                                     disabled={ing.inUse}
                                     onClick={() => setToDelete(ing)}
@@ -339,13 +344,17 @@ export default function Ingredients() {
                                     color="success"
                                     variant="outlined"
                                     icon={<AllInclusiveIcon />}
-                                    label="Always in stock"
+                                    label={t('Always in stock')}
                                     sx={{ flexShrink: 0 }}
                                   />
                                 )}
                               </Box>
                             }
-                            secondary={ing.defaultUnit ? `Unit: ${ing.defaultUnit}` : 'No default unit'}
+                            secondary={
+                              ing.defaultUnit
+                                ? t('Unit: {unit}', { unit: ing.defaultUnit })
+                                : t('No default unit')
+                            }
                             slotProps={{ secondary: { noWrap: true, variant: 'caption' } }}
                             sx={{ pr: 10 }}
                           />
@@ -363,10 +372,10 @@ export default function Ingredients() {
       {/* Create / edit dialog */}
       <Dialog open={editor.open} onClose={closeEditor} maxWidth="xs" fullWidth fullScreen={isMobile}>
         <Box component="form" onSubmit={handleSubmit}>
-          <DialogTitle>{editor.editing ? 'Edit ingredient' : 'Add ingredient'}</DialogTitle>
+          <DialogTitle>{editor.editing ? t('Edit ingredient') : t('Add ingredient')}</DialogTitle>
           <DialogContent>
             <TextField
-              label="Name"
+              label={t('Name')}
               fullWidth
               required
               autoFocus
@@ -375,7 +384,7 @@ export default function Ingredients() {
               onChange={(e) => setName(e.target.value)}
             />
             <UnitSelect
-              label="Default unit"
+              label={t('Default unit')}
               fullWidth
               margin="normal"
               includeEmpty
@@ -390,19 +399,20 @@ export default function Ingredients() {
                   onChange={(e) => setAlwaysInStock(e.target.checked)}
                 />
               }
-              label="Always in stock (never runs out)"
+              label={t('Always in stock (never runs out)')}
             />
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-              Staples like water or salt are always counted as available — never added to a shopping
-              list or deducted when cooking.
+              {t(
+                'Staples like water or salt are always counted as available — never added to a shopping list or deducted when cooking.',
+              )}
             </Typography>
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={closeEditor} disabled={saving}>
-              Cancel
+              {t('Cancel')}
             </Button>
             <Button type="submit" variant="contained" disabled={saving || !name.trim()}>
-              {editor.editing ? 'Save changes' : 'Add'}
+              {editor.editing ? t('Save changes') : t('Add')}
             </Button>
           </DialogActions>
         </Box>
@@ -410,9 +420,9 @@ export default function Ingredients() {
 
       <ConfirmDialog
         open={Boolean(toDelete)}
-        title="Delete ingredient?"
-        message={`“${toDelete?.name ?? ''}” will be removed.`}
-        confirmLabel="Delete"
+        title={t('Delete ingredient?')}
+        message={t('“{name}” will be removed.', { name: toDelete?.name ?? '' })}
+        confirmLabel={t('Delete')}
         destructive
         loading={deleteMut.isPending}
         onConfirm={handleDelete}

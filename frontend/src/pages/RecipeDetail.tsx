@@ -36,6 +36,8 @@ import CookDialog from '../components/CookDialog'
 import type { CookRow } from '../components/CookDialog'
 import QuickPlanButton from '../components/QuickPlanButton'
 import { useNotify } from '../components/SnackbarProvider'
+import { useT } from '../i18n/LanguageProvider'
+import type { TFunc } from '../i18n/LanguageProvider'
 import {
   useCreateStock,
   useDeleteRecipe,
@@ -65,43 +67,49 @@ interface StatusView {
 }
 
 /** Map an availability result to icon + tooltip + inline note. */
-function statusView(a: IngredientAvailability): StatusView {
+function statusView(a: IngredientAvailability, t: TFunc): StatusView {
   const neededLabel = `${formatQuantity(a.needed)} ${a.ri.unit}`.trim()
   const haveLabel = `${formatQuantity(a.have)} ${a.haveUnit}`.trim()
   switch (a.status) {
     case 'always':
       return {
         icon: <AllInclusiveIcon color="success" fontSize="small" />,
-        tooltip: "Always in stock — you won't run out",
+        tooltip: t("Always in stock — you won't run out"),
         note: null,
       }
     case 'enough':
       return {
         icon: <CheckCircleIcon color="success" fontSize="small" />,
-        tooltip: `In kitchen: ${haveLabel} — enough`,
+        tooltip: t('In kitchen: {have} — enough', { have: haveLabel }),
         note: null,
       }
     case 'partial': {
       const shortfallLabel = `${formatQuantity(a.shortfall)} ${a.ri.unit}`.trim()
       return {
         icon: <WarningAmberIcon color="warning" fontSize="small" />,
-        tooltip: `In kitchen: ${haveLabel} — need ${shortfallLabel} more`,
-        note: `need ${shortfallLabel} more`,
+        tooltip: t('In kitchen: {have} — need {shortfall} more', {
+          have: haveLabel,
+          shortfall: shortfallLabel,
+        }),
+        note: t('need {shortfall} more', { shortfall: shortfallLabel }),
         noteColor: 'warning.main',
       }
     }
     case 'none':
       return {
         icon: <CancelIcon color="error" fontSize="small" />,
-        tooltip: `Not in kitchen — buy ${neededLabel}`,
-        note: `Not in kitchen — buy ${neededLabel}`,
+        tooltip: t('Not in kitchen — buy {needed}', { needed: neededLabel }),
+        note: t('Not in kitchen — buy {needed}', { needed: neededLabel }),
         noteColor: 'error.main',
       }
     case 'unknown':
       return {
         icon: <HelpOutlinedIcon color="disabled" fontSize="small" />,
-        tooltip: `In kitchen: ${haveLabel}, recipe needs ${neededLabel} — can't compare units`,
-        note: 'check manually (units differ)',
+        tooltip: t("In kitchen: {have}, recipe needs {needed} — can't compare units", {
+          have: haveLabel,
+          needed: neededLabel,
+        }),
+        note: t('check manually (units differ)'),
         noteColor: 'text.secondary',
       }
   }
@@ -113,6 +121,7 @@ export default function RecipeDetail() {
   const navigate = useNavigate()
   const notify = useNotify()
   const isMobile = useIsMobile()
+  const t = useT()
 
   const { data: recipe, isLoading, isError, error } = useRecipe(recipeId)
   const { data: stock, isLoading: stockLoading, isError: stockError } = useStock()
@@ -220,9 +229,9 @@ export default function RecipeDetail() {
   const handleAddToKitchen = async (item: ToBuy) => {
     try {
       await addOne(item)
-      notify(`Added ${item.name} to kitchen`, 'success')
+      notify(t('Added {name} to kitchen', { name: item.name }), 'success')
     } catch (err) {
-      notify(errorMessage(err, 'Could not save stock'), 'error')
+      notify(errorMessage(err, t('Could not save stock')), 'error')
     }
   }
 
@@ -231,30 +240,30 @@ export default function RecipeDetail() {
       for (const item of summary.toBuy) {
         await addOne(item)
       }
-      notify('Added missing ingredients to kitchen', 'success')
+      notify(t('Added missing ingredients to kitchen'), 'success')
     } catch (err) {
-      notify(errorMessage(err, 'Could not save stock'), 'error')
+      notify(errorMessage(err, t('Could not save stock')), 'error')
     }
   }
 
   const handleDelete = async () => {
     try {
       await deleteMut.mutateAsync(recipeId)
-      notify('Recipe deleted', 'success')
+      notify(t('Recipe deleted'), 'success')
       navigate('/recipes')
     } catch (err) {
-      notify(errorMessage(err, 'Could not delete recipe'), 'error')
+      notify(errorMessage(err, t('Could not delete recipe')), 'error')
     }
   }
 
   return (
     <Box>
       <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/recipes')} sx={{ mb: 2 }}>
-        Back to recipes
+        {t('Back to recipes')}
       </Button>
 
       {isError && (
-        <Alert severity="error">{errorMessage(error, 'Failed to load recipe')}</Alert>
+        <Alert severity="error">{errorMessage(error, t('Failed to load recipe'))}</Alert>
       )}
 
       {isLoading ? (
@@ -283,11 +292,11 @@ export default function RecipeDetail() {
                 <Chip
                   icon={<PeopleIcon />}
                   variant="outlined"
-                  label={`serves ${recipe.servings} by default`}
+                  label={t('serves {count} by default', { count: recipe.servings })}
                 />
                 <Chip
                   variant="outlined"
-                  label={`by ${recipe.author?.name ?? 'Unknown'}`}
+                  label={t('by {author}', { author: recipe.author?.name ?? t('Unknown') })}
                 />
                 {formatPrepCook(recipe.prepTimeMinutes, recipe.cookTimeMinutes) && (
                   <Chip
@@ -310,7 +319,7 @@ export default function RecipeDetail() {
                 disabled={!stockReady || recipe.ingredients.length === 0}
                 onClick={() => setCookOpen(true)}
               >
-                Cook this
+                {t('Cook this')}
               </Button>
               <QuickPlanButton recipe={recipe} variant="button" fullWidth={isMobile} />
               <Button
@@ -319,7 +328,7 @@ export default function RecipeDetail() {
                 startIcon={<EditIcon />}
                 onClick={() => setEditOpen(true)}
               >
-                Edit
+                {t('Edit')}
               </Button>
               <Button
                 variant="outlined"
@@ -328,7 +337,7 @@ export default function RecipeDetail() {
                 startIcon={<DeleteIcon />}
                 onClick={() => setConfirmOpen(true)}
               >
-                Delete
+                {t('Delete')}
               </Button>
             </Stack>
           </Box>
@@ -358,12 +367,12 @@ export default function RecipeDetail() {
                   mb: 1,
                 }}
               >
-                <Typography variant="h6">Ingredients</Typography>
+                <Typography variant="h6">{t('Ingredients')}</Typography>
                 {/* Servings stepper — recalculates quantities live */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   <IconButton
                     size="small"
-                    aria-label="decrease servings"
+                    aria-label={t('decrease servings')}
                     onClick={decrement}
                     disabled={chosenServings <= 1}
                   >
@@ -374,7 +383,7 @@ export default function RecipeDetail() {
                     onChange={onServingsInput}
                     type="number"
                     size="small"
-                    aria-label="servings"
+                    aria-label={t('servings')}
                     slotProps={{
                       htmlInput: {
                         min: 1,
@@ -385,13 +394,13 @@ export default function RecipeDetail() {
                   />
                   <IconButton
                     size="small"
-                    aria-label="increase servings"
+                    aria-label={t('increase servings')}
                     onClick={increment}
                   >
                     <AddIcon fontSize="small" />
                   </IconButton>
                   <Typography variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
-                    {chosenServings === 1 ? 'serving' : 'servings'}
+                    {chosenServings === 1 ? t('serving') : t('servings')}
                   </Typography>
                 </Box>
               </Box>
@@ -405,19 +414,19 @@ export default function RecipeDetail() {
                     variant="outlined"
                     label={
                       chosenServings === 1
-                        ? `Scaled for ${chosenServings} serving`
-                        : `Scaled for ${chosenServings} servings`
+                        ? t('Scaled for {count} serving', { count: chosenServings })
+                        : t('Scaled for {count} servings', { count: chosenServings })
                     }
                   />
                   <Button size="small" startIcon={<RestartAltIcon />} onClick={reset}>
-                    Reset
+                    {t('Reset')}
                   </Button>
                 </Box>
               ) : (
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
                   {canScale
-                    ? 'Amounts shown for the default serving size. Adjust to rescale.'
-                    : "This recipe has no serving size set, so quantities can't be scaled."}
+                    ? t('Amounts shown for the default serving size. Adjust to rescale.')
+                    : t("This recipe has no serving size set, so quantities can't be scaled.")}
                 </Typography>
               )}
 
@@ -425,15 +434,15 @@ export default function RecipeDetail() {
               {recipe.ingredients.length > 0 &&
                 (stockLoading ? (
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
-                    Checking your kitchen…
+                    {t('Checking your kitchen…')}
                   </Typography>
                 ) : stockError ? (
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
-                    Couldn't check kitchen stock.
+                    {t("Couldn't check kitchen stock.")}
                   </Typography>
                 ) : summary.allEnough ? (
                   <Alert severity="success" sx={{ mb: 1.5, py: 0.25 }}>
-                    You have everything you need ✓
+                    {t('You have everything you need ✓')}
                   </Alert>
                 ) : (
                   <Box sx={{ mb: 1.5 }}>
@@ -441,11 +450,17 @@ export default function RecipeDetail() {
                       <Alert severity="warning" sx={{ mb: 1, py: 0.25 }}>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
                           {summary.total === 1
-                            ? `Missing ${summary.missingCount} of ${summary.total} ingredient`
-                            : `Missing ${summary.missingCount} of ${summary.total} ingredients`}
+                            ? t('Missing {missing} of {count} ingredient', {
+                                missing: summary.missingCount,
+                                count: summary.total,
+                              })
+                            : t('Missing {missing} of {count} ingredients', {
+                                missing: summary.missingCount,
+                                count: summary.total,
+                              })}
                         </Typography>
                         <Typography variant="body2" sx={{ mt: 0.5 }}>
-                          Shopping list:
+                          {t('Shopping list:')}
                         </Typography>
                         <Stack spacing={0.25} sx={{ mt: 0.5 }}>
                           {summary.toBuy.map((b) => (
@@ -458,13 +473,13 @@ export default function RecipeDetail() {
                               <Typography variant="body2">
                                 {`${b.name} — ${formatQuantity(b.shortfall)} ${b.unit}`.trim()}
                               </Typography>
-                              <Tooltip title="Add to kitchen">
+                              <Tooltip title={t('Add to kitchen')}>
                                 <span>
                                   <IconButton
                                     size="small"
                                     color="inherit"
                                     disabled={stockBusy}
-                                    aria-label="Add to kitchen"
+                                    aria-label={t('Add to kitchen')}
                                     onClick={() => handleAddToKitchen(b)}
                                   >
                                     <AddIcon fontSize="small" />
@@ -483,14 +498,16 @@ export default function RecipeDetail() {
                             onClick={handleAddAllToKitchen}
                             sx={{ mt: 0.5 }}
                           >
-                            Add all to kitchen
+                            {t('Add all to kitchen')}
                           </Button>
                         )}
                       </Alert>
                     )}
                     {summary.unknown.length > 0 && (
                       <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                        {`Check manually (units differ): ${summary.unknown.map((a) => a.ri.ingredient.name).join(', ')}`}
+                        {t('Check manually (units differ): {names}', {
+                          names: summary.unknown.map((a) => a.ri.ingredient.name).join(', '),
+                        })}
                       </Typography>
                     )}
                   </Box>
@@ -498,13 +515,13 @@ export default function RecipeDetail() {
 
               {recipe.ingredients.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
-                  No ingredients listed.
+                  {t('No ingredients listed.')}
                 </Typography>
               ) : (
                 <List dense disablePadding>
                   {recipe.ingredients.map((ri, idx) => {
                     const a = availabilities[idx]
-                    const view = stockReady && a ? statusView(a) : null
+                    const view = stockReady && a ? statusView(a, t) : null
                     const qtyLabel = `${formatQuantity(a?.needed ?? ri.quantity)} ${ri.unit}`.trim()
                     return (
                       <ListItem
@@ -548,7 +565,7 @@ export default function RecipeDetail() {
 
             <Paper variant="outlined" sx={{ p: 2.5 }}>
               <Typography variant="h6" gutterBottom>
-                Instructions
+                {t('Instructions')}
               </Typography>
               <Divider sx={{ mb: 2 }} />
               {recipe.instructions.length > 0 ? (
@@ -561,7 +578,7 @@ export default function RecipeDetail() {
                 </Stack>
               ) : (
                 <Typography variant="body1" color="text.secondary">
-                  No instructions provided.
+                  {t('No instructions provided.')}
                 </Typography>
               )}
             </Paper>
@@ -578,9 +595,11 @@ export default function RecipeDetail() {
           />
           <ConfirmDialog
             open={confirmOpen}
-            title="Delete recipe?"
-            message={`“${recipe.title}” will be permanently deleted, along with any meals planned with it.`}
-            confirmLabel="Delete"
+            title={t('Delete recipe?')}
+            message={t('“{title}” will be permanently deleted, along with any meals planned with it.', {
+              title: recipe.title,
+            })}
+            confirmLabel={t('Delete')}
             destructive
             loading={deleteMut.isPending}
             onConfirm={handleDelete}
@@ -588,7 +607,7 @@ export default function RecipeDetail() {
           />
         </>
       ) : (
-        !isError && <Typography>Recipe not found.</Typography>
+        !isError && <Typography>{t('Recipe not found.')}</Typography>
       )}
     </Box>
   )

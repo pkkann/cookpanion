@@ -8,6 +8,7 @@ import Alert from '@mui/material/Alert'
 import { useAuth } from '../auth/AuthContext'
 import { errorMessage } from '../api/client'
 import AuthShell from '../components/AuthShell'
+import { useT } from '../i18n/LanguageProvider'
 
 /**
  * One-time step shown right after a new account is created via Google, so the
@@ -16,6 +17,7 @@ import AuthShell from '../components/AuthShell'
  */
 export default function Onboarding() {
   const { user, updateHousehold } = useAuth()
+  const t = useT()
   const navigate = useNavigate()
 
   const [name, setName] = useState(user?.household?.name ?? '')
@@ -36,7 +38,7 @@ export default function Onboarding() {
       await updateHousehold(trimmed)
       navigate('/', { replace: true })
     } catch (err) {
-      setError(errorMessage(err, "Could not save household name"))
+      setError(errorMessage(err, t('Could not save household name')))
     } finally {
       setSubmitting(false)
     }
@@ -44,8 +46,10 @@ export default function Onboarding() {
 
   return (
     <AuthShell
-      title="Name your kitchen"
-      subtitle="Give your household a name so you can share ingredients, stock and recipes. You can change it later in settings."
+      title={t('Name your kitchen')}
+      subtitle={t(
+        'Give your household a name so you can share ingredients, stock and recipes. You can change it later in settings.',
+      )}
     >
       <Box component="form" onSubmit={handleSubmit} noValidate>
         {error && (
@@ -54,12 +58,12 @@ export default function Onboarding() {
           </Alert>
         )}
         <TextField
-          label="Household name"
+          label={t('Household name')}
           fullWidth
           required
           autoFocus
           margin="normal"
-          helperText="e.g. “The Smith Family” or “Flat 3B”"
+          helperText={t('e.g. “The Smith Family” or “Flat 3B”')}
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
@@ -71,7 +75,7 @@ export default function Onboarding() {
           disabled={submitting || !name.trim()}
           sx={{ mt: 1 }}
         >
-          Continue
+          {t('Continue')}
         </Button>
       </Box>
     </AuthShell>

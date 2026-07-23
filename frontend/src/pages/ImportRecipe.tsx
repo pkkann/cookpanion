@@ -17,6 +17,7 @@ import NotesIcon from '@mui/icons-material/Notes'
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
 import PageHeader from '../components/PageHeader'
 import RecipeFormDialog from '../components/RecipeFormDialog'
+import { useT } from '../i18n/LanguageProvider'
 import { useImportRecipe } from '../api/hooks'
 import { errorMessage, errorStatus } from '../api/client'
 import { fileToDownscaledJpeg } from '../utils/image'
@@ -25,6 +26,7 @@ import type { ImportedRecipe, ImportRecipePayload } from '../api/types'
 type Source = 'link' | 'text' | 'photo'
 
 export default function ImportRecipe() {
+  const t = useT()
   const navigate = useNavigate()
   const importMut = useImportRecipe()
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -54,7 +56,7 @@ export default function ImportRecipe() {
     try {
       setImage(await fileToDownscaledJpeg(file))
     } catch {
-      setErrorText('Could not read that image. Try a different photo.')
+      setErrorText(t('Could not read that image. Try a different photo.'))
     } finally {
       setPreparingImage(false)
     }
@@ -79,7 +81,7 @@ export default function ImportRecipe() {
       if (errorStatus(err) === 503) {
         setNotConfigured(true)
       } else {
-        setErrorText(errorMessage(err, 'Could not import that recipe.'))
+        setErrorText(errorMessage(err, t('Could not import that recipe.')))
       }
     }
   }
@@ -87,8 +89,8 @@ export default function ImportRecipe() {
   return (
     <Box>
       <PageHeader
-        title="Import recipe"
-        subtitle="Paste a link, paste the recipe text, or snap a photo, and Claude will turn it into a recipe (always in English)."
+        title={t('Import recipe')}
+        subtitle={t('Paste a link, paste the recipe text, or snap a photo, and the AI turns it into a recipe.')}
       />
 
       <Paper variant="outlined" sx={{ p: { xs: 2.5, md: 3 }, mb: 3 }}>
@@ -101,37 +103,37 @@ export default function ImportRecipe() {
           >
             <ToggleButton value="link" sx={{ px: 2 }}>
               <LinkIcon fontSize="small" sx={{ mr: 1 }} />
-              From a link
+              {t('From a link')}
             </ToggleButton>
             <ToggleButton value="text" sx={{ px: 2 }}>
               <NotesIcon fontSize="small" sx={{ mr: 1 }} />
-              Paste text
+              {t('Paste text')}
             </ToggleButton>
             <ToggleButton value="photo" sx={{ px: 2 }}>
               <PhotoCameraIcon fontSize="small" sx={{ mr: 1 }} />
-              Take a photo
+              {t('Take a photo')}
             </ToggleButton>
           </ToggleButtonGroup>
 
           {source === 'link' && (
             <TextField
-              label="Recipe URL"
+              label={t('Recipe URL')}
               type="url"
               fullWidth
               placeholder="https://example.com/best-lasagna"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              helperText="We'll fetch the page and pull out the recipe."
+              helperText={t("We'll fetch the page and pull out the recipe.")}
             />
           )}
 
           {source === 'text' && (
             <TextField
-              label="Recipe text"
+              label={t('Recipe text')}
               fullWidth
               multiline
               minRows={8}
-              placeholder="Paste the full recipe here — title, ingredients and steps."
+              placeholder={t('Paste the full recipe here — title, ingredients and steps.')}
               value={text}
               onChange={(e) => setText(e.target.value)}
             />
@@ -156,14 +158,14 @@ export default function ImportRecipe() {
                 disabled={preparingImage}
                 onClick={() => fileInputRef.current?.click()}
               >
-                {image ? 'Choose a different photo' : 'Take or choose a photo'}
+                {image ? t('Choose a different photo') : t('Take or choose a photo')}
               </Button>
               {image && (
                 <Box sx={{ mt: 2 }}>
                   <Box
                     component="img"
                     src={image}
-                    alt="Recipe to import"
+                    alt={t('Recipe to import')}
                     sx={{
                       maxWidth: '100%',
                       maxHeight: 320,
@@ -177,7 +179,7 @@ export default function ImportRecipe() {
               )}
               {!image && (
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                  Point the camera at a cookbook page or a written recipe. Handwriting works too.
+                  {t('Point the camera at a cookbook page or a written recipe. Handwriting works too.')}
                 </Typography>
               )}
             </Box>
@@ -191,15 +193,15 @@ export default function ImportRecipe() {
             disabled={loading || !canSubmit}
             sx={{ mt: 2, display: 'block' }}
           >
-            {loading ? 'Reading…' : 'Import with AI'}
+            {loading ? t('Reading…') : t('Import with AI')}
           </Button>
         </Box>
       </Paper>
 
       {notConfigured && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          <AlertTitle>AI is not configured yet</AlertTitle>
-          {"Recipe import needs an Anthropic API key (ANTHROPIC_API_KEY) on the backend. Once it's added, come back and try again."}
+          <AlertTitle>{t('AI is not configured yet')}</AlertTitle>
+          {t("Recipe import needs an Anthropic API key (ANTHROPIC_API_KEY) on the backend. Once it's added, come back and try again.")}
         </Alert>
       )}
 

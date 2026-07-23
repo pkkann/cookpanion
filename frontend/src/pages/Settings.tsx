@@ -4,17 +4,25 @@ import Box from '@mui/material/Box'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import TextField from '@mui/material/TextField'
+import MenuItem from '@mui/material/MenuItem'
 import Button from '@mui/material/Button'
 import IconButton from '@mui/material/IconButton'
 import InputAdornment from '@mui/material/InputAdornment'
 import Tooltip from '@mui/material/Tooltip'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
+import CircularProgress from '@mui/material/CircularProgress'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
+import TranslateIcon from '@mui/icons-material/Translate'
 import PageHeader from '../components/PageHeader'
+import ConfirmDialog from '../components/ConfirmDialog'
 import { useAuth } from '../auth/AuthContext'
 import { useNotify } from '../components/SnackbarProvider'
+import { useRetranslateContent } from '../api/hooks'
 import { errorMessage } from '../api/client'
+import { useLanguage, useT } from '../i18n/LanguageProvider'
+import { LANGUAGE_LABELS, SUPPORTED_LANGUAGES } from '../i18n/strings'
+import type { Language } from '../i18n/strings'
 
 /** Pull the invite code out of a pasted invite URL, or accept a bare code. */
 function extractCode(input: string): string {
@@ -24,13 +32,63 @@ function extractCode(input: string): string {
 }
 
 export default function Settings() {
-  const { user, updateHousehold, joinHousehold } = useAuth()
+  const { user, updateHousehold, setHouseholdLanguage, setUserLanguage, joinHousehold } = useAuth()
+  const { lang } = useLanguage()
+  const t = useT()
   const notify = useNotify()
 
   const [name, setName] = useState(user?.household?.name ?? '')
   const [saving, setSaving] = useState(false)
   const [joinInput, setJoinInput] = useState('')
   const [joining, setJoining] = useState(false)
+  const [languageSaving, setLanguageSaving] = useState(false)
+  const [displaySaving, setDisplaySaving] = useState(false)
+
+  const handleDisplayLanguage = async (next: Language) => {
+    if (next === lang) return
+    setDisplaySaving(true)
+    try {
+      await setUserLanguage(next)
+      notify(t('Settings saved'), 'success')
+    } catch (err) {
+      notify(errorMessage(err, t('Could not save settings')), 'error')
+    } finally {
+      setDisplaySaving(false)
+    }
+  }
+  const [retranslateOpen, setRetranslateOpen] = useState(false)
+  const retranslateMut = useRetranslateContent()
+
+  const contentLanguage: Language = user?.household?.language ?? 'en'
+
+  const handleContentLanguage = async (next: Language) => {
+    if (next === contentLanguage) return
+    setLanguageSaving(true)
+    try {
+      await setHouseholdLanguage(next)
+      notify(t('Settings saved'), 'success')
+    } catch (err) {
+      notify(errorMessage(err, t('Could not save settings')), 'error')
+    } finally {
+      setLanguageSaving(false)
+    }
+  }
+
+  const handleRetranslate = async () => {
+    try {
+      const res = await retranslateMut.mutateAsync()
+      setRetranslateOpen(false)
+      notify(
+        t('Translated {recipes} recipes and {ingredients} ingredients.', {
+          recipes: res.recipes,
+          ingredients: res.ingredients,
+        }),
+        'success',
+      )
+    } catch (err) {
+      notify(errorMessage(err, t('Could not translate your content.')), 'error')
+    }
+  }
 
   const trimmed = name.trim()
   const dirty = trimmed !== '' && trimmed !== (user?.household?.name ?? '')
@@ -45,9 +103,9 @@ export default function Settings() {
     setSaving(true)
     try {
       await updateHousehold(trimmed)
-      notify("Settings saved", 'success')
+      notify(t('Settings saved'), 'success')
     } catch (err) {
-      notify(errorMessage(err, "Could not save household name"), 'error')
+      notify(errorMessage(err, t('Could not save household name')), 'error')
     } finally {
       setSaving(false)
     }
@@ -56,9 +114,9 @@ export default function Settings() {
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(inviteLink)
-      notify("Invite link copied", 'success')
+      notify(t('Invite link copied'), 'success')
     } catch {
-      notify("Something went wrong", 'error')
+      notify(t('Something went wrong'), 'error')
     }
   }
 
@@ -70,9 +128,9 @@ export default function Settings() {
     try {
       await joinHousehold(code)
       setJoinInput('')
-      notify("Joined household", 'success')
+      notify(t('Joined household'), 'success')
     } catch (err) {
-      notify(errorMessage(err, "Could not join that household. Check the invite link or code."), 'error')
+      notify(errorMessage(err, t('Could not join that household. Check the invite link or code.')), 'error')
     } finally {
       setJoining(false)
     }
@@ -80,15 +138,82 @@ export default function Settings() {
 
   return (
     <Box>
-      <PageHeader title="Settings" subtitle="Manage your household." />
+      <PageHeader title={t('Settings')} subtitle={t('Manage your household.')} />
 
       <Stack spacing={3} sx={{ maxWidth: 520 }}>
+        {/* Language */}
+        <Card variant="outlined">
+          <CardContent>
+            <Stack spacing={2}>
+              <Box>
+                <Typography variant="subtitle2">{t('Language')}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {t(
+                    'Set how the app appears for you, and the language new recipes, ingredients and AI suggestions are written in.',
+                  )}
+                </Typography>
+              </Box>
+              <TextField
+                select
+                label={t('Display language')}
+                value={lang}
+                disabled={displaySaving}
+                onChange={(e) => handleDisplayLanguage(e.target.value as Language)}
+                helperText={t('Applies to your account, on every device.')}
+              >
+                {SUPPORTED_LANGUAGES.map((l) => (
+                  <MenuItem key={l} value={l}>
+                    {LANGUAGE_LABELS[l]}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                select
+                label={t('Recipe & AI language')}
+                value={contentLanguage}
+                disabled={languageSaving}
+                onChange={(e) => handleContentLanguage(e.target.value as Language)}
+                helperText={t("New recipes, ingredients and AI content use this. Existing items aren't changed.")}
+              >
+                {SUPPORTED_LANGUAGES.map((l) => (
+                  <MenuItem key={l} value={l}>
+                    {LANGUAGE_LABELS[l]}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <Box>
+                <Button
+                  variant="outlined"
+                  disabled={retranslateMut.isPending}
+                  startIcon={
+                    retranslateMut.isPending ? (
+                      <CircularProgress size={16} color="inherit" />
+                    ) : (
+                      <TranslateIcon />
+                    )
+                  }
+                  onClick={() => setRetranslateOpen(true)}
+                >
+                  {retranslateMut.isPending
+                    ? t('Translating…')
+                    : t('Re-translate existing content')}
+                </Button>
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                  {t(
+                    'Rewrites all existing recipes and ingredient names into the selected recipe language using AI.',
+                  )}
+                </Typography>
+              </Box>
+            </Stack>
+          </CardContent>
+        </Card>
+
         {/* Rename household */}
         <Card variant="outlined">
           <CardContent component="form" onSubmit={handleRename}>
             <Stack spacing={2}>
               <TextField
-                label="Household name"
+                label={t('Household name')}
                 fullWidth
                 required
                 value={name}
@@ -96,7 +221,7 @@ export default function Settings() {
               />
               <Box>
                 <Button type="submit" variant="contained" disabled={!dirty || saving}>
-                  Save changes
+                  {t('Save changes')}
                 </Button>
               </Box>
             </Stack>
@@ -107,9 +232,11 @@ export default function Settings() {
         <Card variant="outlined">
           <CardContent>
             <Stack spacing={1}>
-              <Typography variant="subtitle2">Invite link</Typography>
+              <Typography variant="subtitle2">{t('Invite link')}</Typography>
               <Typography variant="body2" color="text.secondary">
-                Share this link so someone can join this household and see the same ingredients, stock, recipes and plan.
+                {t(
+                  'Share this link so someone can join this household and see the same ingredients, stock, recipes and plan.',
+                )}
               </Typography>
               <TextField
                 fullWidth
@@ -119,8 +246,8 @@ export default function Settings() {
                     readOnly: true,
                     endAdornment: (
                       <InputAdornment position="end">
-                        <Tooltip title="Copy link">
-                          <IconButton onClick={handleCopy} edge="end" aria-label="Copy link">
+                        <Tooltip title={t('Copy link')}>
+                          <IconButton onClick={handleCopy} edge="end" aria-label={t('Copy link')}>
                             <ContentCopyIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
@@ -138,26 +265,41 @@ export default function Settings() {
           <CardContent component="form" onSubmit={handleJoin}>
             <Stack spacing={2}>
               <Box>
-                <Typography variant="subtitle2">Join another household</Typography>
+                <Typography variant="subtitle2">{t('Join another household')}</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Paste an invite link (or code) to switch to that household. Your current household's data stays with it.
+                  {t(
+                    "Paste an invite link (or code) to switch to that household. Your current household's data stays with it.",
+                  )}
                 </Typography>
               </Box>
               <TextField
                 fullWidth
-                placeholder="Invite link or code"
+                placeholder={t('Invite link or code')}
                 value={joinInput}
                 onChange={(e) => setJoinInput(e.target.value)}
               />
               <Box>
                 <Button type="submit" variant="outlined" disabled={!joinInput.trim() || joining}>
-                  Join household
+                  {t('Join household')}
                 </Button>
               </Box>
             </Stack>
           </CardContent>
         </Card>
       </Stack>
+
+      <ConfirmDialog
+        open={retranslateOpen}
+        title={t('Re-translate everything?')}
+        message={t(
+          'This rewrites every recipe and ingredient name into {language} using AI. It can take a moment and overwrites the current text.',
+          { language: LANGUAGE_LABELS[contentLanguage] },
+        )}
+        confirmLabel={t('Translate')}
+        loading={retranslateMut.isPending}
+        onConfirm={handleRetranslate}
+        onCancel={() => setRetranslateOpen(false)}
+      />
     </Box>
   )
 }

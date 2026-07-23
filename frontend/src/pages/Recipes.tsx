@@ -24,6 +24,7 @@ import ConfirmDialog from '../components/ConfirmDialog'
 import RecipeFormDialog from '../components/RecipeFormDialog'
 import QuickPlanButton from '../components/QuickPlanButton'
 import { useNotify } from '../components/SnackbarProvider'
+import { useT } from '../i18n/LanguageProvider'
 import { useDeleteRecipe, useRecipes } from '../api/hooks'
 import type { Recipe } from '../api/types'
 import { errorMessage } from '../api/client'
@@ -31,6 +32,7 @@ import { formatPrepCook } from '../utils/time'
 
 export default function Recipes() {
   const notify = useNotify()
+  const t = useT()
   const navigate = useNavigate()
   const { data: recipes, isLoading, isError, error } = useRecipes()
   const deleteMut = useDeleteRecipe()
@@ -53,28 +55,28 @@ export default function Recipes() {
     if (!toDelete) return
     try {
       await deleteMut.mutateAsync(toDelete.id)
-      notify('Recipe deleted', 'success')
+      notify(t('Recipe deleted'), 'success')
       setToDelete(null)
     } catch (err) {
-      notify(errorMessage(err, 'Could not delete recipe'), 'error')
+      notify(errorMessage(err, t('Could not delete recipe')), 'error')
     }
   }
 
   return (
     <Box>
       <PageHeader
-        title="Recipes"
-        subtitle="Your household's saved recipes."
+        title={t('Recipes')}
+        subtitle={t("Your household's saved recipes.")}
         action={
           <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>
-            New recipe
+            {t('New recipe')}
           </Button>
         }
       />
 
       {isError && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          {errorMessage(error, 'Failed to load recipes')}
+          {errorMessage(error, t('Failed to load recipes'))}
         </Alert>
       )}
 
@@ -93,15 +95,15 @@ export default function Recipes() {
       ) : (recipes?.length ?? 0) === 0 ? (
         <EmptyState
           icon={<RestaurantMenuIcon fontSize="inherit" />}
-          title="No recipes yet"
-          description="Create a recipe by hand, or let the AI suggest recipes based on your kitchen."
+          title={t('No recipes yet')}
+          description={t('Create a recipe by hand, or let the AI suggest recipes based on your kitchen.')}
           action={
             <Stack direction="row" spacing={1.5}>
               <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>
-                New recipe
+                {t('New recipe')}
               </Button>
               <Button variant="outlined" onClick={() => navigate('/suggestions')}>
-                Get AI suggestions
+                {t('Get AI suggestions')}
               </Button>
             </Stack>
           }
@@ -135,7 +137,7 @@ export default function Recipes() {
                       minHeight: 40,
                     }}
                   >
-                    {recipe.description || 'No description'}
+                    {recipe.description || t('No description')}
                   </Typography>
                   <Stack direction="row" spacing={1} useFlexGap sx={{ mt: 1.5, flexWrap: 'wrap' }}>
                     <Chip
@@ -143,8 +145,8 @@ export default function Recipes() {
                       icon={<PeopleIcon />}
                       label={
                         recipe.servings === 1
-                          ? `${recipe.servings} serving`
-                          : `${recipe.servings} servings`
+                          ? t('{count} serving', { count: recipe.servings })
+                          : t('{count} servings', { count: recipe.servings })
                       }
                     />
                     <Chip
@@ -152,8 +154,8 @@ export default function Recipes() {
                       variant="outlined"
                       label={
                         recipe.ingredients.length === 1
-                          ? `${recipe.ingredients.length} ingredient`
-                          : `${recipe.ingredients.length} ingredients`
+                          ? t('{count} ingredient', { count: recipe.ingredients.length })
+                          : t('{count} ingredients', { count: recipe.ingredients.length })
                       }
                     />
                     {formatPrepCook(recipe.prepTimeMinutes, recipe.cookTimeMinutes) && (
@@ -171,14 +173,14 @@ export default function Recipes() {
                 <QuickPlanButton recipe={recipe} variant="icon" />
                 <IconButton
                   size="small"
-                  aria-label="edit"
+                  aria-label={t('edit')}
                   onClick={() => openEdit(recipe)}
                 >
                   <EditIcon fontSize="small" />
                 </IconButton>
                 <IconButton
                   size="small"
-                  aria-label="delete"
+                  aria-label={t('delete')}
                   color="error"
                   onClick={() => setToDelete(recipe)}
                 >
@@ -194,9 +196,9 @@ export default function Recipes() {
 
       <ConfirmDialog
         open={Boolean(toDelete)}
-        title="Delete recipe?"
-        message={`“${toDelete?.title ?? ''}” will be permanently deleted, along with any meals planned with it.`}
-        confirmLabel="Delete"
+        title={t('Delete recipe?')}
+        message={t('“{title}” will be permanently deleted, along with any meals planned with it.', { title: toDelete?.title ?? '' })}
+        confirmLabel={t('Delete')}
         destructive
         loading={deleteMut.isPending}
         onConfirm={handleDelete}

@@ -2,8 +2,11 @@
 
 namespace App\Controller;
 
+use App\Entity\User;
 use App\Repository\IngredientRepository;
+use App\Repository\RecipeRepository;
 use App\Repository\StockItemRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\AI\Agent\AgentInterface;
 use Symfony\AI\Platform\Message\Content\Image;
@@ -29,6 +32,8 @@ class AiController extends AbstractApiController
     public function __construct(
         private readonly StockItemRepository $stock,
         private readonly IngredientRepository $ingredients,
+        private readonly RecipeRepository $recipes,
+        private readonly EntityManagerInterface $em,
         // The "recipe" agent configured in config/packages/ai.yaml.
         #[Autowire(service: 'ai.agent.recipe')]
         private readonly AgentInterface $recipeAgent,
@@ -80,7 +85,7 @@ class AiController extends AbstractApiController
 
         try {
             $messages = new MessageBag(
-                Message::forSystem('Respond ONLY with a single valid JSON object. No markdown, no code fences, no commentary.'),
+                Message::forSystem('Respond ONLY with a single valid JSON object. No markdown, no code fences, no commentary.'.$this->languageInstruction()),
                 Message::ofUser($userPrompt),
             );
 
@@ -133,21 +138,24 @@ class AiController extends AbstractApiController
             );
         }
 
+        // The imported recipe is written in the household's content language.
+        $language = $this->languageName($this->contentLanguageCode());
+
         // Precedence when several are present: pasted text, then image, then URL.
         if ('' !== $text) {
-            $userMessage = Message::ofUser($this->buildImportPrompt(mb_substr($text, 0, self::IMPORT_MAX_CHARS)));
+            $userMessage = Message::ofUser($this->buildImportPrompt(mb_substr($text, 0, self::IMPORT_MAX_CHARS), $language));
         } elseif ('' !== $image) {
             $imageContent = $this->imageFromDataUrl($image);
             if ($imageContent instanceof JsonResponse) {
                 return $imageContent;
             }
-            $userMessage = Message::ofUser(new Text($this->buildImagePrompt()), $imageContent);
+            $userMessage = Message::ofUser(new Text($this->buildImagePrompt($language)), $imageContent);
         } else {
             $source = $this->fetchUrlText($url);
             if ($source instanceof JsonResponse) {
                 return $source;
             }
-            $userMessage = Message::ofUser($this->buildImportPrompt(mb_substr($source, 0, self::IMPORT_MAX_CHARS)));
+            $userMessage = Message::ofUser($this->buildImportPrompt(mb_substr($source, 0, self::IMPORT_MAX_CHARS), $language));
         }
 
         try {
@@ -169,6 +177,179 @@ class AiController extends AbstractApiController
         }
 
         return $this->json(['recipe' => $recipe]);
+    }
+
+    /**
+     * Re-translates ALL of the household's recipes and ingredient names into the
+     * household's current content language, overwriting them in place. Used by the
+     * Settings "translate everything" button after changing the recipe language.
+     */
+    #[Route('/retranslate', name: 'api_ai_retranslate', methods: ['POST'])]
+    public function retranslate(): JsonResponse
+    {
+        if ('' === trim($this->anthropicApiKey)) {
+            return $this->json(['error' => 'AI is not configured. Add ANTHROPIC_API_KEY.'], Response::HTTP_SERVICE_UNAVAILABLE);
+        }
+
+        $household = $this->household();
+        $language = $this->languageName($this->contentLanguageCode());
+
+        // Ingredient names — one batched call keyed by id.
+        $ingredients = $this->ingredients->findBy(['household' => $household]);
+        $ingredientCount = 0;
+        if ([] !== $ingredients) {
+            $names = [];
+            foreach ($ingredients as $ingredient) {
+                $names[(int) $ingredient->getId()] = $ingredient->getName();
+            }
+            $translated = $this->translateNames($names, $language);
+            if (null !== $translated) {
+                foreach ($ingredients as $ingredient) {
+                    $new = trim((string) ($translated[(int) $ingredient->getId()] ?? ''));
+                    if ('' !== $new && $new !== $ingredient->getName()) {
+                        $ingredient->setName($new);
+                        ++$ingredientCount;
+                    }
+                }
+            }
+        }
+
+        // Recipes — one call each (bounded response, robust JSON).
+        $recipes = $this->recipes->findBy(['household' => $household]);
+        $recipeCount = 0;
+        foreach ($recipes as $recipe) {
+            $result = $this->translateRecipeContent(
+                $recipe->getTitle(),
+                $recipe->getDescription(),
+                $recipe->getInstructionSteps(),
+                $language,
+            );
+            if (null === $result) {
+                continue;
+            }
+            $recipe->setTitle($result['title']);
+            $recipe->setDescription($result['description']);
+            $recipe->setInstructionSteps($result['instructions']);
+            ++$recipeCount;
+        }
+
+        $this->em->flush();
+
+        return $this->json(['recipes' => $recipeCount, 'ingredients' => $ingredientCount]);
+    }
+
+    /**
+     * Translates a batch of ingredient names into $language.
+     *
+     * @param array<int, string> $names id => current name
+     *
+     * @return array<int, string>|null id => translated name, or null on failure
+     */
+    private function translateNames(array $names, string $language): ?array
+    {
+        $json = json_encode($names, \JSON_UNESCAPED_UNICODE);
+        $prompt = <<<PROMPT
+        Translate each ingredient name into {$language}. Return ONLY a JSON object mapping the SAME numeric ids to the translated names — no extra keys, no prose, no markdown:
+        {"<id>": "<translated name>"}
+
+        Ingredient names (id: name):
+        {$json}
+        PROMPT;
+
+        try {
+            $messages = new MessageBag(
+                Message::forSystem('You are a translator. Respond ONLY with a single valid JSON object. No markdown, no code fences, no commentary.'),
+                Message::ofUser($prompt),
+            );
+            $result = $this->recipeAgent->call($messages, ['max_tokens' => 4096]);
+            $content = $result->getContent();
+        } catch (\Throwable $e) {
+            $this->logger->error('Ingredient re-translation failed', ['exception' => $e]);
+
+            return null;
+        }
+
+        $decoded = $this->decodeJsonObject(\is_string($content) ? $content : '');
+        if (null === $decoded) {
+            return null;
+        }
+
+        $out = [];
+        foreach ($decoded as $id => $value) {
+            if (is_scalar($value)) {
+                $out[(int) $id] = (string) $value;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Translates a recipe's human-readable text into $language.
+     *
+     * @param list<string> $instructions
+     *
+     * @return array{title: string, description: string, instructions: list<string>}|null
+     */
+    private function translateRecipeContent(string $title, string $description, array $instructions, string $language): ?array
+    {
+        $source = json_encode(
+            ['title' => $title, 'description' => $description, 'instructions' => $instructions],
+            \JSON_UNESCAPED_UNICODE | \JSON_UNESCAPED_SLASHES,
+        );
+        $prompt = <<<PROMPT
+        Translate the recipe's human-readable text into {$language}. Return ONLY a JSON object with exactly these keys and shape — no extra keys, no prose, no markdown:
+        {"title": "string", "description": "string", "instructions": ["string"]}
+        Keep the same number and order of instruction steps. Translate cooking terms naturally.
+
+        Recipe:
+        {$source}
+        PROMPT;
+
+        try {
+            $messages = new MessageBag(
+                Message::forSystem('You are a translator. Respond ONLY with a single valid JSON object. No markdown, no code fences, no commentary.'),
+                Message::ofUser($prompt),
+            );
+            $result = $this->recipeAgent->call($messages, ['max_tokens' => 4096]);
+            $content = $result->getContent();
+        } catch (\Throwable $e) {
+            $this->logger->error('Recipe re-translation failed', ['exception' => $e]);
+
+            return null;
+        }
+
+        $decoded = $this->decodeJsonObject(\is_string($content) ? $content : '');
+        if (null === $decoded) {
+            return null;
+        }
+
+        return [
+            'title' => (string) ($decoded['title'] ?? $title),
+            'description' => (string) ($decoded['description'] ?? $description),
+            'instructions' => $this->normalizeSteps($decoded['instructions'] ?? $instructions),
+        ];
+    }
+
+    /**
+     * Extracts and decodes the outermost JSON object from a model response.
+     *
+     * @return array<mixed>|null
+     */
+    private function decodeJsonObject(string $content): ?array
+    {
+        $json = $this->extractJsonObject(trim($content));
+        if (null === $json) {
+            return null;
+        }
+
+        try {
+            $decoded = json_decode($json, true, 512, \JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return null;
+        }
+
+        return \is_array($decoded) ? $decoded : null;
     }
 
     /**
@@ -250,7 +431,7 @@ class AiController extends AbstractApiController
     }
 
     /** Prompt for extracting a recipe from a block of text (pasted or scraped from a URL). */
-    private function buildImportPrompt(string $source): string
+    private function buildImportPrompt(string $source, string $language): string
     {
         $schema = $this->importSchema();
         $rules = $this->importRules();
@@ -258,7 +439,7 @@ class AiController extends AbstractApiController
         return <<<PROMPT
         Extract a single recipe from the CONTENT below and return it as JSON.
 
-        Always write every value in ENGLISH. If the content is in another language, translate the title, description, instructions and ingredient names into English.
+        Always write every value in {$language}. If the content is in another language, translate the title, description, instructions and ingredient names into {$language}.
 
         Return ONLY a JSON object exactly matching this schema (no extra keys, no prose, no markdown):
         {$schema}
@@ -271,7 +452,7 @@ class AiController extends AbstractApiController
     }
 
     /** Prompt for extracting a recipe from an attached image (photo of a recipe). */
-    private function buildImagePrompt(): string
+    private function buildImagePrompt(string $language): string
     {
         $schema = $this->importSchema();
         $rules = $this->importRules();
@@ -279,7 +460,7 @@ class AiController extends AbstractApiController
         return <<<PROMPT
         Extract a single recipe from the attached image and return it as JSON. Read all visible text, including printed and handwritten text.
 
-        Always write every value in ENGLISH. If the image is in another language, translate the title, description, instructions and ingredient names into English.
+        Always write every value in {$language}. If the image is in another language, translate the title, description, instructions and ingredient names into {$language}.
 
         Return ONLY a JSON object exactly matching this schema (no extra keys, no prose, no markdown):
         {$schema}
@@ -386,6 +567,38 @@ class AiController extends AbstractApiController
             'instructions' => $this->normalizeSteps($decoded['instructions'] ?? []),
             'ingredients' => $this->normalizeLines($decoded['ingredients'] ?? []),
         ];
+    }
+
+    /** Content language code for the current household ("en" or "da"). */
+    private function contentLanguageCode(): string
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        return $user->getHousehold()?->getLanguage() ?? 'en';
+    }
+
+    /** Maps a language code to the English name used in prompts. */
+    private function languageName(string $code): string
+    {
+        return ['da' => 'Danish'][$code] ?? 'English';
+    }
+
+    /**
+     * System-prompt addendum telling the model to respond in the household's
+     * content language. Empty for English (the prompts are already English).
+     */
+    private function languageInstruction(): string
+    {
+        $code = $this->contentLanguageCode();
+        if ('en' === $code) {
+            return '';
+        }
+
+        return \sprintf(
+            ' Write every human-readable string value (title, description, instructions, and ingredient names) in %s. Keep all JSON keys exactly as specified in English.',
+            $this->languageName($code),
+        );
     }
 
     /**

@@ -31,6 +31,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 255)]
     private string $name;
 
+    /**
+     * The user's preferred UI/display language (BCP-47 short code, "en" or "da").
+     * Personal to the user so it follows them across devices.
+     */
+    #[ORM\Column(length: 5, options: ['default' => 'en'])]
+    private string $language = 'en';
+
     #[ORM\ManyToOne(targetEntity: Household::class, inversedBy: 'members')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Household $household = null;
@@ -38,6 +45,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function getLanguage(): string
+    {
+        return $this->language;
+    }
+
+    public function setLanguage(string $language): static
+    {
+        $this->language = $language;
+
+        return $this;
     }
 
     public function getEmail(): string

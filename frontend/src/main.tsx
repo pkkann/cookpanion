@@ -8,6 +8,7 @@ import App from './App.tsx'
 import theme from './theme/theme'
 import { SnackbarProvider } from './components/SnackbarProvider'
 import DateLocalizationProvider from './components/DateLocalizationProvider'
+import { LanguageProvider } from './i18n/LanguageProvider'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,15 +22,17 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <DateLocalizationProvider>
-          <SnackbarProvider>
-            <App />
-          </SnackbarProvider>
-        </DateLocalizationProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <LanguageProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <DateLocalizationProvider>
+            <SnackbarProvider>
+              <App />
+            </SnackbarProvider>
+          </DateLocalizationProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </LanguageProvider>
   </StrictMode>,
 )

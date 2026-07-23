@@ -19,6 +19,7 @@ import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
 import { useCreateIngredient, useCreateRecipe, useIngredients, useUpdateRecipe } from '../api/hooks'
 import UnitSelect from './UnitSelect'
 import { useNotify } from './SnackbarProvider'
+import { useT } from '../i18n/LanguageProvider'
 import { errorMessage } from '../api/client'
 import type {
   ImportedRecipe,
@@ -80,6 +81,7 @@ export default function RecipeFormDialog({
   onSaved,
 }: RecipeFormDialogProps) {
   const notify = useNotify()
+  const t = useT()
   const isMobile = useIsMobile()
   const { data: ingredients } = useIngredients()
   const createMut = useCreateRecipe()
@@ -237,15 +239,15 @@ export default function RecipeFormDialog({
       let saved: Recipe
       if (recipe) {
         saved = await updateMut.mutateAsync({ id: recipe.id, payload })
-        notify('Recipe updated', 'success')
+        notify(t('Recipe updated'), 'success')
       } else {
         saved = await createMut.mutateAsync(payload)
-        notify('Recipe created', 'success')
+        notify(t('Recipe created'), 'success')
       }
       onSaved?.(saved)
       onClose()
     } catch (err) {
-      notify(errorMessage(err, 'Could not save recipe'), 'error')
+      notify(errorMessage(err, t('Could not save recipe')), 'error')
     }
   }
 
@@ -260,10 +262,10 @@ export default function RecipeFormDialog({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth fullScreen={isMobile}>
       <Box component="form" onSubmit={handleSubmit}>
-        <DialogTitle>{recipe ? 'Edit recipe' : 'New recipe'}</DialogTitle>
+        <DialogTitle>{recipe ? t('Edit recipe') : t('New recipe')}</DialogTitle>
         <DialogContent>
           <TextField
-            label="Title"
+            label={t('Title')}
             fullWidth
             required
             autoFocus
@@ -272,7 +274,7 @@ export default function RecipeFormDialog({
             onChange={(e) => setTitle(e.target.value)}
           />
           <TextField
-            label="Description"
+            label={t('Description')}
             fullWidth
             margin="normal"
             multiline
@@ -281,31 +283,31 @@ export default function RecipeFormDialog({
             onChange={(e) => setDescription(e.target.value)}
           />
           <TextField
-            label="Default servings"
+            label={t('Default servings')}
             type="number"
             margin="normal"
             slotProps={{ htmlInput: { min: 1, step: 1 } }}
-            helperText="Enter ingredient amounts for this many servings. Viewers can rescale from here."
+            helperText={t('Enter ingredient amounts for this many servings. Viewers can rescale from here.')}
             value={servings}
             onChange={(e) => setServings(e.target.value)}
           />
 
           <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
             <TextField
-              label="Prep time (min)"
+              label={t('Prep time (min)')}
               type="number"
               fullWidth
               slotProps={{ htmlInput: { min: 0, step: 1 } }}
-              placeholder="optional"
+              placeholder={t('optional')}
               value={prepTime}
               onChange={(e) => setPrepTime(e.target.value)}
             />
             <TextField
-              label="Cook time (min)"
+              label={t('Cook time (min)')}
               type="number"
               fullWidth
               slotProps={{ htmlInput: { min: 0, step: 1 } }}
-              placeholder="optional"
+              placeholder={t('optional')}
               value={cookTime}
               onChange={(e) => setCookTime(e.target.value)}
             />
@@ -313,7 +315,7 @@ export default function RecipeFormDialog({
 
           <Divider sx={{ my: 2 }} />
           <Typography variant="subtitle2" gutterBottom>
-            Ingredients
+            {t('Ingredients')}
           </Typography>
           <Stack spacing={1.5}>
             {rows.map((row) => (
@@ -354,7 +356,7 @@ export default function RecipeFormDialog({
                     const { key, ...rest } = props as typeof props & { key: Key }
                     return (
                       <li key={key} {...rest}>
-                        {isNewOption(option) ? `Add “${option.inputValue}”` : option.name}
+                        {isNewOption(option) ? t('Add “{name}”', { name: option.inputValue }) : option.name}
                       </li>
                     )
                   }}
@@ -366,12 +368,12 @@ export default function RecipeFormDialog({
                     })
                   }
                   renderInput={(params) => (
-                    <TextField {...params} label="Ingredient" size="small" />
+                    <TextField {...params} label={t('Ingredient')} size="small" />
                   )}
                 />
                 <Stack direction="row" spacing={1} sx={{ flex: 1, alignItems: 'flex-start' }}>
                   <TextField
-                    label="Qty"
+                    label={t('Qty')}
                     type="number"
                     size="small"
                     sx={{ flex: 1, minWidth: 72 }}
@@ -380,14 +382,14 @@ export default function RecipeFormDialog({
                     onChange={(e) => updateRow(row.key, { quantity: e.target.value })}
                   />
                   <UnitSelect
-                    label="Unit"
+                    label={t('Unit')}
                     size="small"
                     sx={{ flex: 1, minWidth: 72 }}
                     value={row.unit}
                     onChange={(unit) => updateRow(row.key, { unit })}
                   />
                   <IconButton
-                    aria-label="remove ingredient"
+                    aria-label={t('remove ingredient')}
                     onClick={() => removeRow(row.key)}
                     disabled={rows.length === 1}
                     sx={{ mt: 0.5 }}
@@ -399,12 +401,12 @@ export default function RecipeFormDialog({
             ))}
           </Stack>
           <Button startIcon={<AddIcon />} onClick={addRow} sx={{ mt: 1.5 }} size="small">
-            Add ingredient
+            {t('Add ingredient')}
           </Button>
 
           <Divider sx={{ my: 2 }} />
           <Typography variant="subtitle2" gutterBottom>
-            Instructions
+            {t('Instructions')}
           </Typography>
           <Stack spacing={1.5}>
             {steps.map((step, idx) => (
@@ -423,7 +425,7 @@ export default function RecipeFormDialog({
                     size="small"
                     multiline
                     minRows={2}
-                    placeholder="Describe this step…"
+                    placeholder={t('Describe this step…')}
                     value={step.text}
                     onChange={(e) => updateStep(step.key, e.target.value)}
                   />
@@ -431,7 +433,7 @@ export default function RecipeFormDialog({
                 <Stack direction="row" sx={{ justifyContent: { xs: 'flex-end', sm: 'initial' } }}>
                   <IconButton
                     size="small"
-                    aria-label="move step up"
+                    aria-label={t('move step up')}
                     disabled={idx === 0}
                     onClick={() => moveStep(idx, -1)}
                   >
@@ -439,7 +441,7 @@ export default function RecipeFormDialog({
                   </IconButton>
                   <IconButton
                     size="small"
-                    aria-label="move step down"
+                    aria-label={t('move step down')}
                     disabled={idx === steps.length - 1}
                     onClick={() => moveStep(idx, 1)}
                   >
@@ -447,7 +449,7 @@ export default function RecipeFormDialog({
                   </IconButton>
                   <IconButton
                     size="small"
-                    aria-label="remove step"
+                    aria-label={t('remove step')}
                     disabled={steps.length === 1}
                     onClick={() => removeStep(step.key)}
                   >
@@ -458,15 +460,15 @@ export default function RecipeFormDialog({
             ))}
           </Stack>
           <Button startIcon={<AddIcon />} onClick={addStep} sx={{ mt: 1.5 }} size="small">
-            Add step
+            {t('Add step')}
           </Button>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={onClose} disabled={saving}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button type="submit" variant="contained" disabled={saving || !title.trim()}>
-            {recipe ? 'Save changes' : 'Create recipe'}
+            {recipe ? t('Save changes') : t('Create recipe')}
           </Button>
         </DialogActions>
       </Box>

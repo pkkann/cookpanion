@@ -30,6 +30,7 @@ import AccessTimeIcon from '@mui/icons-material/AccessTime'
 import BookmarkAddIcon from '@mui/icons-material/BookmarkAdd'
 import PageHeader from '../components/PageHeader'
 import { useNotify } from '../components/SnackbarProvider'
+import { useT } from '../i18n/LanguageProvider'
 import { useIngredients } from '../api/hooks'
 import { queryKeys } from '../api/hooks'
 import { createIngredient, createRecipe, suggestRecipes } from '../api/endpoints'
@@ -46,6 +47,7 @@ import type {
 const MAX_TIME_OPTIONS = [0, 15, 30, 45, 60, 90, 120]
 
 export default function AISuggestions() {
+  const t = useT()
   const notify = useNotify()
   const theme = useTheme()
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'))
@@ -89,7 +91,7 @@ export default function AISuggestions() {
       if (errorStatus(err) === 503) {
         setNotConfigured(true)
       } else {
-        setErrorText(errorMessage(err, "Could not get suggestions"))
+        setErrorText(errorMessage(err, t("Could not get suggestions")))
       }
     } finally {
       setLoading(false)
@@ -146,9 +148,9 @@ export default function AISuggestions() {
       queryClient.invalidateQueries({ queryKey: queryKeys.recipes })
 
       setSavedIndexes((prev) => new Set(prev).add(index))
-      notify(`Saved “${suggestion.title}” to your recipes`, 'success')
+      notify(t('Saved “{title}” to your recipes', { title: suggestion.title }), 'success')
     } catch (err) {
-      notify(errorMessage(err, "Could not save recipe"), 'error')
+      notify(errorMessage(err, t("Could not save recipe")), 'error')
     } finally {
       setSavingIndex(null)
     }
@@ -156,13 +158,13 @@ export default function AISuggestions() {
 
   return (
     <Box>
-      <PageHeader title="AI Suggestions" subtitle="Let Claude suggest recipes from what you have (and a short shopping list)." />
+      <PageHeader title={t('AI Suggestions')} subtitle={t('Let Claude suggest recipes from what you have (and a short shopping list).')} />
 
       {/* Request form */}
       <Paper variant="outlined" sx={{ p: { xs: 2.5, md: 3 }, mb: 3 }}>
         <Box component="form" onSubmit={handleSubmit}>
           <Typography variant="subtitle2" gutterBottom>
-            What should we cook with?
+            {t('What should we cook with?')}
           </Typography>
           <ToggleButtonGroup
             value={mode}
@@ -174,21 +176,21 @@ export default function AISuggestions() {
           >
             <ToggleButton value="kitchen" sx={{ px: 2, justifyContent: { xs: 'flex-start', md: 'center' } }}>
               <KitchenIcon fontSize="small" sx={{ mr: 1 }} />
-              Only my kitchen stock
+              {t('Only my kitchen stock')}
             </ToggleButton>
             <ToggleButton value="all" sx={{ px: 2, justifyContent: { xs: 'flex-start', md: 'center' } }}>
               <LocalDiningIcon fontSize="small" sx={{ mr: 1 }} />
-              All my ingredients
+              {t('All my ingredients')}
             </ToggleButton>
             <ToggleButton value="surprise" sx={{ px: 2, justifyContent: { xs: 'flex-start', md: 'center' } }}>
               <AutoAwesomeIcon fontSize="small" sx={{ mr: 1 }} />
-              Surprise me
+              {t('Surprise me')}
             </ToggleButton>
           </ToggleButtonGroup>
 
           <Box sx={{ maxWidth: 420, mb: 2 }}>
             <Typography variant="subtitle2" gutterBottom>
-              How many recipes: <strong>{count}</strong>
+              {t('How many recipes:')} <strong>{count}</strong>
             </Typography>
             <Slider
               value={count}
@@ -200,13 +202,13 @@ export default function AISuggestions() {
               valueLabelDisplay="auto"
             />
             <Typography variant="caption" color="text.secondary">
-              Number of recipe ideas to generate.
+              {t('Number of recipe ideas to generate.')}
             </Typography>
           </Box>
 
           <Box sx={{ maxWidth: 420, mb: 2 }}>
             <Typography variant="subtitle2" gutterBottom>
-              Servings per recipe: <strong>{servings}</strong>
+              {t('Servings per recipe:')} <strong>{servings}</strong>
             </Typography>
             <Slider
               value={servings}
@@ -218,22 +220,22 @@ export default function AISuggestions() {
               valueLabelDisplay="auto"
             />
             <Typography variant="caption" color="text.secondary">
-              Every suggestion is sized for this many people.
+              {t('Every suggestion is sized for this many people.')}
             </Typography>
           </Box>
 
           <TextField
             select
-            label="Max total time"
+            label={t('Max total time')}
             value={maxTimeMinutes}
             onChange={(e) => setMaxTimeMinutes(Number(e.target.value))}
             sx={{ maxWidth: 420, mb: 2 }}
             fullWidth
-            helperText="Cap on prep + cook time for each recipe."
+            helperText={t('Cap on prep + cook time for each recipe.')}
           >
             {MAX_TIME_OPTIONS.map((minutes) => (
               <MenuItem key={minutes} value={minutes}>
-                {minutes === 0 ? 'No limit' : formatDuration(minutes)}
+                {minutes === 0 ? t('No limit') : formatDuration(minutes)}
               </MenuItem>
             ))}
           </TextField>
@@ -241,7 +243,7 @@ export default function AISuggestions() {
           {mode === 'surprise' ? (
             <Box sx={{ maxWidth: 420, mb: 2 }}>
               <Typography variant="subtitle2" gutterBottom>
-                Max ingredients per recipe: <strong>{numIngredients}</strong>
+                {t('Max ingredients per recipe:')} <strong>{numIngredients}</strong>
               </Typography>
               <Slider
                 value={numIngredients}
@@ -253,13 +255,13 @@ export default function AISuggestions() {
                 valueLabelDisplay="auto"
               />
               <Typography variant="caption" color="text.secondary">
-                Each recipe uses at most this many ingredients. Ignores your kitchen entirely.
+                {t('Each recipe uses at most this many ingredients. Ignores your kitchen entirely.')}
               </Typography>
             </Box>
           ) : (
             <Box sx={{ maxWidth: 420, mb: 2 }}>
               <Typography variant="subtitle2" gutterBottom>
-                Max extra ingredients to buy: <strong>{maxToBuy}</strong>
+                {t('Max extra ingredients to buy:')} <strong>{maxToBuy}</strong>
               </Typography>
               <Slider
                 value={maxToBuy}
@@ -271,16 +273,16 @@ export default function AISuggestions() {
                 valueLabelDisplay="auto"
               />
               <Typography variant="caption" color="text.secondary">
-                0 means suggestions must only use what you already have.
+                {t('0 means suggestions must only use what you already have.')}
               </Typography>
             </Box>
           )}
 
           <TextField
-            label="Preferences (optional)"
+            label={t('Preferences (optional)')}
             fullWidth
             margin="normal"
-            placeholder="e.g. vegetarian, quick, low-carb, kid-friendly"
+            placeholder={t('e.g. vegetarian, quick, low-carb, kid-friendly')}
             value={preferences}
             onChange={(e) => setPreferences(e.target.value)}
           />
@@ -293,7 +295,7 @@ export default function AISuggestions() {
             disabled={loading}
             sx={{ mt: 2 }}
           >
-            {loading ? "Thinking…" : "Suggest recipes"}
+            {loading ? t("Thinking…") : t("Suggest recipes")}
           </Button>
         </Box>
       </Paper>
@@ -301,8 +303,8 @@ export default function AISuggestions() {
       {/* AI not configured (503) */}
       {notConfigured && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          <AlertTitle>AI is not configured yet</AlertTitle>
-          {"Recipe suggestions need an Anthropic API key (ANTHROPIC_API_KEY) on the backend. Once it's added, come back and try again — the rest of the app works without it."}
+          <AlertTitle>{t('AI is not configured yet')}</AlertTitle>
+          {t("Recipe suggestions need an Anthropic API key (ANTHROPIC_API_KEY) on the backend. Once it's added, come back and try again — the rest of the app works without it.")}
         </Alert>
       )}
 
@@ -316,13 +318,13 @@ export default function AISuggestions() {
       {loading && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 4, justifyContent: 'center' }}>
           <CircularProgress />
-          <Typography color="text.secondary">Cooking up some ideas…</Typography>
+          <Typography color="text.secondary">{t('Cooking up some ideas…')}</Typography>
         </Box>
       )}
 
       {/* Empty result */}
       {!loading && suggestions?.length === 0 && (
-        <Alert severity="info">No suggestions came back. Try allowing a few more ingredients to buy, or switch to using all your ingredients.</Alert>
+        <Alert severity="info">{t('No suggestions came back. Try allowing a few more ingredients to buy, or switch to using all your ingredients.')}</Alert>
       )}
 
       {/* Suggestions */}
@@ -344,7 +346,7 @@ export default function AISuggestions() {
                   <Chip
                     size="small"
                     icon={<PeopleIcon />}
-                    label={s.servings === 1 ? `${s.servings} serving` : `${s.servings} servings`}
+                    label={s.servings === 1 ? t('{count} serving', { count: s.servings }) : t('{count} servings', { count: s.servings })}
                   />
                   {formatPrepCook(s.prepTimeMinutes, s.cookTimeMinutes) && (
                     <Chip
@@ -360,7 +362,7 @@ export default function AISuggestions() {
                 </Typography>
 
                 <Typography variant="subtitle2" gutterBottom>
-                  Uses
+                  {t('Uses')}
                 </Typography>
                 <Stack direction="row" spacing={1} useFlexGap sx={{ mb: 2, flexWrap: 'wrap' }}>
                   {s.usesIngredients.map((u, ui) => (
@@ -379,7 +381,7 @@ export default function AISuggestions() {
                       gutterBottom
                       sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
                     >
-                      <ShoppingCartIcon fontSize="small" /> To buy
+                      <ShoppingCartIcon fontSize="small" /> {t('To buy')}
                     </Typography>
                     <Stack direction="row" spacing={1} useFlexGap sx={{ mb: 2, flexWrap: 'wrap' }}>
                       {s.toBuy.map((b, bi) => (
@@ -397,7 +399,7 @@ export default function AISuggestions() {
 
                 <Divider sx={{ my: 1.5 }} />
                 <Typography variant="subtitle2" gutterBottom>
-                  Instructions
+                  {t('Instructions')}
                 </Typography>
                 <Stack component="ol" spacing={0.75} sx={{ m: 0, pl: 2.5 }}>
                   {s.instructions.map((step, si) => (
@@ -421,10 +423,10 @@ export default function AISuggestions() {
                   onClick={() => saveAsRecipe(s, i)}
                 >
                   {savedIndexes.has(i)
-                    ? "Saved"
+                    ? t("Saved")
                     : savingIndex === i
-                      ? "Saving…"
-                      : "Save as recipe"}
+                      ? t("Saving…")
+                      : t("Save as recipe")}
                 </Button>
               </CardActions>
             </Card>

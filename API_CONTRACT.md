@@ -13,7 +13,7 @@ Shared contract between the Symfony backend (`backend/`) and the React SPA (`fro
 ## Data model (conceptual)
 
 - **User**: id, email, name, household (belongs to one household)
-- **Household**: id, name, members[]
+- **Household**: id, name, language (`"en"` | `"da"`, default `"en"` — the content language for AI-generated/imported recipes & ingredients), members[]
 - **Ingredient**: id, name, defaultUnit (e.g. "g", "ml", "pcs") — scoped to household
 - **StockItem** (what's in the kitchen): id, ingredient, quantity (float), unit — scoped to household; one row per ingredient
 - **Recipe**: id, title, description, instructions (markdown/plain text), servings (int), prepTimeMinutes (int|null), cookTimeMinutes (int|null), author (User), createdAt — scoped to household
@@ -46,7 +46,10 @@ Body: `{ "refresh_token": string }`. Revokes the refresh token server-side. Idem
 returns `204`, even for an unknown token. The access token is left to expire on its own.
 
 ### GET /me
-Returns the current user: `{ "id", "email", "name", "household": { "id", "name" } }`
+Returns the current user: `{ "id", "email", "name", "household": { "id", "name", "inviteCode", "language" } }`
+
+### PATCH /household
+Updates the current user's household. Body may include `"name"` (non-empty) and/or `"language"` (`"en"` | `"da"`). `language` is the household **content language** — the language the AI writes generated and imported recipes/ingredients in. Returns `200` with the updated `User`. Unknown language → `400`.
 
 ## Ingredients  `/api/ingredients`
 
@@ -191,7 +194,7 @@ The frontend offers a "Save as recipe" action that POSTs a suggestion to `/api/r
 Body: `{ "url"?: string, "text"?: string, "image"?: string }` — provide one. Precedence when several are present: `text`, then `image`, then `url`.
 - With `url`, the backend fetches the page (http/https only; localhost and private/reserved IPs are refused) and reduces it to text before extraction.
 - With `image` (a base64 data URL, e.g. `data:image/jpeg;base64,…` — jpeg/png/webp/gif, ~7 MB max), the photo is sent to the vision model, which reads printed or handwritten text.
-- The extracted recipe is **always in English** — content in another language is translated.
+- The extracted recipe is written in the **household's content language** (`household.language`) — a source in another language is translated into it.
 
 Response `200`:
 ```json

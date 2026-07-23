@@ -8,6 +8,7 @@ import CircularProgress from '@mui/material/CircularProgress'
 import { useAuth } from '../auth/AuthContext'
 import { errorMessage } from '../api/client'
 import AuthShell from '../components/AuthShell'
+import { useT } from '../i18n/LanguageProvider'
 
 /**
  * Landing page for an invite link (`/join/:code`). Completes the join for the
@@ -17,6 +18,7 @@ import AuthShell from '../components/AuthShell'
 export default function JoinHousehold() {
   const { code = '' } = useParams()
   const { joinHousehold } = useAuth()
+  const t = useT()
   const navigate = useNavigate()
 
   const [error, setError] = useState<string | null>(null)
@@ -28,17 +30,17 @@ export default function JoinHousehold() {
     joinHousehold(code)
       .then(() => navigate('/', { replace: true }))
       .catch((err) =>
-        setError(errorMessage(err, "Could not join that household. Check the invite link or code.")),
+        setError(errorMessage(err, t('Could not join that household. Check the invite link or code.'))),
       )
-  }, [code, joinHousehold, navigate])
+  }, [code, joinHousehold, navigate, t])
 
   return (
-    <AuthShell title="Joining household" subtitle="Hang tight — adding you to the shared kitchen.">
+    <AuthShell title={t('Joining household')} subtitle={t('Hang tight — adding you to the shared kitchen.')}>
       {error ? (
         <Stack spacing={2}>
           <Alert severity="error">{error}</Alert>
           <Button variant="contained" fullWidth onClick={() => navigate('/', { replace: true })}>
-            Continue
+            {t('Continue')}
           </Button>
         </Stack>
       ) : (

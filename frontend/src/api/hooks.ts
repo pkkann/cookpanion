@@ -143,6 +143,19 @@ export function useImportRecipe() {
   return useMutation({ mutationFn: api.importRecipe })
 }
 
+// ---- AI: re-translate all content into the household language ----
+export function useRetranslateContent() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: api.retranslateContent,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.recipes })
+      qc.invalidateQueries({ queryKey: queryKeys.ingredients })
+      qc.invalidateQueries({ queryKey: queryKeys.plannedMeals })
+    },
+  })
+}
+
 // ---- Meal plan ----
 export function usePlannedMeals() {
   return useQuery({ queryKey: queryKeys.plannedMeals, queryFn: api.listPlannedMeals })

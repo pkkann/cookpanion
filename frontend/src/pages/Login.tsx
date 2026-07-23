@@ -5,9 +5,11 @@ import { useAuth } from '../auth/AuthContext'
 import { errorMessage } from '../api/client'
 import AuthShell from '../components/AuthShell'
 import GoogleSignInButton, { googleSignInEnabled } from '../auth/GoogleSignInButton'
+import { useT } from '../i18n/LanguageProvider'
 
 export default function Login() {
   const { user, loginWithGoogle } = useAuth()
+  const t = useT()
   const navigate = useNavigate()
   const location = useLocation()
   const from = (location.state as { from?: string } | null)?.from ?? '/'
@@ -24,14 +26,16 @@ export default function Login() {
       // the one-time onboarding step. Everyone else lands on their target page.
       navigate(from, { replace: true })
     } catch (err) {
-      setError(errorMessage(err, "Google sign-in failed"))
+      setError(errorMessage(err, t('Google sign-in failed')))
     }
   }
 
   return (
     <AuthShell
-      title="Welcome to Cookpanion"
-      subtitle="Sign in with Google to plan meals with what's already in your kitchen. New here? Signing in creates your account."
+      title={t('Welcome to Cookpanion')}
+      subtitle={t(
+        "Sign in with Google to plan meals with what's already in your kitchen. New here? Signing in creates your account.",
+      )}
     >
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -41,7 +45,7 @@ export default function Login() {
       {googleSignInEnabled ? (
         <GoogleSignInButton onCredential={handleGoogle} />
       ) : (
-        <Alert severity="info">Sign-in isn't available right now. Please try again later.</Alert>
+        <Alert severity="info">{t("Sign-in isn't available right now. Please try again later.")}</Alert>
       )}
     </AuthShell>
   )

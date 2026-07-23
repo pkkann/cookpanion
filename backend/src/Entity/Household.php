@@ -26,6 +26,14 @@ class Household
     private string $inviteCode;
 
     /**
+     * Content language for the household (BCP-47 short code, "en" or "da").
+     * All AI-generated and imported recipes/ingredients are written in this
+     * language so the shared data stays consistent.
+     */
+    #[ORM\Column(length: 5, options: ['default' => 'en'])]
+    private string $language = 'en';
+
+    /**
      * @var Collection<int, User>
      */
     #[ORM\OneToMany(mappedBy: 'household', targetEntity: User::class)]
@@ -61,6 +69,18 @@ class Household
     public function setInviteCode(string $inviteCode): static
     {
         $this->inviteCode = $inviteCode;
+
+        return $this;
+    }
+
+    public function getLanguage(): string
+    {
+        return $this->language;
+    }
+
+    public function setLanguage(string $language): static
+    {
+        $this->language = $language;
 
         return $this;
     }
