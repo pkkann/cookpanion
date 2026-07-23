@@ -72,7 +72,13 @@ export default function CookDialog({
 
   const usedAmount = (row: CookRow) => Math.max(0, parseFloat(uses[row.ingredientId] ?? '') || 0)
 
-  const skipped = useMemo(() => rows.filter((r) => !isDeductible(r)), [rows])
+  // "Skipped" = can't be deducted for a problem reason (unit mismatch / not in
+  // kitchen). Always-in-stock staples are intentionally not deducted, so they
+  // aren't flagged here.
+  const skipped = useMemo(
+    () => rows.filter((r) => !isDeductible(r) && r.status !== 'always'),
+    [rows],
+  )
 
   // Rows where the amount used exceeds what's on hand — the stock row will be
   // used up and removed from the kitchen.
@@ -110,8 +116,12 @@ export default function CookDialog({
           {rows.map((row) => {
             const deductible = isDeductible(row)
             const left = Math.max(0, row.have - usedAmount(row))
-            const skipLabel =
-              row.status === 'unknown' ? 'Unit differs — skipped' : 'Not in kitchen — skipped'
+            const isAlways = row.status === 'always'
+            const skipLabel = isAlways
+              ? 'Always in stock'
+              : row.status === 'unknown'
+                ? 'Unit differs — skipped'
+                : 'Not in kitchen — skipped'
             return (
               <Box
                 key={row.ingredientId}
@@ -170,7 +180,7 @@ export default function CookDialog({
                 ) : (
                   <Chip
                     size="small"
-                    color="warning"
+                    color={isAlways ? 'success' : 'warning'}
                     variant="outlined"
                     label={skipLabel}
                     sx={{ gridColumn: { xs: '1', sm: '2 / 4' }, justifySelf: 'start' }}

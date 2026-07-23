@@ -25,6 +25,7 @@ import RestartAltIcon from '@mui/icons-material/RestartAlt'
 import PeopleIcon from '@mui/icons-material/People'
 import RestaurantIcon from '@mui/icons-material/Restaurant'
 import AccessTimeIcon from '@mui/icons-material/AccessTime'
+import AllInclusiveIcon from '@mui/icons-material/AllInclusive'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import CancelIcon from '@mui/icons-material/Cancel'
@@ -68,6 +69,12 @@ function statusView(a: IngredientAvailability): StatusView {
   const neededLabel = `${formatQuantity(a.needed)} ${a.ri.unit}`.trim()
   const haveLabel = `${formatQuantity(a.have)} ${a.haveUnit}`.trim()
   switch (a.status) {
+    case 'always':
+      return {
+        icon: <AllInclusiveIcon color="success" fontSize="small" />,
+        tooltip: "Always in stock — you won't run out",
+        note: null,
+      }
     case 'enough':
       return {
         icon: <CheckCircleIcon color="success" fontSize="small" />,
@@ -147,7 +154,16 @@ export default function RecipeDetail() {
     if (!recipe) return []
     return recipe.ingredients.map((ri) => {
       const needed = scaleQuantity(ri.quantity, baseServings, chosenServings)
-      return { ri, needed, ...computeAvailability(needed, ri.unit, stockById.get(ri.ingredient.id)) }
+      return {
+        ri,
+        needed,
+        ...computeAvailability(
+          needed,
+          ri.unit,
+          stockById.get(ri.ingredient.id),
+          ri.ingredient.alwaysInStock,
+        ),
+      }
     })
   }, [recipe, baseServings, chosenServings, stockById])
 

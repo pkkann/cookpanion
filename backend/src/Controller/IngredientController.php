@@ -53,6 +53,7 @@ class IngredientController extends AbstractApiController
         $ingredient = (new Ingredient())
             ->setName($name)
             ->setDefaultUnit($this->nullableString($data['defaultUnit'] ?? null))
+            ->setAlwaysInStock((bool) ($data['alwaysInStock'] ?? false))
             ->setHousehold($this->household());
 
         $this->em->persist($ingredient);
@@ -99,6 +100,9 @@ class IngredientController extends AbstractApiController
         }
         if (\array_key_exists('defaultUnit', $data)) {
             $ingredient->setDefaultUnit($this->nullableString($data['defaultUnit']));
+        }
+        if (\array_key_exists('alwaysInStock', $data)) {
+            $ingredient->setAlwaysInStock((bool) $data['alwaysInStock']);
         }
 
         $this->em->flush();

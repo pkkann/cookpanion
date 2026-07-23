@@ -19,6 +19,14 @@ class Ingredient
     #[ORM\Column(length: 32, nullable: true)]
     private ?string $defaultUnit = null;
 
+    /**
+     * A pantry staple the household treats as never running out (e.g. water,
+     * salt). Such ingredients always count as available and are never added to
+     * a shopping list or deducted when cooking.
+     */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $alwaysInStock = false;
+
     #[ORM\ManyToOne(targetEntity: Household::class)]
     #[ORM\JoinColumn(nullable: false)]
     private ?Household $household = null;
@@ -48,6 +56,18 @@ class Ingredient
     public function setDefaultUnit(?string $defaultUnit): static
     {
         $this->defaultUnit = $defaultUnit;
+
+        return $this;
+    }
+
+    public function isAlwaysInStock(): bool
+    {
+        return $this->alwaysInStock;
+    }
+
+    public function setAlwaysInStock(bool $alwaysInStock): static
+    {
+        $this->alwaysInStock = $alwaysInStock;
 
         return $this;
     }

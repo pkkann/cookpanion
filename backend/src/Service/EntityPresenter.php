@@ -17,7 +17,7 @@ use App\Entity\User;
 final class EntityPresenter
 {
     /**
-     * @return array{id: int|null, name: string, defaultUnit: string|null}
+     * @return array{id: int|null, name: string, defaultUnit: string|null, alwaysInStock: bool}
      */
     public function ingredient(Ingredient $ingredient): array
     {
@@ -25,6 +25,7 @@ final class EntityPresenter
             'id' => $ingredient->getId(),
             'name' => $ingredient->getName(),
             'defaultUnit' => $ingredient->getDefaultUnit(),
+            'alwaysInStock' => $ingredient->isAlwaysInStock(),
         ];
     }
 

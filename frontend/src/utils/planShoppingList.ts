@@ -28,6 +28,7 @@ interface Demand {
   name: string
   unit: string
   needed: number
+  alwaysInStock: boolean
 }
 
 /**
@@ -60,6 +61,7 @@ export function planShoppingList(meals: PlannedMeal[], stock: StockItem[]): Plan
           name: ri.ingredient.name,
           unit: ri.unit,
           needed,
+          alwaysInStock: ri.ingredient.alwaysInStock,
         })
       }
     }
@@ -71,7 +73,7 @@ export function planShoppingList(meals: PlannedMeal[], stock: StockItem[]): Plan
   const toBuy: PlanBuyItem[] = []
   const unknown: PlanUnknownItem[] = []
   for (const d of demand.values()) {
-    const a = computeAvailability(d.needed, d.unit, stockById.get(d.ingredientId))
+    const a = computeAvailability(d.needed, d.unit, stockById.get(d.ingredientId), d.alwaysInStock)
     if (a.status === 'unknown') {
       unknown.push({ ingredientId: d.ingredientId, name: d.name, unit: d.unit })
     } else if (a.status === 'none' || a.status === 'partial') {

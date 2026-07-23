@@ -29,6 +29,8 @@ export interface Ingredient {
   id: number
   name: string
   defaultUnit: string | null
+  /** A pantry staple that never runs out (e.g. water) — always counts as available. */
+  alwaysInStock: boolean
   // Referenced by kitchen stock or a recipe → can't be deleted. Present on
   // ingredient endpoints; may be absent when an Ingredient is nested elsewhere.
   inUse?: boolean
@@ -90,6 +92,7 @@ export interface GoogleAuthPayload {
 export interface IngredientPayload {
   name: string
   defaultUnit?: string | null
+  alwaysInStock?: boolean
 }
 
 export interface StockCreatePayload {

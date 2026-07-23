@@ -15,6 +15,9 @@ import Stack from '@mui/material/Stack'
 import Skeleton from '@mui/material/Skeleton'
 import Alert from '@mui/material/Alert'
 import Tooltip from '@mui/material/Tooltip'
+import Chip from '@mui/material/Chip'
+import Switch from '@mui/material/Switch'
+import FormControlLabel from '@mui/material/FormControlLabel'
 import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
 import ListItemText from '@mui/material/ListItemText'
@@ -26,6 +29,7 @@ import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/DeleteOutlined'
 import SearchIcon from '@mui/icons-material/Search'
 import ClearIcon from '@mui/icons-material/Clear'
+import AllInclusiveIcon from '@mui/icons-material/AllInclusive'
 import LocalDiningIcon from '@mui/icons-material/LocalDining'
 import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
@@ -82,16 +86,19 @@ export default function Ingredients() {
   // form fields
   const [name, setName] = useState('')
   const [defaultUnit, setDefaultUnit] = useState('')
+  const [alwaysInStock, setAlwaysInStock] = useState(false)
 
   const openCreate = () => {
     setName('')
     setDefaultUnit('')
+    setAlwaysInStock(false)
     setEditor({ open: true, editing: null })
   }
 
   const openEdit = (ing: Ingredient) => {
     setName(ing.name)
     setDefaultUnit(ing.defaultUnit ?? '')
+    setAlwaysInStock(ing.alwaysInStock)
     setEditor({ open: true, editing: ing })
   }
 
@@ -108,6 +115,7 @@ export default function Ingredients() {
           payload: {
             name: trimmedName,
             defaultUnit: defaultUnit.trim() || null,
+            alwaysInStock,
           },
         })
         notify('Ingredient updated', 'success')
@@ -115,6 +123,7 @@ export default function Ingredients() {
         await createMut.mutateAsync({
           name: trimmedName,
           defaultUnit: defaultUnit.trim() || null,
+          alwaysInStock,
         })
         notify('Ingredient added', 'success')
       }
@@ -319,12 +328,25 @@ export default function Ingredients() {
                           }
                         >
                           <ListItemText
-                            primary={ing.name}
+                            primary={
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
+                                <Typography component="span" noWrap sx={{ minWidth: 0 }}>
+                                  {ing.name}
+                                </Typography>
+                                {ing.alwaysInStock && (
+                                  <Chip
+                                    size="small"
+                                    color="success"
+                                    variant="outlined"
+                                    icon={<AllInclusiveIcon />}
+                                    label="Always in stock"
+                                    sx={{ flexShrink: 0 }}
+                                  />
+                                )}
+                              </Box>
+                            }
                             secondary={ing.defaultUnit ? `Unit: ${ing.defaultUnit}` : 'No default unit'}
-                            slotProps={{
-                              primary: { noWrap: true },
-                              secondary: { noWrap: true, variant: 'caption' },
-                            }}
+                            slotProps={{ secondary: { noWrap: true, variant: 'caption' } }}
                             sx={{ pr: 10 }}
                           />
                         </ListItem>
@@ -360,6 +382,20 @@ export default function Ingredients() {
               value={defaultUnit}
               onChange={setDefaultUnit}
             />
+            <FormControlLabel
+              sx={{ mt: 1 }}
+              control={
+                <Switch
+                  checked={alwaysInStock}
+                  onChange={(e) => setAlwaysInStock(e.target.checked)}
+                />
+              }
+              label="Always in stock (never runs out)"
+            />
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+              Staples like water or salt are always counted as available — never added to a shopping
+              list or deducted when cooking.
+            </Typography>
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={closeEditor} disabled={saving}>

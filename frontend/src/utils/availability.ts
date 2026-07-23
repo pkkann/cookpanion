@@ -1,6 +1,6 @@
 import type { StockItem } from '../api/types'
 
-export type AvailabilityStatus = 'enough' | 'partial' | 'none' | 'unknown'
+export type AvailabilityStatus = 'enough' | 'partial' | 'none' | 'unknown' | 'always'
 
 export interface Availability {
   status: AvailabilityStatus
@@ -32,7 +32,14 @@ export function computeAvailability(
   needed: number,
   recipeUnit: string,
   stock: StockItem | undefined,
+  alwaysInStock = false,
 ): Availability {
+  // A pantry staple (water, salt, …) is treated as never running out, so it's
+  // always available regardless of any stock row or unit.
+  if (alwaysInStock) {
+    return { status: 'always', have: 0, haveUnit: '', shortfall: 0 }
+  }
+
   const have = stock?.quantity ?? 0
   const haveUnit = stock?.unit ?? ''
 

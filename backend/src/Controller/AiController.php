@@ -397,11 +397,26 @@ class AiController extends AbstractApiController
         $list = [];
 
         if ('kitchen' === $mode) {
+            $seen = [];
             foreach ($this->stock->findBy(['household' => $household]) as $item) {
                 $list[] = [
                     'name' => $item->getIngredient()->getName(),
                     'quantity' => $item->getQuantity(),
                     'unit' => $item->getUnit(),
+                ];
+                $seen[mb_strtolower($item->getIngredient()->getName())] = true;
+            }
+
+            // Always-in-stock staples (water, salt, …) count as on hand even
+            // without a stock row, so the "cook from my kitchen" ideas can use them.
+            foreach ($this->ingredients->findBy(['household' => $household, 'alwaysInStock' => true]) as $ingredient) {
+                if (isset($seen[mb_strtolower($ingredient->getName())])) {
+                    continue;
+                }
+                $list[] = [
+                    'name' => $ingredient->getName(),
+                    'quantity' => null,
+                    'unit' => $ingredient->getDefaultUnit(),
                 ];
             }
 
