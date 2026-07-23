@@ -35,12 +35,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\JoinColumn(nullable: false)]
     private ?Household $household = null;
 
-    /**
-     * Preferred UI/AI language (BCP-47 short code, e.g. "en" or "da").
-     */
-    #[ORM\Column(length: 5, options: ['default' => 'en'])]
-    private string $locale = 'en';
-
     public function getId(): ?int
     {
         return $this->id;
@@ -119,18 +113,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setHousehold(?Household $household): static
     {
         $this->household = $household;
-
-        return $this;
-    }
-
-    public function getLocale(): string
-    {
-        return $this->locale;
-    }
-
-    public function setLocale(string $locale): static
-    {
-        $this->locale = $locale;
 
         return $this;
     }

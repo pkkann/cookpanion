@@ -1,6 +1,5 @@
 import MenuItem from '@mui/material/MenuItem'
 import TextField from '@mui/material/TextField'
-import { useTranslation } from 'react-i18next'
 import { UNIT_OPTIONS } from '../constants/units'
 
 interface UnitSelectProps {
@@ -18,9 +17,8 @@ interface UnitSelectProps {
 
 /**
  * A fixed-list unit picker backed by MUI's `TextField select`. Options come from
- * UNIT_OPTIONS with labels localized via the `common:units` namespace. Any current
- * value not in the list is preserved as an extra option so editing legacy data
- * never silently blanks the field.
+ * UNIT_OPTIONS. Any current value not in the list is preserved as an extra option
+ * so editing legacy data never silently blanks the field.
  */
 export default function UnitSelect({
   value,
@@ -33,14 +31,10 @@ export default function UnitSelect({
   includeEmpty,
   sx,
 }: UnitSelectProps) {
-  const { t } = useTranslation(['common'])
-
   const options: string[] = [...UNIT_OPTIONS]
   if (value && !options.includes(value)) {
     options.unshift(value)
   }
-
-  const unitLabel = (unit: string) => t(`units.${unit}`, { defaultValue: unit })
 
   return (
     <TextField
@@ -56,12 +50,12 @@ export default function UnitSelect({
     >
       {includeEmpty && (
         <MenuItem value="">
-          <em>{t('units.none')}</em>
+          <em>No unit</em>
         </MenuItem>
       )}
       {options.map((unit) => (
         <MenuItem key={unit} value={unit}>
-          {unitLabel(unit)}
+          {unit}
         </MenuItem>
       ))}
     </TextField>

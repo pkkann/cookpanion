@@ -6,7 +6,6 @@ import IconButton from '@mui/material/IconButton'
 import Popover from '@mui/material/Popover'
 import Tooltip from '@mui/material/Tooltip'
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
-import { useTranslation } from 'react-i18next'
 import DateField from './DateField'
 import { useCreatePlannedMeal, usePlannedMeals } from '../api/hooks'
 import { useNotify } from './SnackbarProvider'
@@ -29,7 +28,6 @@ interface QuickPlanButtonProps {
  * planned-meals query, so the Plan page refreshes on its own.
  */
 export default function QuickPlanButton({ recipe, variant, fullWidth }: QuickPlanButtonProps) {
-  const { t } = useTranslation(['recipes', 'common', 'errors'])
   const notify = useNotify()
   const createMut = useCreatePlannedMeal()
   const { data: plannedMeals } = usePlannedMeals()
@@ -56,18 +54,18 @@ export default function QuickPlanButton({ recipe, variant, fullWidth }: QuickPla
         date,
         servings: Math.max(1, recipe.servings),
       })
-      notify(t('quickPlan.toast', { title: recipe.title }), 'success')
+      notify(`Added “${recipe.title}” to your plan`, 'success')
       close()
     } catch (err) {
-      notify(errorMessage(err, t('errors:savePlannedMeal')), 'error')
+      notify(errorMessage(err, 'Could not save planned meal'), 'error')
     }
   }
 
   return (
     <>
       {variant === 'icon' ? (
-        <Tooltip title={t('quickPlan.aria')}>
-          <IconButton size="small" aria-label={t('quickPlan.aria')} onClick={open}>
+        <Tooltip title="Add to meal plan">
+          <IconButton size="small" aria-label="Add to meal plan" onClick={open}>
             <CalendarMonthIcon fontSize="small" />
           </IconButton>
         </Tooltip>
@@ -78,7 +76,7 @@ export default function QuickPlanButton({ recipe, variant, fullWidth }: QuickPla
           startIcon={<CalendarMonthIcon />}
           onClick={open}
         >
-          {t('quickPlan.label')}
+          Plan
         </Button>
       )}
 
@@ -91,7 +89,7 @@ export default function QuickPlanButton({ recipe, variant, fullWidth }: QuickPla
       >
         <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1.5, minWidth: 220 }}>
           <DateField
-            label={t('quickPlan.dateLabel')}
+            label="Date"
             size="small"
             value={date}
             onChange={setDate}
@@ -102,7 +100,7 @@ export default function QuickPlanButton({ recipe, variant, fullWidth }: QuickPla
             onClick={handleAdd}
             disabled={!date || createMut.isPending}
           >
-            {t('quickPlan.add')}
+            Add to plan
           </Button>
         </Box>
       </Popover>

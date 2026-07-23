@@ -21,7 +21,7 @@ class AppFixtures extends Fixture
 
     public function load(ObjectManager $manager): void
     {
-        $household = (new Household())->setName('Demo Kitchen');
+        $household = (new Household())->setName('Demo Kitchen')->setInviteCode('demokitchen');
         $manager->persist($household);
 
         $user = (new User())

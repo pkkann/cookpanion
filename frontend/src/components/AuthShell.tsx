@@ -2,8 +2,6 @@ import type { ReactNode } from 'react'
 import Box from '@mui/material/Box'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
-import { useTranslation } from 'react-i18next'
-import LanguageSwitcher from '../i18n/LanguageSwitcher'
 import Logo from './Logo'
 
 interface AuthShellProps {
@@ -14,7 +12,6 @@ interface AuthShellProps {
 }
 
 export default function AuthShell({ title, subtitle, children, footer }: AuthShellProps) {
-  const { t } = useTranslation('common')
   return (
     <Box
       sx={{
@@ -30,9 +27,8 @@ export default function AuthShell({ title, subtitle, children, footer }: AuthShe
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
           <Logo size={40} />
           <Typography variant="h5" sx={{ fontWeight: 700, flexGrow: 1 }}>
-            {t('appName')}
+            Cookpanion
           </Typography>
-          <LanguageSwitcher />
         </Box>
         <Typography variant="h5" component="h1" sx={{ fontWeight: 700 }}>
           {title}

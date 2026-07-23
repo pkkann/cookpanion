@@ -19,6 +19,13 @@ class Household
     private string $name;
 
     /**
+     * Shareable secret embedded in the household's invite link. Anyone who opens
+     * the link (and is signed in) joins this household. Any member may share it.
+     */
+    #[ORM\Column(length: 16, unique: true)]
+    private string $inviteCode;
+
+    /**
      * @var Collection<int, User>
      */
     #[ORM\OneToMany(mappedBy: 'household', targetEntity: User::class)]
@@ -42,6 +49,18 @@ class Household
     public function setName(string $name): static
     {
         $this->name = $name;
+
+        return $this;
+    }
+
+    public function getInviteCode(): string
+    {
+        return $this->inviteCode;
+    }
+
+    public function setInviteCode(string $inviteCode): static
+    {
+        $this->inviteCode = $inviteCode;
 
         return $this;
     }

@@ -44,7 +44,7 @@ final class EntityPresenter
     /**
      * The full user shape used by /register, /login and /me.
      *
-     * @return array{id: int|null, email: string, name: string, locale: string, household: array{id: int|null, name: string}}
+     * @return array{id: int|null, email: string, name: string, household: array{id: int|null, name: string, inviteCode: string|null}}
      */
     public function user(User $user): array
     {
@@ -54,10 +54,10 @@ final class EntityPresenter
             'id' => $user->getId(),
             'email' => $user->getEmail(),
             'name' => $user->getName(),
-            'locale' => $user->getLocale(),
             'household' => [
                 'id' => $household?->getId(),
                 'name' => $household?->getName() ?? '',
+                'inviteCode' => $household?->getInviteCode(),
             ],
         ];
     }
@@ -75,7 +75,7 @@ final class EntityPresenter
 
         $author = $recipe->getAuthor();
 
-        return [
+        $result = [
             'id' => $recipe->getId(),
             'title' => $recipe->getTitle(),
             'description' => $recipe->getDescription(),
@@ -88,6 +88,8 @@ final class EntityPresenter
             'createdAt' => $recipe->getCreatedAt()->format(\DateTimeInterface::ATOM),
             'ingredients' => $ingredients,
         ];
+
+        return $result;
     }
 
     /**

@@ -1,14 +1,12 @@
 import { useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import Alert from '@mui/material/Alert'
-import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 import { errorMessage } from '../api/client'
 import AuthShell from '../components/AuthShell'
 import GoogleSignInButton, { googleSignInEnabled } from '../auth/GoogleSignInButton'
 
 export default function Login() {
-  const { t } = useTranslation(['auth', 'errors'])
   const { user, loginWithGoogle } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -22,14 +20,19 @@ export default function Login() {
     setError(null)
     try {
       await loginWithGoogle(credential)
+      // New accounts have an unnamed household; ProtectedRoute redirects them to
+      // the one-time onboarding step. Everyone else lands on their target page.
       navigate(from, { replace: true })
     } catch (err) {
-      setError(errorMessage(err, t('errors:googleSignIn')))
+      setError(errorMessage(err, "Google sign-in failed"))
     }
   }
 
   return (
-    <AuthShell title={t('login.title')} subtitle={t('login.subtitle')}>
+    <AuthShell
+      title="Welcome to Cookpanion"
+      subtitle="Sign in with Google to plan meals with what's already in your kitchen. New here? Signing in creates your account."
+    >
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
@@ -38,7 +41,7 @@ export default function Login() {
       {googleSignInEnabled ? (
         <GoogleSignInButton onCredential={handleGoogle} />
       ) : (
-        <Alert severity="info">{t('login.notConfigured')}</Alert>
+        <Alert severity="info">Sign-in isn't available right now. Please try again later.</Alert>
       )}
     </AuthShell>
   )

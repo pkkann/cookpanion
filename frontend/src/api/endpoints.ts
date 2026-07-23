@@ -2,7 +2,6 @@ import { api } from './client'
 import type {
   AuthResponse,
   CookPayload,
-  RecipeTranslation,
   Ingredient,
   IngredientPayload,
   PlannedMeal,
@@ -17,7 +16,6 @@ import type {
   SuggestResponse,
   User,
 } from './types'
-import type { Language } from '../i18n/config'
 
 // ---- Auth ----
 export async function googleAuth(credential: string): Promise<AuthResponse> {
@@ -35,8 +33,15 @@ export async function getMe(): Promise<User> {
   return data
 }
 
-export async function updateMe(payload: { locale: Language }): Promise<User> {
-  const { data } = await api.patch<User>('/me', payload)
+/** Rename the current user's household. Returns the updated user. */
+export async function updateHousehold(name: string): Promise<User> {
+  const { data } = await api.patch<User>('/household', { name })
+  return data
+}
+
+/** Join the household with the given invite code. Returns the updated user. */
+export async function joinHousehold(code: string): Promise<User> {
+  const { data } = await api.post<User>('/household/join', { code })
   return data
 }
 
@@ -116,11 +121,6 @@ export async function deleteRecipe(id: number): Promise<void> {
 
 export async function cookRecipe(id: number, payload: CookPayload): Promise<StockItem[]> {
   const { data } = await api.post<StockItem[]>(`/recipes/${id}/cook`, payload)
-  return data
-}
-
-export async function translateRecipe(id: number, locale: string): Promise<RecipeTranslation> {
-  const { data } = await api.post<RecipeTranslation>(`/recipes/${id}/translate`, { locale })
   return data
 }
 

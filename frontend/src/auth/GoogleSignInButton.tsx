@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
 import Box from '@mui/material/Box'
-import { useTranslation } from 'react-i18next'
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
 const GSI_SRC = 'https://accounts.google.com/gsi/client'
@@ -66,7 +65,6 @@ interface Props {
  * client id is configured, so the app is unchanged until Google sign-in is set up.
  */
 export default function GoogleSignInButton({ onCredential }: Props) {
-  const { i18n } = useTranslation()
   const ref = useRef<HTMLDivElement | null>(null)
   // Keep the callback fresh without re-initializing GIS on every render.
   const cbRef = useRef(onCredential)
@@ -92,7 +90,7 @@ export default function GoogleSignInButton({ onCredential }: Props) {
           text: 'continue_with',
           shape: 'rectangular',
           logo_alignment: 'center',
-          locale: i18n.language,
+          locale: 'en',
           width: Math.min(400, Math.max(200, ref.current.offsetWidth || 320)),
         })
       })
@@ -102,8 +100,7 @@ export default function GoogleSignInButton({ onCredential }: Props) {
     return () => {
       cancelled = true
     }
-    // Re-render the button when the UI language changes so its label follows suit.
-  }, [i18n.language])
+  }, [])
 
   if (!CLIENT_ID) return null
 

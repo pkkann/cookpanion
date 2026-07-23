@@ -16,9 +16,6 @@ import ListItemText from '@mui/material/ListItemText'
 import IconButton from '@mui/material/IconButton'
 import TextField from '@mui/material/TextField'
 import Tooltip from '@mui/material/Tooltip'
-import ToggleButton from '@mui/material/ToggleButton'
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
-import CircularProgress from '@mui/material/CircularProgress'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/DeleteOutlined'
@@ -27,7 +24,6 @@ import RemoveIcon from '@mui/icons-material/Remove'
 import RestartAltIcon from '@mui/icons-material/RestartAlt'
 import PeopleIcon from '@mui/icons-material/People'
 import RestaurantIcon from '@mui/icons-material/Restaurant'
-import TranslateIcon from '@mui/icons-material/Translate'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import CancelIcon from '@mui/icons-material/Cancel'
@@ -43,19 +39,15 @@ import {
   useDeleteRecipe,
   useRecipe,
   useStock,
-  useTranslateRecipe,
   useUpdateStock,
 } from '../api/hooks'
 import { errorMessage } from '../api/client'
-import { useTranslation } from 'react-i18next'
-import type { TFunction } from 'i18next'
 import { formatQuantity, scaleQuantity } from '../utils/quantity'
 import { computeAvailability } from '../utils/availability'
 import { addToStock } from '../utils/stock'
 import { useIsMobile } from '../utils/useIsMobile'
 import type { Availability } from '../utils/availability'
-import type { RecipeIngredient, RecipeTranslation, StockItem } from '../api/types'
-import { LANGUAGE_LABELS, type Language } from '../i18n/config'
+import type { RecipeIngredient, StockItem } from '../api/types'
 
 interface IngredientAvailability extends Availability {
   ri: RecipeIngredient
@@ -70,47 +62,43 @@ interface StatusView {
 }
 
 /** Map an availability result to icon + tooltip + inline note. */
-function statusView(
-  a: IngredientAvailability,
-  t: TFunction<['recipes', 'common', 'errors']>,
-): StatusView {
+function statusView(a: IngredientAvailability): StatusView {
   const neededLabel = `${formatQuantity(a.needed)} ${a.ri.unit}`.trim()
   const haveLabel = `${formatQuantity(a.have)} ${a.haveUnit}`.trim()
   switch (a.status) {
     case 'enough':
       return {
         icon: <CheckCircleIcon color="success" fontSize="small" />,
-        tooltip: t('detail.status.enoughTooltip', { have: haveLabel }),
+        tooltip: `In kitchen: ${haveLabel} — enough`,
         note: null,
       }
     case 'partial': {
       const shortfallLabel = `${formatQuantity(a.shortfall)} ${a.ri.unit}`.trim()
       return {
         icon: <WarningAmberIcon color="warning" fontSize="small" />,
-        tooltip: t('detail.status.partialTooltip', { have: haveLabel, shortfall: shortfallLabel }),
-        note: t('detail.status.partialNote', { shortfall: shortfallLabel }),
+        tooltip: `In kitchen: ${haveLabel} — need ${shortfallLabel} more`,
+        note: `need ${shortfallLabel} more`,
         noteColor: 'warning.main',
       }
     }
     case 'none':
       return {
         icon: <CancelIcon color="error" fontSize="small" />,
-        tooltip: t('detail.status.noneTooltip', { needed: neededLabel }),
-        note: t('detail.status.noneNote', { needed: neededLabel }),
+        tooltip: `Not in kitchen — buy ${neededLabel}`,
+        note: `Not in kitchen — buy ${neededLabel}`,
         noteColor: 'error.main',
       }
     case 'unknown':
       return {
         icon: <HelpOutlinedIcon color="disabled" fontSize="small" />,
-        tooltip: t('detail.status.unknownTooltip', { have: haveLabel, needed: neededLabel }),
-        note: t('detail.status.unknownNote'),
+        tooltip: `In kitchen: ${haveLabel}, recipe needs ${neededLabel} — can't compare units`,
+        note: 'check manually (units differ)',
         noteColor: 'text.secondary',
       }
   }
 }
 
 export default function RecipeDetail() {
-  const { t, i18n } = useTranslation(['recipes', 'common', 'errors'])
   const { id } = useParams<{ id: string }>()
   const recipeId = Number(id)
   const navigate = useNavigate()
@@ -124,49 +112,6 @@ export default function RecipeDetail() {
   const [editOpen, setEditOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [cookOpen, setCookOpen] = useState(false)
-
-  // "Show a translation" of the recipe in the current UI language. Loaded
-  // translations are cached per locale here (and persisted server-side), and the
-  // "translated" view is kept across UI-language changes.
-  const locale: Language = i18n.language.startsWith('da') ? 'da' : 'en'
-  const translateMut = useTranslateRecipe()
-  const [loaded, setLoaded] = useState<Record<string, RecipeTranslation>>({})
-  const [showTranslated, setShowTranslated] = useState(false)
-
-  // Forget cached translations when the recipe changes — a different recipe, or
-  // an edit (React Query hands back a new reference only when the data changes).
-  useEffect(() => {
-    setLoaded({})
-    setShowTranslated(false)
-  }, [recipe])
-
-  const current = loaded[locale] ?? null
-
-  const handleTranslate = async () => {
-    if (!recipe) return
-    try {
-      const res = current ?? (await translateMut.mutateAsync({ id: recipe.id, locale }))
-      setLoaded((prev) => ({ ...prev, [locale]: res }))
-      setShowTranslated(true)
-    } catch (err) {
-      notify(errorMessage(err, t('detail.translateFailed')), 'error')
-    }
-  }
-
-  // Keep the translated view when the UI language changes: fetch the new locale if
-  // we don't have it yet (instant when the server already cached it).
-  useEffect(() => {
-    if (!showTranslated || !recipe || loaded[locale]) return
-    translateMut
-      .mutateAsync({ id: recipe.id, locale })
-      .then((res) => setLoaded((prev) => ({ ...prev, [locale]: res })))
-      .catch(() => {})
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locale, showTranslated, recipe?.id])
-
-  const tr = showTranslated ? current : null
-  const ingredientName = (ri: RecipeIngredient) =>
-    tr?.ingredientNames?.[String(ri.ingredient.id)] ?? ri.ingredient.name
 
   // Live, view-only servings scaling. Defaults to the recipe's stored servings.
   const baseServings = recipe?.servings ?? 0
@@ -257,9 +202,9 @@ export default function RecipeDetail() {
   const handleAddToKitchen = async (item: ToBuy) => {
     try {
       await addOne(item)
-      notify(t('toast.addedToKitchen', { name: item.name }), 'success')
+      notify(`Added ${item.name} to kitchen`, 'success')
     } catch (err) {
-      notify(errorMessage(err, t('errors:saveStock')), 'error')
+      notify(errorMessage(err, 'Could not save stock'), 'error')
     }
   }
 
@@ -268,30 +213,30 @@ export default function RecipeDetail() {
       for (const item of summary.toBuy) {
         await addOne(item)
       }
-      notify(t('toast.addedAllToKitchen'), 'success')
+      notify('Added missing ingredients to kitchen', 'success')
     } catch (err) {
-      notify(errorMessage(err, t('errors:saveStock')), 'error')
+      notify(errorMessage(err, 'Could not save stock'), 'error')
     }
   }
 
   const handleDelete = async () => {
     try {
       await deleteMut.mutateAsync(recipeId)
-      notify(t('toast.deleted'), 'success')
+      notify('Recipe deleted', 'success')
       navigate('/recipes')
     } catch (err) {
-      notify(errorMessage(err, t('errors:deleteRecipe')), 'error')
+      notify(errorMessage(err, 'Could not delete recipe'), 'error')
     }
   }
 
   return (
     <Box>
       <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/recipes')} sx={{ mb: 2 }}>
-        {t('detail.back')}
+        Back to recipes
       </Button>
 
       {isError && (
-        <Alert severity="error">{errorMessage(error, t('errors:loadRecipe'))}</Alert>
+        <Alert severity="error">{errorMessage(error, 'Failed to load recipe')}</Alert>
       )}
 
       {isLoading ? (
@@ -314,48 +259,18 @@ export default function RecipeDetail() {
           >
             <Box>
               <Typography variant="h4" component="h1">
-                {tr?.title || recipe.title}
+                {recipe.title}
               </Typography>
               <Stack direction="row" spacing={1} useFlexGap sx={{ mt: 1.5, flexWrap: 'wrap', alignItems: 'center' }}>
                 <Chip
                   icon={<PeopleIcon />}
                   variant="outlined"
-                  label={t('detail.servesByDefault', { count: recipe.servings })}
+                  label={`serves ${recipe.servings} by default`}
                 />
                 <Chip
                   variant="outlined"
-                  label={t('detail.byAuthor', {
-                    author: recipe.author?.name ?? t('detail.unknownAuthor'),
-                  })}
+                  label={`by ${recipe.author?.name ?? 'Unknown'}`}
                 />
-                {current ? (
-                  <ToggleButtonGroup
-                    size="small"
-                    exclusive
-                    value={showTranslated ? 'tr' : 'orig'}
-                    onChange={(_e, v) => v !== null && setShowTranslated(v === 'tr')}
-                  >
-                    <ToggleButton value="orig">{t('detail.original')}</ToggleButton>
-                    <ToggleButton value="tr">{LANGUAGE_LABELS[locale]}</ToggleButton>
-                  </ToggleButtonGroup>
-                ) : (
-                  <Button
-                    size="small"
-                    startIcon={
-                      translateMut.isPending ? (
-                        <CircularProgress size={16} color="inherit" />
-                      ) : (
-                        <TranslateIcon fontSize="small" />
-                      )
-                    }
-                    disabled={translateMut.isPending}
-                    onClick={handleTranslate}
-                  >
-                    {translateMut.isPending
-                      ? t('detail.translating')
-                      : t('detail.translateTo', { lang: LANGUAGE_LABELS[locale] })}
-                  </Button>
-                )}
               </Stack>
             </Box>
             <Stack
@@ -370,7 +285,7 @@ export default function RecipeDetail() {
                 disabled={!stockReady || recipe.ingredients.length === 0}
                 onClick={() => setCookOpen(true)}
               >
-                {t('cook.button')}
+                Cook this
               </Button>
               <QuickPlanButton recipe={recipe} variant="button" fullWidth={isMobile} />
               <Button
@@ -379,7 +294,7 @@ export default function RecipeDetail() {
                 startIcon={<EditIcon />}
                 onClick={() => setEditOpen(true)}
               >
-                {t('common:edit')}
+                Edit
               </Button>
               <Button
                 variant="outlined"
@@ -388,14 +303,14 @@ export default function RecipeDetail() {
                 startIcon={<DeleteIcon />}
                 onClick={() => setConfirmOpen(true)}
               >
-                {t('common:delete')}
+                Delete
               </Button>
             </Stack>
           </Box>
 
-          {(tr?.description || recipe.description) && (
+          {recipe.description && (
             <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-              {tr?.description || recipe.description}
+              {recipe.description}
             </Typography>
           )}
 
@@ -418,12 +333,12 @@ export default function RecipeDetail() {
                   mb: 1,
                 }}
               >
-                <Typography variant="h6">{t('detail.ingredients')}</Typography>
+                <Typography variant="h6">Ingredients</Typography>
                 {/* Servings stepper — recalculates quantities live */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   <IconButton
                     size="small"
-                    aria-label={t('detail.aria.decreaseServings')}
+                    aria-label="decrease servings"
                     onClick={decrement}
                     disabled={chosenServings <= 1}
                   >
@@ -434,7 +349,7 @@ export default function RecipeDetail() {
                     onChange={onServingsInput}
                     type="number"
                     size="small"
-                    aria-label={t('detail.aria.servings')}
+                    aria-label="servings"
                     slotProps={{
                       htmlInput: {
                         min: 1,
@@ -445,13 +360,13 @@ export default function RecipeDetail() {
                   />
                   <IconButton
                     size="small"
-                    aria-label={t('detail.aria.increaseServings')}
+                    aria-label="increase servings"
                     onClick={increment}
                   >
                     <AddIcon fontSize="small" />
                   </IconButton>
                   <Typography variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
-                    {t('detail.servingLabel', { count: chosenServings })}
+                    {chosenServings === 1 ? 'serving' : 'servings'}
                   </Typography>
                 </Box>
               </Box>
@@ -463,15 +378,21 @@ export default function RecipeDetail() {
                     size="small"
                     color="primary"
                     variant="outlined"
-                    label={t('detail.scaledFor', { count: chosenServings })}
+                    label={
+                      chosenServings === 1
+                        ? `Scaled for ${chosenServings} serving`
+                        : `Scaled for ${chosenServings} servings`
+                    }
                   />
                   <Button size="small" startIcon={<RestartAltIcon />} onClick={reset}>
-                    {t('detail.reset')}
+                    Reset
                   </Button>
                 </Box>
               ) : (
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
-                  {canScale ? t('detail.scaleHint') : t('detail.noScaleHint')}
+                  {canScale
+                    ? 'Amounts shown for the default serving size. Adjust to rescale.'
+                    : "This recipe has no serving size set, so quantities can't be scaled."}
                 </Typography>
               )}
 
@@ -479,28 +400,27 @@ export default function RecipeDetail() {
               {recipe.ingredients.length > 0 &&
                 (stockLoading ? (
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
-                    {t('detail.checkingKitchen')}
+                    Checking your kitchen…
                   </Typography>
                 ) : stockError ? (
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
-                    {t('detail.kitchenCheckFailed')}
+                    Couldn't check kitchen stock.
                   </Typography>
                 ) : summary.allEnough ? (
                   <Alert severity="success" sx={{ mb: 1.5, py: 0.25 }}>
-                    {t('detail.haveEverything')}
+                    You have everything you need ✓
                   </Alert>
                 ) : (
                   <Box sx={{ mb: 1.5 }}>
                     {summary.missingCount > 0 && (
                       <Alert severity="warning" sx={{ mb: 1, py: 0.25 }}>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {t('detail.missing', {
-                            missing: summary.missingCount,
-                            count: summary.total,
-                          })}
+                          {summary.total === 1
+                            ? `Missing ${summary.missingCount} of ${summary.total} ingredient`
+                            : `Missing ${summary.missingCount} of ${summary.total} ingredients`}
                         </Typography>
                         <Typography variant="body2" sx={{ mt: 0.5 }}>
-                          {t('detail.shoppingList')}
+                          Shopping list:
                         </Typography>
                         <Stack spacing={0.25} sx={{ mt: 0.5 }}>
                           {summary.toBuy.map((b) => (
@@ -513,13 +433,13 @@ export default function RecipeDetail() {
                               <Typography variant="body2">
                                 {`${b.name} — ${formatQuantity(b.shortfall)} ${b.unit}`.trim()}
                               </Typography>
-                              <Tooltip title={t('detail.addToKitchen')}>
+                              <Tooltip title="Add to kitchen">
                                 <span>
                                   <IconButton
                                     size="small"
                                     color="inherit"
                                     disabled={stockBusy}
-                                    aria-label={t('detail.addToKitchen')}
+                                    aria-label="Add to kitchen"
                                     onClick={() => handleAddToKitchen(b)}
                                   >
                                     <AddIcon fontSize="small" />
@@ -538,16 +458,14 @@ export default function RecipeDetail() {
                             onClick={handleAddAllToKitchen}
                             sx={{ mt: 0.5 }}
                           >
-                            {t('detail.addAllToKitchen')}
+                            Add all to kitchen
                           </Button>
                         )}
                       </Alert>
                     )}
                     {summary.unknown.length > 0 && (
                       <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                        {t('detail.checkManually', {
-                          list: summary.unknown.map((a) => a.ri.ingredient.name).join(', '),
-                        })}
+                        {`Check manually (units differ): ${summary.unknown.map((a) => a.ri.ingredient.name).join(', ')}`}
                       </Typography>
                     )}
                   </Box>
@@ -555,13 +473,13 @@ export default function RecipeDetail() {
 
               {recipe.ingredients.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
-                  {t('detail.noIngredients')}
+                  No ingredients listed.
                 </Typography>
               ) : (
                 <List dense disablePadding>
                   {recipe.ingredients.map((ri, idx) => {
                     const a = availabilities[idx]
-                    const view = stockReady && a ? statusView(a, t) : null
+                    const view = stockReady && a ? statusView(a) : null
                     const qtyLabel = `${formatQuantity(a?.needed ?? ri.quantity)} ${ri.unit}`.trim()
                     return (
                       <ListItem
@@ -578,7 +496,7 @@ export default function RecipeDetail() {
                         }
                       >
                         <ListItemText
-                          primary={ingredientName(ri)}
+                          primary={ri.ingredient.name}
                           secondary={
                             <Box component="span">
                               <Typography component="span" variant="body2" color="text.secondary">
@@ -605,12 +523,12 @@ export default function RecipeDetail() {
 
             <Paper variant="outlined" sx={{ p: 2.5 }}>
               <Typography variant="h6" gutterBottom>
-                {t('detail.instructions')}
+                Instructions
               </Typography>
               <Divider sx={{ mb: 2 }} />
-              {(tr?.instructions?.length ? tr.instructions : recipe.instructions).length > 0 ? (
+              {recipe.instructions.length > 0 ? (
                 <Stack component="ol" spacing={1.5} sx={{ m: 0, pl: 3 }}>
-                  {(tr?.instructions?.length ? tr.instructions : recipe.instructions).map((step, i) => (
+                  {recipe.instructions.map((step, i) => (
                     <Typography key={i} component="li" variant="body1" sx={{ lineHeight: 1.6 }}>
                       {step}
                     </Typography>
@@ -618,7 +536,7 @@ export default function RecipeDetail() {
                 </Stack>
               ) : (
                 <Typography variant="body1" color="text.secondary">
-                  {t('detail.noInstructions')}
+                  No instructions provided.
                 </Typography>
               )}
             </Paper>
@@ -635,9 +553,9 @@ export default function RecipeDetail() {
           />
           <ConfirmDialog
             open={confirmOpen}
-            title={t('deleteTitle')}
-            message={t('deleteMessage', { title: recipe.title })}
-            confirmLabel={t('common:delete')}
+            title="Delete recipe?"
+            message={`“${recipe.title}” will be permanently deleted, along with any meals planned with it.`}
+            confirmLabel="Delete"
             destructive
             loading={deleteMut.isPending}
             onConfirm={handleDelete}
@@ -645,7 +563,7 @@ export default function RecipeDetail() {
           />
         </>
       ) : (
-        !isError && <Typography>{t('detail.notFound')}</Typography>
+        !isError && <Typography>Recipe not found.</Typography>
       )}
     </Box>
   )

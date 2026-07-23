@@ -3,6 +3,10 @@
 namespace App\Controller;
 
 use App\Entity\Household;
+use App\Entity\Ingredient;
+use App\Entity\PlannedMeal;
+use App\Entity\Recipe;
+use App\Entity\StockItem;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Service\EntityPresenter;
@@ -21,12 +25,6 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/api')]
 class AuthController extends AbstractController
 {
-    /**
-     * Locales the app ships translations for. Keep in sync with the frontend
-     * SUPPORTED_LANGUAGES (frontend/src/i18n/config.ts).
-     */
-    private const SUPPORTED_LOCALES = ['en', 'da'];
-
     /** Refresh-token lifetime in seconds (30 days). Mirrors gesdinet_jwt_refresh_token.ttl. */
     private const REFRESH_TOKEN_TTL = 2592000;
 
@@ -74,9 +72,13 @@ class AuthController extends AbstractController
         }
 
         // First time we've seen this Google email → create a household + user.
+        // The household is left unnamed on purpose: the frontend detects the empty
+        // name and sends the new user through a one-time onboarding step to name it.
         // The password column is non-nullable but unused for Google accounts, so
         // store an unguessable random hash.
-        $household = (new Household())->setName($claims['name']);
+        $household = (new Household())
+            ->setName('')
+            ->setInviteCode($this->generateInviteCode());
         $user = (new User())
             ->setEmail($claims['email'])
             ->setName($claims['name'])
@@ -99,8 +101,8 @@ class AuthController extends AbstractController
         return $this->json($this->presenter->user($user));
     }
 
-    #[Route('/me', name: 'api_me_update', methods: ['PATCH'])]
-    public function updateMe(Request $request): JsonResponse
+    #[Route('/household', name: 'api_household_update', methods: ['PATCH'])]
+    public function updateHousehold(Request $request): JsonResponse
     {
         $data = $this->decode($request);
         if ($data instanceof JsonResponse) {
@@ -110,20 +112,97 @@ class AuthController extends AbstractController
         /** @var User $user */
         $user = $this->getUser();
 
-        if (\array_key_exists('locale', $data)) {
-            $locale = (string) $data['locale'];
-            if (!\in_array($locale, self::SUPPORTED_LOCALES, true)) {
-                return $this->json(
-                    ['error' => 'Unsupported locale', 'details' => ['locale' => 'Must be one of: '.implode(', ', self::SUPPORTED_LOCALES)]],
-                    Response::HTTP_BAD_REQUEST,
-                );
-            }
-            $user->setLocale($locale);
+        $name = trim((string) ($data['name'] ?? ''));
+        if ('' === $name) {
+            return $this->json(
+                ['error' => 'Validation failed', 'details' => ['name' => 'Household name is required.']],
+                Response::HTTP_BAD_REQUEST,
+            );
         }
 
+        $user->getHousehold()?->setName($name);
         $this->em->flush();
 
         return $this->json($this->presenter->user($user));
+    }
+
+    /**
+     * Joins the household identified by an invite code, so the user shares its
+     * ingredients, stock, recipes and plan. The user's previous household is
+     * deleted only when it's left empty (no other members and no data) — e.g. the
+     * throwaway household auto-created at sign-up. Households that still hold data
+     * are left intact.
+     */
+    #[Route('/household/join', name: 'api_household_join', methods: ['POST'])]
+    public function joinHousehold(Request $request): JsonResponse
+    {
+        $data = $this->decode($request);
+        if ($data instanceof JsonResponse) {
+            return $data;
+        }
+
+        /** @var User $user */
+        $user = $this->getUser();
+
+        $code = trim((string) ($data['code'] ?? ''));
+        if ('' === $code) {
+            return $this->json(
+                ['error' => 'Validation failed', 'details' => ['code' => 'An invite code is required.']],
+                Response::HTTP_BAD_REQUEST,
+            );
+        }
+
+        $target = $this->em->getRepository(Household::class)->findOneBy(['inviteCode' => $code]);
+        if (null === $target) {
+            return $this->json(['error' => 'No household found for that invite code.'], Response::HTTP_NOT_FOUND);
+        }
+
+        $old = $user->getHousehold();
+        if ($old === $target) {
+            // Already a member — nothing to do.
+            return $this->json($this->presenter->user($user));
+        }
+
+        $user->setHousehold($target);
+        $this->em->flush();
+
+        if (null !== $old && $this->isHouseholdEmpty($old)) {
+            $this->em->remove($old);
+            $this->em->flush();
+        }
+
+        return $this->json($this->presenter->user($user));
+    }
+
+    /**
+     * True when a household has no members and no data — safe to delete.
+     */
+    private function isHouseholdEmpty(Household $household): bool
+    {
+        if (\count($household->getMembers()) > 0) {
+            return false;
+        }
+
+        foreach ([Ingredient::class, Recipe::class, StockItem::class, PlannedMeal::class] as $entity) {
+            if ($this->em->getRepository($entity)->count(['household' => $household]) > 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * A short, unguessable, unique invite code for a new household.
+     */
+    private function generateInviteCode(): string
+    {
+        $repo = $this->em->getRepository(Household::class);
+        do {
+            $code = bin2hex(random_bytes(5)); // 10 hex chars
+        } while (null !== $repo->findOneBy(['inviteCode' => $code]));
+
+        return $code;
     }
 
     /**

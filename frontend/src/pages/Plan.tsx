@@ -49,10 +49,8 @@ import { planShoppingList } from '../utils/planShoppingList'
 import type { PlanBuyItem } from '../utils/planShoppingList'
 import { addToStock } from '../utils/stock'
 import { useIsMobile } from '../utils/useIsMobile'
-import { useTranslation } from 'react-i18next'
 
 export default function Plan() {
-  const { t, i18n } = useTranslation(['plan', 'common', 'errors'])
   const notify = useNotify()
   const isMobile = useIsMobile()
 
@@ -79,9 +77,9 @@ export default function Plan() {
   const tomorrow = addDaysIso(today, 1)
 
   const dateLabel = (iso: string) => {
-    if (iso === today) return t('today')
-    if (iso === tomorrow) return t('tomorrow')
-    return formatWeekdayDate(iso, i18n.language)
+    if (iso === today) return 'Today'
+    if (iso === tomorrow) return 'Tomorrow'
+    return formatWeekdayDate(iso)
   }
 
   // Upcoming meals (today onward), grouped by date in ascending order.
@@ -141,15 +139,15 @@ export default function Plan() {
     try {
       if (editing) {
         await updateMut.mutateAsync({ id: editing.id, payload: { date, servings } })
-        notify(t('toast.updated'), 'success')
+        notify('Plan updated', 'success')
       } else {
         if (!recipe) return
         await createMut.mutateAsync({ recipeId: recipe.id, date, servings })
-        notify(t('toast.planned'), 'success')
+        notify('Added to your plan', 'success')
       }
       closeDialog()
     } catch (err) {
-      notify(errorMessage(err, t('errors:savePlannedMeal')), 'error')
+      notify(errorMessage(err, 'Could not save planned meal'), 'error')
     }
   }
 
@@ -157,10 +155,10 @@ export default function Plan() {
     if (!toDelete) return
     try {
       await deleteMut.mutateAsync(toDelete.id)
-      notify(t('toast.removed'), 'success')
+      notify('Removed from plan', 'success')
       setToDelete(null)
     } catch (err) {
-      notify(errorMessage(err, t('errors:removePlannedMeal')), 'error')
+      notify(errorMessage(err, 'Could not remove planned meal'), 'error')
     }
   }
 
@@ -176,9 +174,9 @@ export default function Plan() {
   const handleAddToKitchen = async (item: PlanBuyItem) => {
     try {
       await addOne(item)
-      notify(t('toast.addedToKitchen', { name: item.name }), 'success')
+      notify(`Added ${item.name} to your kitchen`, 'success')
     } catch (err) {
-      notify(errorMessage(err, t('errors:saveStock')), 'error')
+      notify(errorMessage(err, 'Could not save stock'), 'error')
     }
   }
 
@@ -187,27 +185,27 @@ export default function Plan() {
       for (const item of shopping.toBuy) {
         await addOne(item)
       }
-      notify(t('toast.addedAllToKitchen'), 'success')
+      notify('Added everything to your kitchen', 'success')
     } catch (err) {
-      notify(errorMessage(err, t('errors:saveStock')), 'error')
+      notify(errorMessage(err, 'Could not save stock'), 'error')
     }
   }
 
   return (
     <Box>
       <PageHeader
-        title={t('title')}
-        subtitle={t('subtitle')}
+        title="Meal plan"
+        subtitle="Plan what to cook and see what you need to buy."
         action={
           <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd}>
-            {t('planMeal')}
+            Plan a meal
           </Button>
         }
       />
 
       {isError && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          {errorMessage(error, t('errors:loadPlannedMeals'))}
+          {errorMessage(error, 'Failed to load your plan')}
         </Alert>
       )}
 
@@ -220,11 +218,11 @@ export default function Plan() {
       ) : groups.length === 0 ? (
         <EmptyState
           icon={<CalendarMonthIcon fontSize="inherit" />}
-          title={t('emptyTitle')}
-          description={t('emptyDescription')}
+          title="Nothing planned yet"
+          description="Plan a recipe for a day to start building your shopping list."
           action={
             <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd}>
-              {t('planMeal')}
+              Plan a meal
             </Button>
           }
         />
@@ -271,21 +269,21 @@ export default function Plan() {
                             <Chip
                               size="small"
                               variant="outlined"
-                              label={t('servingsChip', { count: meal.servings })}
+                              label={meal.servings === 1 ? '1 serving' : `${meal.servings} servings`}
                             />
                           </Box>
                         </Box>
                         <Box sx={{ flexShrink: 0 }}>
                           <IconButton
                             size="small"
-                            aria-label={t('common:aria.edit')}
+                            aria-label="edit"
                             onClick={() => openEdit(meal)}
                           >
                             <EditIcon fontSize="small" />
                           </IconButton>
                           <IconButton
                             size="small"
-                            aria-label={t('common:aria.delete')}
+                            aria-label="delete"
                             color="error"
                             onClick={() => setToDelete(meal)}
                           >
@@ -306,15 +304,15 @@ export default function Plan() {
               variant="h6"
               sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
             >
-              <ShoppingCartIcon fontSize="small" /> {t('shoppingTitle')}
+              <ShoppingCartIcon fontSize="small" /> To buy for this plan
             </Typography>
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
-              {t('shoppingSubtitle')}
+              Across your upcoming meals, minus what's already in your kitchen.
             </Typography>
 
             {shopping.toBuy.length === 0 ? (
               <Alert severity="success" sx={{ py: 0.25 }}>
-                {t('nothingToBuy')}
+                You have everything you need for your planned meals.
               </Alert>
             ) : (
               <>
@@ -329,12 +327,12 @@ export default function Plan() {
                       <Typography variant="body2">
                         {`${item.name} — ${formatQuantity(item.shortfall)} ${item.unit}`.trim()}
                       </Typography>
-                      <Tooltip title={t('addToKitchen')}>
+                      <Tooltip title="Add to kitchen">
                         <span>
                           <IconButton
                             size="small"
                             disabled={stockBusy}
-                            aria-label={t('addToKitchen')}
+                            aria-label="Add to kitchen"
                             onClick={() => handleAddToKitchen(item)}
                           >
                             <AddIcon fontSize="small" />
@@ -351,14 +349,14 @@ export default function Plan() {
                   onClick={handleAddAllToKitchen}
                   sx={{ mt: 0.5 }}
                 >
-                  {t('addAllToKitchen')}
+                  Add all to kitchen
                 </Button>
               </>
             )}
 
             {shopping.unknown.length > 0 && (
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5 }}>
-                {t('checkManually', { list: shopping.unknown.map((u) => u.name).join(', ') })}
+                {`Check manually (unit differs from your kitchen): ${shopping.unknown.map((u) => u.name).join(', ')}`}
               </Typography>
             )}
           </Paper>
@@ -368,11 +366,11 @@ export default function Plan() {
       {/* Plan / edit dialog */}
       <Dialog open={dialogOpen} onClose={closeDialog} maxWidth="xs" fullWidth fullScreen={isMobile}>
         <Box component="form" onSubmit={handleSubmit}>
-          <DialogTitle>{editing ? t('editTitle') : t('addTitle')}</DialogTitle>
+          <DialogTitle>{editing ? 'Edit planned meal' : 'Plan a meal'}</DialogTitle>
           <DialogContent>
             {editing ? (
               <TextField
-                label={t('recipe')}
+                label="Recipe"
                 fullWidth
                 margin="normal"
                 value={editing.recipe.title}
@@ -389,15 +387,15 @@ export default function Plan() {
                   // Default the servings to the recipe's own count until the user overrides it.
                   if (val && servings < 1) setServings(Math.max(1, val.servings))
                 }}
-                noOptionsText={t('noRecipes')}
+                noOptionsText="You have no recipes yet. Create one first."
                 renderInput={(params) => (
-                  <TextField {...params} label={t('recipe')} required margin="normal" autoFocus />
+                  <TextField {...params} label="Recipe" required margin="normal" autoFocus />
                 )}
               />
             )}
 
             <DateField
-              label={t('date')}
+              label="Date"
               value={date}
               onChange={setDate}
               fullWidth
@@ -408,12 +406,12 @@ export default function Plan() {
 
             <Box sx={{ mt: 2 }}>
               <Typography variant="subtitle2" gutterBottom>
-                {t('servings')}
+                Servings
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <IconButton
                   size="small"
-                  aria-label={t('aria.decreaseServings')}
+                  aria-label="decrease servings"
                   onClick={() => setServings((n) => Math.max(1, n - 1))}
                   disabled={servings <= 1}
                 >
@@ -431,7 +429,7 @@ export default function Plan() {
                 />
                 <IconButton
                   size="small"
-                  aria-label={t('aria.increaseServings')}
+                  aria-label="increase servings"
                   onClick={() => setServings((n) => Math.max(1, n + 1))}
                 >
                   <AddIcon fontSize="small" />
@@ -439,17 +437,17 @@ export default function Plan() {
               </Box>
               {recipe && (
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                  {t('recipeServes', { count: recipe.servings })}
+                  {`This recipe serves ${recipe.servings}.`}
                 </Typography>
               )}
             </Box>
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={closeDialog} disabled={saving}>
-              {t('common:cancel')}
+              Cancel
             </Button>
             <Button type="submit" variant="contained" disabled={saving || !canSubmit}>
-              {editing ? t('common:saveChanges') : t('common:add')}
+              {editing ? 'Save changes' : 'Add'}
             </Button>
           </DialogActions>
         </Box>
@@ -457,12 +455,9 @@ export default function Plan() {
 
       <ConfirmDialog
         open={Boolean(toDelete)}
-        title={t('deleteTitle')}
-        message={t('deleteMessage', {
-          title: toDelete?.recipe.title ?? '',
-          date: toDelete ? dateLabel(toDelete.date) : '',
-        })}
-        confirmLabel={t('common:remove')}
+        title="Remove from plan?"
+        message={`“${toDelete?.recipe.title ?? ''}” on ${toDelete ? dateLabel(toDelete.date) : ''} will be removed from your plan.`}
+        confirmLabel="Remove"
         destructive
         loading={deleteMut.isPending}
         onConfirm={handleDelete}

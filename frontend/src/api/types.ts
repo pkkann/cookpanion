@@ -1,17 +1,16 @@
 // Types mirroring API_CONTRACT.md shapes. Keep in sync with the backend contract.
 
-import type { Language } from '../i18n/config'
-
 export interface Household {
   id: number
   name: string
+  /** Shareable code embedded in the household's invite link. */
+  inviteCode: string
 }
 
 export interface User {
   id: number
   email: string
   name: string
-  locale: Language
   household: Household
 }
 
@@ -125,14 +124,6 @@ export interface PlannedMealCreatePayload {
 export interface PlannedMealUpdatePayload {
   date?: string
   servings?: number
-}
-
-export interface RecipeTranslation {
-  title: string
-  description: string
-  instructions: string[]
-  /** ingredientId (as string) → translated name. */
-  ingredientNames: Record<string, string>
 }
 
 export interface CookPayload {

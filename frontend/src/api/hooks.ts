@@ -138,13 +138,6 @@ export function useCookRecipe() {
   })
 }
 
-export function useTranslateRecipe() {
-  return useMutation({
-    mutationFn: ({ id, locale }: { id: number; locale: string }) =>
-      api.translateRecipe(id, locale),
-  })
-}
-
 // ---- Meal plan ----
 export function usePlannedMeals() {
   return useQuery({ queryKey: queryKeys.plannedMeals, queryFn: api.listPlannedMeals })

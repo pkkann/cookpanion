@@ -3,6 +3,9 @@ import { AuthProvider } from './auth/AuthContext'
 import ProtectedRoute from './auth/ProtectedRoute'
 import Layout from './components/Layout'
 import Login from './pages/Login'
+import Onboarding from './pages/Onboarding'
+import JoinHousehold from './pages/JoinHousehold'
+import Settings from './pages/Settings'
 import Dashboard from './pages/Dashboard'
 import Ingredients from './pages/Ingredients'
 import Kitchen from './pages/Kitchen'
@@ -20,6 +23,8 @@ export default function App() {
           <Route path="/register" element={<Navigate to="/login" replace />} />
 
           <Route element={<ProtectedRoute />}>
+            <Route path="/onboarding" element={<Onboarding />} />
+            <Route path="/join/:code" element={<JoinHousehold />} />
             <Route element={<Layout />}>
               <Route path="/" element={<Dashboard />} />
               <Route path="/ingredients" element={<Ingredients />} />
@@ -28,6 +33,7 @@ export default function App() {
               <Route path="/recipes/:id" element={<RecipeDetail />} />
               <Route path="/plan" element={<Plan />} />
               <Route path="/suggestions" element={<AISuggestions />} />
+              <Route path="/settings" element={<Settings />} />
             </Route>
           </Route>
 

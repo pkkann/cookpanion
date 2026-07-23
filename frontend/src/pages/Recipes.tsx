@@ -26,10 +26,8 @@ import { useNotify } from '../components/SnackbarProvider'
 import { useDeleteRecipe, useRecipes } from '../api/hooks'
 import type { Recipe } from '../api/types'
 import { errorMessage } from '../api/client'
-import { useTranslation } from 'react-i18next'
 
 export default function Recipes() {
-  const { t } = useTranslation(['recipes', 'common', 'errors'])
   const notify = useNotify()
   const navigate = useNavigate()
   const { data: recipes, isLoading, isError, error } = useRecipes()
@@ -53,28 +51,28 @@ export default function Recipes() {
     if (!toDelete) return
     try {
       await deleteMut.mutateAsync(toDelete.id)
-      notify(t('toast.deleted'), 'success')
+      notify('Recipe deleted', 'success')
       setToDelete(null)
     } catch (err) {
-      notify(errorMessage(err, t('errors:deleteRecipe')), 'error')
+      notify(errorMessage(err, 'Could not delete recipe'), 'error')
     }
   }
 
   return (
     <Box>
       <PageHeader
-        title={t('list.title')}
-        subtitle={t('list.subtitle')}
+        title="Recipes"
+        subtitle="Your household's saved recipes."
         action={
           <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>
-            {t('list.new')}
+            New recipe
           </Button>
         }
       />
 
       {isError && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          {errorMessage(error, t('errors:loadRecipes'))}
+          {errorMessage(error, 'Failed to load recipes')}
         </Alert>
       )}
 
@@ -93,15 +91,15 @@ export default function Recipes() {
       ) : (recipes?.length ?? 0) === 0 ? (
         <EmptyState
           icon={<RestaurantMenuIcon fontSize="inherit" />}
-          title={t('list.emptyTitle')}
-          description={t('list.emptyDescription')}
+          title="No recipes yet"
+          description="Create a recipe by hand, or let the AI suggest recipes based on your kitchen."
           action={
             <Stack direction="row" spacing={1.5}>
               <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>
-                {t('list.new')}
+                New recipe
               </Button>
               <Button variant="outlined" onClick={() => navigate('/suggestions')}>
-                {t('list.getAiSuggestions')}
+                Get AI suggestions
               </Button>
             </Stack>
           }
@@ -135,18 +133,26 @@ export default function Recipes() {
                       minHeight: 40,
                     }}
                   >
-                    {recipe.description || t('list.noDescription')}
+                    {recipe.description || 'No description'}
                   </Typography>
                   <Stack direction="row" spacing={1} useFlexGap sx={{ mt: 1.5, flexWrap: 'wrap' }}>
                     <Chip
                       size="small"
                       icon={<PeopleIcon />}
-                      label={t('list.servings', { count: recipe.servings })}
+                      label={
+                        recipe.servings === 1
+                          ? `${recipe.servings} serving`
+                          : `${recipe.servings} servings`
+                      }
                     />
                     <Chip
                       size="small"
                       variant="outlined"
-                      label={t('list.ingredientsCount', { count: recipe.ingredients.length })}
+                      label={
+                        recipe.ingredients.length === 1
+                          ? `${recipe.ingredients.length} ingredient`
+                          : `${recipe.ingredients.length} ingredients`
+                      }
                     />
                   </Stack>
                 </CardContent>
@@ -155,14 +161,14 @@ export default function Recipes() {
                 <QuickPlanButton recipe={recipe} variant="icon" />
                 <IconButton
                   size="small"
-                  aria-label={t('common:aria.edit')}
+                  aria-label="edit"
                   onClick={() => openEdit(recipe)}
                 >
                   <EditIcon fontSize="small" />
                 </IconButton>
                 <IconButton
                   size="small"
-                  aria-label={t('common:aria.delete')}
+                  aria-label="delete"
                   color="error"
                   onClick={() => setToDelete(recipe)}
                 >
@@ -178,9 +184,9 @@ export default function Recipes() {
 
       <ConfirmDialog
         open={Boolean(toDelete)}
-        title={t('deleteTitle')}
-        message={t('deleteMessage', { title: toDelete?.title ?? '' })}
-        confirmLabel={t('common:delete')}
+        title="Delete recipe?"
+        message={`“${toDelete?.title ?? ''}” will be permanently deleted, along with any meals planned with it.`}
+        confirmLabel="Delete"
         destructive
         loading={deleteMut.isPending}
         onConfirm={handleDelete}

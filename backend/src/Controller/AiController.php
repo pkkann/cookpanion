@@ -2,7 +2,6 @@
 
 namespace App\Controller;
 
-use App\Entity\User;
 use App\Repository\IngredientRepository;
 use App\Repository\StockItemRepository;
 use Psr\Log\LoggerInterface;
@@ -67,7 +66,7 @@ class AiController extends AbstractApiController
 
         try {
             $messages = new MessageBag(
-                Message::forSystem('Respond ONLY with a single valid JSON object. No markdown, no code fences, no commentary.'.$this->languageInstruction()),
+                Message::forSystem('Respond ONLY with a single valid JSON object. No markdown, no code fences, no commentary.'),
                 Message::ofUser($userPrompt),
             );
 
@@ -90,30 +89,6 @@ class AiController extends AbstractApiController
         }
 
         return $this->json(['suggestions' => $suggestions]);
-    }
-
-    /**
-     * A system-prompt addendum instructing the model to respond in the user's
-     * chosen language. Empty for English (the schema/prompt are already English).
-     */
-    private function languageInstruction(): string
-    {
-        /** @var User $user */
-        $user = $this->getUser();
-
-        $languages = [
-            'da' => 'Danish',
-        ];
-
-        $language = $languages[$user->getLocale()] ?? null;
-        if (null === $language) {
-            return '';
-        }
-
-        return \sprintf(
-            ' Write every human-readable string value (title, description, instructions, and ingredient names) in %s. Keep all JSON keys exactly as specified in English.',
-            $language,
-        );
     }
 
     /**

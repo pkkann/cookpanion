@@ -12,7 +12,7 @@ Shared contract between the Symfony backend (`backend/`) and the React SPA (`fro
 
 ## Data model (conceptual)
 
-- **User**: id, email, name, locale (`"en"` | `"da"`, default `"en"`), household (belongs to one household)
+- **User**: id, email, name, household (belongs to one household)
 - **Household**: id, name, members[]
 - **Ingredient**: id, name, defaultUnit (e.g. "g", "ml", "pcs") — scoped to household
 - **StockItem** (what's in the kitchen): id, ingredient, quantity (float), unit — scoped to household; one row per ingredient
@@ -46,12 +46,7 @@ Body: `{ "refresh_token": string }`. Revokes the refresh token server-side. Idem
 returns `204`, even for an unknown token. The access token is left to expire on its own.
 
 ### GET /me
-Returns the current user: `{ "id", "email", "name", "locale", "household": { "id", "name" } }`
-
-### PATCH /me
-Updates the authenticated user's preferences. Body: `{ "locale": "en" | "da" }`
-Returns `200` with the updated `User`. An unsupported locale returns `400`
-`{ "error": "Unsupported locale", "details": { "locale": "..." } }`.
+Returns the current user: `{ "id", "email", "name", "household": { "id", "name" } }`
 
 ## Ingredients  `/api/ingredients`
 
@@ -82,9 +77,6 @@ Returns `200` with the updated `User`. An unsupported locale returns `400`
 - `POST /recipes/{id}/cook` body `{ "items": [ { "ingredientId": int, "quantity": number } ] }` → `StockItem[]` (updated stock)
   - Deducts each amount from the household's matching stock row in one transaction. A row depleted to 0 (or below) is removed from the kitchen. Ingredients with no stock row are skipped. Returns the full updated stock list.
   - Side effect: also removes the recipe's **next upcoming** planned meal (soonest date ≥ today) from the plan, if any. Only that one occurrence is removed; other planned days for the recipe are kept.
-- `POST /recipes/{id}/translate` body `{ "locale": "en" | "da" }` (defaults to the user's locale) → `RecipeTranslation`
-  - Translates the recipe's title, description, instructions, and ingredient names into the locale (display-only; ingredient identity/units unchanged). Cached on the recipe per locale and returned from cache thereafter; the cache is cleared when the recipe is edited. `503` if AI isn't configured, `502` on translation failure.
-  - `RecipeTranslation` shape: `{ "title": string, "description": string, "instructions": string[], "ingredientNames": { "<ingredientId>": string } }`
 
 Recipe request body:
 ```json

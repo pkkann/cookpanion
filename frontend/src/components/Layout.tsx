@@ -25,27 +25,26 @@ import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu'
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
 import LocalDiningIcon from '@mui/icons-material/LocalDining'
+import SettingsIcon from '@mui/icons-material/Settings'
 import LogoutIcon from '@mui/icons-material/Logout'
 import Logo from './Logo'
-import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
-import LanguageSwitcher from '../i18n/LanguageSwitcher'
 
 const DRAWER_WIDTH = 248
 
 interface NavItem {
-  titleKey: 'dashboard' | 'ingredients' | 'kitchen' | 'recipes' | 'plan' | 'suggestions'
+  title: string
   path: string
   icon: React.ReactNode
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { titleKey: 'dashboard', path: '/', icon: <DashboardIcon /> },
-  { titleKey: 'ingredients', path: '/ingredients', icon: <LocalDiningIcon /> },
-  { titleKey: 'kitchen', path: '/kitchen', icon: <KitchenIcon /> },
-  { titleKey: 'recipes', path: '/recipes', icon: <RestaurantMenuIcon /> },
-  { titleKey: 'plan', path: '/plan', icon: <CalendarMonthIcon /> },
-  { titleKey: 'suggestions', path: '/suggestions', icon: <AutoAwesomeIcon /> },
+  { title: 'Dashboard', path: '/', icon: <DashboardIcon /> },
+  { title: 'Ingredients', path: '/ingredients', icon: <LocalDiningIcon /> },
+  { title: 'Kitchen', path: '/kitchen', icon: <KitchenIcon /> },
+  { title: 'Recipes', path: '/recipes', icon: <RestaurantMenuIcon /> },
+  { title: 'Meal plan', path: '/plan', icon: <CalendarMonthIcon /> },
+  { title: 'AI Suggestions', path: '/suggestions', icon: <AutoAwesomeIcon /> },
 ]
 
 function isActivePath(current: string, target: string): boolean {
@@ -59,7 +58,6 @@ export default function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useAuth()
-  const { t } = useTranslation(['nav', 'common'])
 
   const [mobileOpen, setMobileOpen] = useState(false)
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
@@ -83,7 +81,7 @@ export default function Layout() {
       <Toolbar sx={{ gap: 1.5 }}>
         <Logo />
         <Typography variant="h6" noWrap sx={{ fontWeight: 700 }}>
-          {t('common:appName')}
+          Cookpanion
         </Typography>
       </Toolbar>
       <Divider />
@@ -99,7 +97,7 @@ export default function Layout() {
                 onClick={() => setMobileOpen(false)}
               >
                 <ListItemIcon sx={{ minWidth: 40 }}>{item.icon}</ListItemIcon>
-                <ListItemText primary={t(`nav:${item.titleKey}`)} />
+                <ListItemText primary={item.title} />
               </ListItemButton>
             </ListItem>
           )
@@ -108,7 +106,7 @@ export default function Layout() {
       <Divider />
       <Box sx={{ p: 2 }}>
         <Typography variant="caption" color="text.secondary">
-          {t('common:household')}
+          Household
         </Typography>
         <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
           {user?.household?.name ?? '—'}
@@ -128,7 +126,7 @@ export default function Layout() {
             <IconButton
               edge="start"
               color="inherit"
-              aria-label={t('nav:openNavigation')}
+              aria-label="open navigation"
               onClick={() => setMobileOpen(true)}
               sx={{ mr: 1 }}
             >
@@ -141,7 +139,7 @@ export default function Layout() {
               variant="h6"
               sx={{ fontWeight: 700, display: { xs: 'block', md: 'none' } }}
             >
-              {t('common:appName')}
+              Cookpanion
             </Typography>
           </Box>
 
@@ -154,8 +152,7 @@ export default function Layout() {
                 {user?.household?.name}
               </Typography>
             </Box>
-            <LanguageSwitcher />
-            <Tooltip title={t('common:account')}>
+            <Tooltip title="Account">
               <IconButton onClick={(e) => setMenuAnchor(e.currentTarget)} size="small">
                 <Avatar sx={{ bgcolor: 'primary.main', width: 36, height: 36 }}>
                   {initials}
@@ -176,11 +173,21 @@ export default function Layout() {
                 </Typography>
               </Box>
               <Divider />
+              <MenuItem
+                component={RouterLink}
+                to="/settings"
+                onClick={() => setMenuAnchor(null)}
+              >
+                <ListItemIcon>
+                  <SettingsIcon fontSize="small" />
+                </ListItemIcon>
+                Settings
+              </MenuItem>
               <MenuItem onClick={handleLogout}>
                 <ListItemIcon>
                   <LogoutIcon fontSize="small" />
                 </ListItemIcon>
-                {t('common:logout')}
+                Log out
               </MenuItem>
             </Menu>
           </Box>

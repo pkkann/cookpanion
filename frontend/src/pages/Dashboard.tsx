@@ -15,7 +15,6 @@ import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu'
 import LocalDiningIcon from '@mui/icons-material/LocalDining'
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
-import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth/AuthContext'
 import { useIngredients, usePlannedMeals, useRecipes, useStock } from '../api/hooks'
 import { formatWeekdayDate, todayIso } from '../utils/date'
@@ -66,7 +65,6 @@ function StatCard({ label, value, loading, icon, to }: StatCardProps) {
 }
 
 export default function Dashboard() {
-  const { t, i18n } = useTranslation('dashboard')
   const navigate = useNavigate()
   const { user } = useAuth()
   const ingredients = useIngredients()
@@ -74,7 +72,7 @@ export default function Dashboard() {
   const recipes = useRecipes()
   const plannedMeals = usePlannedMeals()
 
-  const firstName = user?.name?.split(' ')[0] ?? t('fallbackName')
+  const firstName = user?.name?.split(' ')[0] ?? 'there'
 
   // "The plan" is simply any upcoming planned meals — highlight it when present.
   const today = todayIso()
@@ -87,10 +85,10 @@ export default function Dashboard() {
   return (
     <Box>
       <Typography variant="h4" component="h1" gutterBottom>
-        {t('welcome', { name: firstName })}
+        {`Welcome back, ${firstName}`}
       </Typography>
       <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-        {t('subtitle', { household: user?.household?.name ?? t('fallbackHousehold') })}
+        {`Here's what's cooking in ${user?.household?.name ?? 'your household'}.`}
       </Typography>
 
       {/* Hero CTA */}
@@ -109,10 +107,10 @@ export default function Dashboard() {
       >
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
-            {t('heroTitle')}
+            Not sure what to cook?
           </Typography>
           <Typography variant="body1" sx={{ opacity: 0.92, maxWidth: 520 }}>
-            {t('heroBody')}
+            Get AI recipe ideas based on what's already in your kitchen — plus a short shopping list when you need a little extra.
           </Typography>
         </Box>
         <Button
@@ -126,7 +124,7 @@ export default function Dashboard() {
             '&:hover': { bgcolor: 'grey.100' },
           }}
         >
-          {t('getSuggestions')}
+          Get suggestions
         </Button>
       </Paper>
 
@@ -147,19 +145,23 @@ export default function Dashboard() {
         >
           <Box sx={{ minWidth: 0 }}>
             <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CalendarMonthIcon fontSize="small" color="primary" /> {t('planTitle')}
+              <CalendarMonthIcon fontSize="small" color="primary" /> Your meal plan
             </Typography>
             <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap', mt: 1 }}>
               {nextMeals.map((m) => (
                 <Chip
                   key={m.id}
                   size="small"
-                  label={`${formatWeekdayDate(m.date, i18n.language)} · ${m.recipe.title}`}
+                  label={`${formatWeekdayDate(m.date)} · ${m.recipe.title}`}
                 />
               ))}
             </Stack>
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              {buyCount > 0 ? t('planToBuy', { count: buyCount }) : t('planAllStocked')}
+              {buyCount > 0
+                ? buyCount === 1
+                  ? '1 ingredient to buy'
+                  : `${buyCount} ingredients to buy`
+                : "Everything's already in your kitchen"}
             </Typography>
           </Box>
           <Button
@@ -167,7 +169,7 @@ export default function Dashboard() {
             startIcon={<CalendarMonthIcon />}
             onClick={() => navigate('/plan')}
           >
-            {t('viewPlan')}
+            View plan
           </Button>
         </Paper>
       )}
@@ -182,28 +184,28 @@ export default function Dashboard() {
         }}
       >
         <StatCard
-          label={t('statIngredients')}
+          label="Ingredients"
           value={ingredients.data?.length ?? 0}
           loading={ingredients.isLoading}
           icon={<LocalDiningIcon />}
           to="/ingredients"
         />
         <StatCard
-          label={t('statKitchen')}
+          label="In your kitchen"
           value={stock.data?.length ?? 0}
           loading={stock.isLoading}
           icon={<KitchenIcon />}
           to="/kitchen"
         />
         <StatCard
-          label={t('statRecipes')}
+          label="Recipes"
           value={recipes.data?.length ?? 0}
           loading={recipes.isLoading}
           icon={<RestaurantMenuIcon />}
           to="/recipes"
         />
         <StatCard
-          label={t('statPlanned')}
+          label="Planned meals"
           value={upcomingMeals.length}
           loading={plannedMeals.isLoading}
           icon={<CalendarMonthIcon />}
@@ -213,7 +215,7 @@ export default function Dashboard() {
 
       {/* Quick links */}
       <Typography variant="h6" gutterBottom>
-        {t('getStarted')}
+        Get started
       </Typography>
       <Box
         sx={{
@@ -224,13 +226,13 @@ export default function Dashboard() {
       >
         {[
           {
-            title: t('stockTitle'),
-            body: t('stockBody'),
+            title: 'Stock your kitchen',
+            body: 'Track what you have on hand so suggestions stay realistic.',
             to: '/kitchen',
           },
           {
-            title: t('buildTitle'),
-            body: t('buildBody'),
+            title: 'Build a recipe',
+            body: 'Save your household favourites with ingredients and steps.',
             to: '/recipes',
           },
         ].map((link) => (

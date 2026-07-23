@@ -17,7 +17,6 @@ import { errorMessage } from '../api/client'
 import { formatQuantity } from '../utils/quantity'
 import type { AvailabilityStatus } from '../utils/availability'
 import { useIsMobile } from '../utils/useIsMobile'
-import { useTranslation } from 'react-i18next'
 
 export interface CookRow {
   ingredientId: number
@@ -55,7 +54,6 @@ export default function CookDialog({
   servings,
   rows,
 }: CookDialogProps) {
-  const { t } = useTranslation(['recipes', 'common', 'errors'])
   const notify = useNotify()
   const isMobile = useIsMobile()
   const cookMut = useCookRecipe()
@@ -92,19 +90,19 @@ export default function CookDialog({
 
     try {
       await cookMut.mutateAsync({ id: recipeId, payload: { items } })
-      notify(t('toast.cooked'), 'success')
+      notify('Kitchen updated', 'success')
       onClose()
     } catch (err) {
-      notify(errorMessage(err, t('errors:saveStock')), 'error')
+      notify(errorMessage(err, 'Could not save stock'), 'error')
     }
   }
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth fullScreen={isMobile}>
       <DialogTitle>
-        {t('cook.title', { title: recipeTitle })}
+        {`Cook "${recipeTitle}"`}
         <Typography variant="body2" color="text.secondary">
-          {t('cook.servings', { count: servings })}
+          {`${servings} servings`}
         </Typography>
       </DialogTitle>
       <DialogContent>
@@ -113,7 +111,7 @@ export default function CookDialog({
             const deductible = isDeductible(row)
             const left = Math.max(0, row.have - usedAmount(row))
             const skipLabel =
-              row.status === 'unknown' ? t('cook.unitDiffers') : t('cook.notInKitchen')
+              row.status === 'unknown' ? 'Unit differs — skipped' : 'Not in kitchen — skipped'
             return (
               <Box
                 key={row.ingredientId}
@@ -136,9 +134,7 @@ export default function CookDialog({
                   </Typography>
                   {row.have > 0 && (
                     <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
-                      {t('cook.have', {
-                        amount: `${formatQuantity(row.have)} ${row.haveUnit}`.trim(),
-                      })}
+                      {`In kitchen: ${`${formatQuantity(row.have)} ${row.haveUnit}`.trim()}`}
                     </Typography>
                   )}
                 </Box>
@@ -146,7 +142,7 @@ export default function CookDialog({
                 {deductible ? (
                   <>
                     <TextField
-                      label={t('cook.use')}
+                      label="Use"
                       type="number"
                       size="small"
                       fullWidth
@@ -168,9 +164,7 @@ export default function CookDialog({
                       color="text.secondary"
                       sx={{ whiteSpace: 'nowrap' }}
                     >
-                      {t('cook.left', {
-                        amount: `${formatQuantity(left)} ${row.haveUnit}`.trim(),
-                      })}
+                      {`Left: ${`${formatQuantity(left)} ${row.haveUnit}`.trim()}`}
                     </Typography>
                   </>
                 ) : (
@@ -189,30 +183,30 @@ export default function CookDialog({
 
         {shortNames.length > 0 && (
           <Alert severity="warning" sx={{ mt: 2, py: 0.25 }}>
-            {t('cook.shortWarning', { list: shortNames.join(', ') })}
+            {`Not enough of: ${shortNames.join(', ')} — stock will drop to 0.`}
           </Alert>
         )}
         {skipped.length > 0 && (
           <Alert severity="info" sx={{ mt: 1, py: 0.25 }}>
-            {t('cook.skippedWarning', { list: skipped.map((r) => r.name).join(', ') })}
+            {`Skipped (unit mismatch or not in kitchen): ${skipped.map((r) => r.name).join(', ')}`}
           </Alert>
         )}
         {deductibleCount === 0 && (
           <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-            {t('cook.nothingToDeduct')}
+            No kitchen ingredients to deduct.
           </Typography>
         )}
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onClose} disabled={cookMut.isPending}>
-          {t('common:cancel')}
+          Cancel
         </Button>
         <Button
           variant="contained"
           onClick={handleConfirm}
           disabled={cookMut.isPending || deductibleCount === 0}
         >
-          {t('cook.confirm')}
+          Cook it
         </Button>
       </DialogActions>
     </Dialog>
