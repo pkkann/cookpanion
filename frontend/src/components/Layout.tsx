@@ -28,7 +28,6 @@ import DownloadIcon from '@mui/icons-material/Download'
 import LocalDiningIcon from '@mui/icons-material/LocalDining'
 import SettingsIcon from '@mui/icons-material/Settings'
 import LogoutIcon from '@mui/icons-material/Logout'
-import Logo from './Logo'
 import { useAuth } from '../auth/AuthContext'
 
 const DRAWER_WIDTH = 248
@@ -80,8 +79,7 @@ export default function Layout() {
 
   const drawerContent = (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <Toolbar sx={{ gap: 1.5 }}>
-        <Logo />
+      <Toolbar>
         <Typography variant="h6" noWrap sx={{ fontWeight: 700 }}>
           Cookpanion
         </Typography>
@@ -136,7 +134,6 @@ export default function Layout() {
             </IconButton>
           )}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexGrow: 1 }}>
-            {!isDesktop && <Logo />}
             <Typography
               variant="h6"
               sx={{ fontWeight: 700, display: { xs: 'block', md: 'none' } }}
