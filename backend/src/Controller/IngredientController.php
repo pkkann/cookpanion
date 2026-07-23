@@ -25,10 +25,14 @@ class IngredientController extends AbstractApiController
     public function list(): JsonResponse
     {
         $items = $this->ingredients->findBy(['household' => $this->household()], ['name' => 'ASC']);
-        $used = $this->ingredients->usedIdSet($this->household());
+        $usage = $this->ingredients->usageSets($this->household());
 
         return $this->json(array_map(
-            fn (Ingredient $i) => $this->presentWithUsage($i, isset($used[$i->getId()])),
+            fn (Ingredient $i) => $this->presentWithUsage(
+                $i,
+                isset($usage['stock'][$i->getId()]),
+                isset($usage['recipe'][$i->getId()]),
+            ),
             $items,
         ));
     }
@@ -55,7 +59,7 @@ class IngredientController extends AbstractApiController
         $this->em->flush();
 
         // A brand-new ingredient is never referenced yet.
-        return $this->json($this->presentWithUsage($ingredient, false), Response::HTTP_CREATED);
+        return $this->json($this->presentWithUsage($ingredient, false, false), Response::HTTP_CREATED);
     }
 
     #[Route('/{id}', name: 'api_ingredients_show', methods: ['GET'], requirements: ['id' => '\d+'])]
@@ -66,7 +70,11 @@ class IngredientController extends AbstractApiController
             return $ingredient;
         }
 
-        return $this->json($this->presentWithUsage($ingredient, $this->ingredients->isInUse($ingredient)));
+        return $this->json($this->presentWithUsage(
+            $ingredient,
+            $this->ingredients->isInStock($ingredient),
+            $this->ingredients->isUsedByRecipe($ingredient),
+        ));
     }
 
     #[Route('/{id}', name: 'api_ingredients_update', methods: ['PUT'], requirements: ['id' => '\d+'])]
@@ -95,7 +103,11 @@ class IngredientController extends AbstractApiController
 
         $this->em->flush();
 
-        return $this->json($this->presentWithUsage($ingredient, $this->ingredients->isInUse($ingredient)));
+        return $this->json($this->presentWithUsage(
+            $ingredient,
+            $this->ingredients->isInStock($ingredient),
+            $this->ingredients->isUsedByRecipe($ingredient),
+        ));
     }
 
     #[Route('/{id}', name: 'api_ingredients_delete', methods: ['DELETE'], requirements: ['id' => '\d+'])]
@@ -134,12 +146,17 @@ class IngredientController extends AbstractApiController
     }
 
     /**
-     * Presents an ingredient with an `inUse` flag the UI uses to disable delete.
+     * Presents an ingredient with usage flags the UI uses to explain, and gate,
+     * deletion: whether it's in kitchen stock and/or referenced by a recipe.
      *
      * @return array<string, mixed>
      */
-    private function presentWithUsage(Ingredient $ingredient, bool $inUse): array
+    private function presentWithUsage(Ingredient $ingredient, bool $inKitchen, bool $inRecipes): array
     {
-        return $this->presenter->ingredient($ingredient) + ['inUse' => $inUse];
+        return $this->presenter->ingredient($ingredient) + [
+            'inUse' => $inKitchen || $inRecipes,
+            'usedInKitchen' => $inKitchen,
+            'usedInRecipes' => $inRecipes,
+        ];
     }
 }

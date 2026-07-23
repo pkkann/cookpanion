@@ -2,23 +2,30 @@ import { useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
+import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
-import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
 import Dialog from '@mui/material/Dialog'
 import DialogTitle from '@mui/material/DialogTitle'
 import DialogContent from '@mui/material/DialogContent'
 import DialogActions from '@mui/material/DialogActions'
 import TextField from '@mui/material/TextField'
+import InputAdornment from '@mui/material/InputAdornment'
 import Stack from '@mui/material/Stack'
 import Skeleton from '@mui/material/Skeleton'
 import Alert from '@mui/material/Alert'
 import Tooltip from '@mui/material/Tooltip'
+import List from '@mui/material/List'
+import ListItem from '@mui/material/ListItem'
+import ListItemText from '@mui/material/ListItemText'
+import ListSubheader from '@mui/material/ListSubheader'
+import ToggleButton from '@mui/material/ToggleButton'
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import AddIcon from '@mui/icons-material/Add'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/DeleteOutlined'
+import SearchIcon from '@mui/icons-material/Search'
+import ClearIcon from '@mui/icons-material/Clear'
 import LocalDiningIcon from '@mui/icons-material/LocalDining'
 import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
@@ -40,6 +47,23 @@ interface EditorState {
   editing: Ingredient | null
 }
 
+type UsageFilter = 'all' | 'inUse' | 'unused'
+
+/** First letter for A–Z grouping; anything non-alphabetic collapses into "#". */
+function sectionLetter(name: string): string {
+  const first = name.trim().charAt(0).toUpperCase()
+  return /[A-Z]/.test(first) ? first : '#'
+}
+
+/** Why an ingredient can't be deleted (empty when it can). */
+function deleteReason(ing: Ingredient): string {
+  if (ing.usedInKitchen && ing.usedInRecipes)
+    return "It's in your kitchen and used in recipes, so it can't be deleted."
+  if (ing.usedInKitchen) return "It's in your kitchen, so it can't be deleted."
+  if (ing.usedInRecipes) return "It's used in a recipe, so it can't be deleted."
+  return ''
+}
+
 export default function Ingredients() {
   const notify = useNotify()
   const isMobile = useIsMobile()
@@ -50,6 +74,10 @@ export default function Ingredients() {
 
   const [editor, setEditor] = useState<EditorState>({ open: false, editing: null })
   const [toDelete, setToDelete] = useState<Ingredient | null>(null)
+
+  // Overview controls
+  const [query, setQuery] = useState('')
+  const [usage, setUsage] = useState<UsageFilter>('all')
 
   // form fields
   const [name, setName] = useState('')
@@ -112,7 +140,35 @@ export default function Ingredients() {
     [ingredients],
   )
 
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    return sorted.filter((ing) => {
+      if (usage === 'inUse' && !ing.inUse) return false
+      if (usage === 'unused' && ing.inUse) return false
+      if (q && !ing.name.toLowerCase().includes(q)) return false
+      return true
+    })
+  }, [sorted, query, usage])
+
+  // Group the (already alphabetically sorted) results by first letter. Because
+  // same-letter names are adjacent after sorting, each letter forms one run.
+  const groups = useMemo(() => {
+    const map = new Map<string, Ingredient[]>()
+    for (const ing of filtered) {
+      const letter = sectionLetter(ing.name)
+      const bucket = map.get(letter)
+      if (bucket) bucket.push(ing)
+      else map.set(letter, [ing])
+    }
+    return [...map.entries()]
+  }, [filtered])
+
   const saving = createMut.isPending || updateMut.isPending
+  const total = sorted.length
+  const filtering = query.trim() !== '' || usage !== 'all'
+  const countLabel = filtering
+    ? `${filtered.length} of ${total}`
+    : `${total} ${total === 1 ? 'ingredient' : 'ingredients'}`
 
   return (
     <Box>
@@ -135,10 +191,10 @@ export default function Ingredients() {
       {isLoading ? (
         <Stack spacing={1.5}>
           {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} variant="rounded" height={72} />
+            <Skeleton key={i} variant="rounded" height={48} />
           ))}
         </Stack>
-      ) : sorted.length === 0 ? (
+      ) : total === 0 ? (
         <EmptyState
           icon={<LocalDiningIcon fontSize="inherit" />}
           title="No ingredients yet"
@@ -150,65 +206,136 @@ export default function Ingredients() {
           }
         />
       ) : (
-        <Box
-          sx={{
-            display: 'grid',
-            gap: 2,
-            gridTemplateColumns: {
-              xs: '1fr',
-              sm: 'repeat(2, 1fr)',
-              md: 'repeat(3, 1fr)',
-            },
-          }}
-        >
-          {sorted.map((ing) => (
-            <Card key={ing.id} variant="outlined">
-              <CardContent
-                sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}
-              >
-                <Box sx={{ minWidth: 0 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }} noWrap>
-                    {ing.name}
-                  </Typography>
-                  <Stack direction="row" spacing={1} useFlexGap sx={{ mt: 1, flexWrap: 'wrap' }}>
-                    {ing.defaultUnit && (
-                      <Chip
-                        size="small"
-                        variant="outlined"
-                        label={`unit: ${ing.defaultUnit}`}
-                      />
-                    )}
-                  </Stack>
-                </Box>
-                <Box sx={{ flexShrink: 0 }}>
-                  <IconButton
-                    size="small"
-                    aria-label="edit"
-                    onClick={() => openEdit(ing)}
-                  >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-                  {/* Ingredients referenced by stock or a recipe can't be
-                      deleted (the delete would fail server-side), so disable it
-                      and explain why. */}
-                  <Tooltip title={ing.inUse ? 'In use by a recipe or your kitchen stock' : ''}>
-                    <span>
-                      <IconButton
-                        size="small"
-                        aria-label="delete"
-                        color="error"
-                        disabled={ing.inUse}
-                        onClick={() => setToDelete(ing)}
-                      >
-                        <DeleteIcon fontSize="small" />
+        <>
+          {/* Search + usage filter */}
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={1.5}
+            sx={{ mb: 1.5, alignItems: { sm: 'center' } }}
+          >
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Search ingredients…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" color="disabled" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: query ? (
+                    <InputAdornment position="end">
+                      <IconButton size="small" aria-label="clear search" onClick={() => setQuery('')}>
+                        <ClearIcon fontSize="small" />
                       </IconButton>
-                    </span>
-                  </Tooltip>
-                </Box>
-              </CardContent>
-            </Card>
-          ))}
-        </Box>
+                    </InputAdornment>
+                  ) : null,
+                },
+              }}
+            />
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              value={usage}
+              onChange={(_e, val: UsageFilter | null) => val && setUsage(val)}
+              sx={{ flexShrink: 0 }}
+            >
+              <ToggleButton value="all">All</ToggleButton>
+              <ToggleButton value="inUse">Used</ToggleButton>
+              <ToggleButton value="unused">Unused</ToggleButton>
+            </ToggleButtonGroup>
+          </Stack>
+
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+            {countLabel}
+          </Typography>
+
+          {filtered.length === 0 ? (
+            <Paper variant="outlined" sx={{ p: 4, textAlign: 'center' }}>
+              <Typography color="text.secondary" gutterBottom>
+                No ingredients match your search.
+              </Typography>
+              <Button
+                onClick={() => {
+                  setQuery('')
+                  setUsage('all')
+                }}
+              >
+                Clear filters
+              </Button>
+            </Paper>
+          ) : (
+            <Paper variant="outlined">
+              <List sx={{ py: 0, '& ul': { p: 0 } }} subheader={<li />}>
+                {groups.map(([letter, items]) => (
+                  <li key={letter}>
+                    <ul>
+                      <ListSubheader
+                        sx={{
+                          top: { xs: 56, sm: 64 },
+                          bgcolor: 'background.paper',
+                          color: 'text.secondary',
+                          fontWeight: 700,
+                          lineHeight: '34px',
+                          borderBottom: '1px solid',
+                          borderColor: 'divider',
+                        }}
+                      >
+                        {letter}
+                      </ListSubheader>
+                      {items.map((ing) => (
+                        <ListItem
+                          key={ing.id}
+                          dense
+                          sx={{ borderBottom: '1px solid', borderColor: 'divider' }}
+                          secondaryAction={
+                            <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                              <IconButton
+                                size="small"
+                                aria-label={`edit ${ing.name}`}
+                                onClick={() => openEdit(ing)}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                              {/* Ingredients referenced by stock or a recipe can't be deleted
+                                  (the delete would fail server-side), so disable it and explain. */}
+                              <Tooltip title={deleteReason(ing)}>
+                                <span>
+                                  <IconButton
+                                    size="small"
+                                    aria-label={`delete ${ing.name}`}
+                                    color="error"
+                                    disabled={ing.inUse}
+                                    onClick={() => setToDelete(ing)}
+                                  >
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                            </Stack>
+                          }
+                        >
+                          <ListItemText
+                            primary={ing.name}
+                            secondary={ing.defaultUnit ? `Unit: ${ing.defaultUnit}` : 'No default unit'}
+                            slotProps={{
+                              primary: { noWrap: true },
+                              secondary: { noWrap: true, variant: 'caption' },
+                            }}
+                            sx={{ pr: 10 }}
+                          />
+                        </ListItem>
+                      ))}
+                    </ul>
+                  </li>
+                ))}
+              </List>
+            </Paper>
+          )}
+        </>
       )}
 
       {/* Create / edit dialog */}

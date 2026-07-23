@@ -32,6 +32,10 @@ export interface Ingredient {
   // Referenced by kitchen stock or a recipe → can't be deleted. Present on
   // ingredient endpoints; may be absent when an Ingredient is nested elsewhere.
   inUse?: boolean
+  /** Has a kitchen stock row. Present on ingredient endpoints. */
+  usedInKitchen?: boolean
+  /** Referenced by at least one recipe. Present on ingredient endpoints. */
+  usedInRecipes?: boolean
 }
 
 export interface StockItem {

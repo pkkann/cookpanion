@@ -18,13 +18,14 @@ class IngredientRepository extends ServiceEntityRepository
     }
 
     /**
-     * IDs of the household's ingredients that are referenced by kitchen stock
-     * or by any recipe — i.e. those that cannot be deleted. One query each, so
-     * the ingredients list stays a fixed number of queries regardless of size.
+     * Per-ingredient usage for the household, split by source: which ingredients
+     * are in kitchen stock and which are referenced by a recipe. Two queries
+     * total, so the ingredients list stays a fixed number of queries regardless
+     * of size.
      *
-     * @return array<int, true> set keyed by ingredient id for O(1) lookup
+     * @return array{stock: array<int, true>, recipe: array<int, true>} sets keyed by ingredient id
      */
-    public function usedIdSet(Household $household): array
+    public function usageSets(Household $household): array
     {
         $em = $this->getEntityManager();
 
@@ -36,30 +37,37 @@ class IngredientRepository extends ServiceEntityRepository
             'SELECT DISTINCT IDENTITY(ri.ingredient) FROM App\Entity\RecipeIngredient ri JOIN ri.recipe r WHERE r.household = :h'
         )->setParameter('h', $household)->getSingleColumnResult();
 
-        $set = [];
-        foreach ([...$stockIds, ...$recipeIds] as $id) {
-            $set[(int) $id] = true;
-        }
+        $toSet = static function (array $ids): array {
+            $set = [];
+            foreach ($ids as $id) {
+                $set[(int) $id] = true;
+            }
 
-        return $set;
+            return $set;
+        };
+
+        return ['stock' => $toSet($stockIds), 'recipe' => $toSet($recipeIds)];
+    }
+
+    /** Whether an ingredient currently has a kitchen stock row. */
+    public function isInStock(Ingredient $ingredient): bool
+    {
+        return (int) $this->getEntityManager()->createQuery(
+            'SELECT COUNT(s.id) FROM App\Entity\StockItem s WHERE s.ingredient = :i'
+        )->setParameter('i', $ingredient)->getSingleScalarResult() > 0;
+    }
+
+    /** Whether an ingredient is referenced by any recipe. */
+    public function isUsedByRecipe(Ingredient $ingredient): bool
+    {
+        return (int) $this->getEntityManager()->createQuery(
+            'SELECT COUNT(ri.id) FROM App\Entity\RecipeIngredient ri WHERE ri.ingredient = :i'
+        )->setParameter('i', $ingredient)->getSingleScalarResult() > 0;
     }
 
     /** Whether a single ingredient is referenced by kitchen stock or a recipe. */
     public function isInUse(Ingredient $ingredient): bool
     {
-        $em = $this->getEntityManager();
-
-        $inStock = (int) $em->createQuery(
-            'SELECT COUNT(s.id) FROM App\Entity\StockItem s WHERE s.ingredient = :i'
-        )->setParameter('i', $ingredient)->getSingleScalarResult();
-        if ($inStock > 0) {
-            return true;
-        }
-
-        $inRecipe = (int) $em->createQuery(
-            'SELECT COUNT(ri.id) FROM App\Entity\RecipeIngredient ri WHERE ri.ingredient = :i'
-        )->setParameter('i', $ingredient)->getSingleScalarResult();
-
-        return $inRecipe > 0;
+        return $this->isInStock($ingredient) || $this->isUsedByRecipe($ingredient);
     }
 }
