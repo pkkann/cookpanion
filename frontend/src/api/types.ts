@@ -178,9 +178,11 @@ export interface SuggestResponse {
 // ---- AI recipe import ----
 
 export interface ImportRecipePayload {
-  /** Provide one of these. When both are set, text wins. */
+  /** Provide one. Precedence when several are set: text, then image, then url. */
   url?: string
   text?: string
+  /** A base64 image data URL (e.g. a photo of a recipe). */
+  image?: string
 }
 
 export interface ImportedRecipeIngredient {

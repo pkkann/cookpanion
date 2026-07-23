@@ -6,6 +6,8 @@ use App\Repository\IngredientRepository;
 use App\Repository\StockItemRepository;
 use Psr\Log\LoggerInterface;
 use Symfony\AI\Agent\AgentInterface;
+use Symfony\AI\Platform\Message\Content\Image;
+use Symfony\AI\Platform\Message\Content\Text;
 use Symfony\AI\Platform\Message\Message;
 use Symfony\AI\Platform\Message\MessageBag;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -20,6 +22,9 @@ class AiController extends AbstractApiController
 {
     /** Cap on characters of source content sent to the model when importing. */
     private const IMPORT_MAX_CHARS = 12000;
+
+    /** Cap on the length of an image data URL (base64), ~7 MB. */
+    private const IMPORT_MAX_IMAGE_CHARS = 7_000_000;
 
     public function __construct(
         private readonly StockItemRepository $stock,
@@ -119,31 +124,36 @@ class AiController extends AbstractApiController
 
         $text = trim((string) ($data['text'] ?? ''));
         $url = trim((string) ($data['url'] ?? ''));
+        $image = trim((string) ($data['image'] ?? ''));
 
-        if ('' === $text && '' === $url) {
+        if ('' === $text && '' === $url && '' === $image) {
             return $this->json(
-                ['error' => 'Validation failed', 'details' => ['source' => 'Provide a URL or text to import from.']],
+                ['error' => 'Validation failed', 'details' => ['source' => 'Provide a URL, text, or image to import from.']],
                 Response::HTTP_BAD_REQUEST,
             );
         }
 
-        // Pasted text wins when both are present; otherwise fetch the URL.
+        // Precedence when several are present: pasted text, then image, then URL.
         if ('' !== $text) {
-            $source = $text;
+            $userMessage = Message::ofUser($this->buildImportPrompt(mb_substr($text, 0, self::IMPORT_MAX_CHARS)));
+        } elseif ('' !== $image) {
+            $imageContent = $this->imageFromDataUrl($image);
+            if ($imageContent instanceof JsonResponse) {
+                return $imageContent;
+            }
+            $userMessage = Message::ofUser(new Text($this->buildImagePrompt()), $imageContent);
         } else {
             $source = $this->fetchUrlText($url);
             if ($source instanceof JsonResponse) {
                 return $source;
             }
+            $userMessage = Message::ofUser($this->buildImportPrompt(mb_substr($source, 0, self::IMPORT_MAX_CHARS)));
         }
-
-        // Bound the prompt size regardless of source.
-        $source = mb_substr($source, 0, self::IMPORT_MAX_CHARS);
 
         try {
             $messages = new MessageBag(
                 Message::forSystem('You extract a single recipe from the provided content and respond ONLY with a single valid JSON object. No markdown, no code fences, no commentary.'),
-                Message::ofUser($this->buildImportPrompt($source)),
+                $userMessage,
             );
             $result = $this->recipeAgent->call($messages, ['max_tokens' => 4096]);
             $content = $result->getContent();
@@ -239,9 +249,48 @@ class AiController extends AbstractApiController
         return trim($text);
     }
 
+    /** Prompt for extracting a recipe from a block of text (pasted or scraped from a URL). */
     private function buildImportPrompt(string $source): string
     {
-        $schema = <<<'JSON'
+        $schema = $this->importSchema();
+        $rules = $this->importRules();
+
+        return <<<PROMPT
+        Extract a single recipe from the CONTENT below and return it as JSON.
+
+        Always write every value in ENGLISH. If the content is in another language, translate the title, description, instructions and ingredient names into English.
+
+        Return ONLY a JSON object exactly matching this schema (no extra keys, no prose, no markdown):
+        {$schema}
+
+        {$rules}
+
+        CONTENT:
+        {$source}
+        PROMPT;
+    }
+
+    /** Prompt for extracting a recipe from an attached image (photo of a recipe). */
+    private function buildImagePrompt(): string
+    {
+        $schema = $this->importSchema();
+        $rules = $this->importRules();
+
+        return <<<PROMPT
+        Extract a single recipe from the attached image and return it as JSON. Read all visible text, including printed and handwritten text.
+
+        Always write every value in ENGLISH. If the image is in another language, translate the title, description, instructions and ingredient names into English.
+
+        Return ONLY a JSON object exactly matching this schema (no extra keys, no prose, no markdown):
+        {$schema}
+
+        {$rules}
+        PROMPT;
+    }
+
+    private function importSchema(): string
+    {
+        return <<<'JSON'
         {
           "title": "string",
           "description": "string",
@@ -252,25 +301,47 @@ class AiController extends AbstractApiController
           "ingredients": [ { "name": "string", "quantity": 0, "unit": "string" } ]
         }
         JSON;
+    }
 
-        return <<<PROMPT
-        Extract a single recipe from the CONTENT below and return it as JSON.
-
-        Always write every value in ENGLISH. If the content is in another language, translate the title, description, instructions and ingredient names into English.
-
-        Return ONLY a JSON object exactly matching this schema (no extra keys, no prose, no markdown):
-        {$schema}
-
+    private function importRules(): string
+    {
+        return <<<'RULES'
         Rules:
         - "servings" is an integer (make a sensible best guess if it is not stated).
         - "prepTimeMinutes" and "cookTimeMinutes" are whole-minute integers; use 0 when unknown.
         - "ingredients" lists every ingredient with a numeric "quantity" and a short "unit" (use "" when there is no unit). Convert written amounts to numbers (e.g. "two cups" -> quantity 2, unit "cup").
         - "instructions" is an ordered array of concise steps, one step per element.
         - If the content is NOT a recipe, return the schema with an empty "title".
+        RULES;
+    }
 
-        CONTENT:
-        {$source}
-        PROMPT;
+    /**
+     * Validates a base64 image data URL and turns it into an Image content part,
+     * or returns an error response.
+     */
+    private function imageFromDataUrl(string $dataUrl): Image|JsonResponse
+    {
+        if (!preg_match('#^data:image/(jpeg|jpg|png|webp|gif);base64,#i', $dataUrl)) {
+            return $this->json(
+                ['error' => 'Validation failed', 'details' => ['image' => 'Expected a base64 image (jpeg, png, webp or gif) data URL.']],
+                Response::HTTP_BAD_REQUEST,
+            );
+        }
+        if (\strlen($dataUrl) > self::IMPORT_MAX_IMAGE_CHARS) {
+            return $this->json(
+                ['error' => 'Validation failed', 'details' => ['image' => 'Image is too large.']],
+                Response::HTTP_BAD_REQUEST,
+            );
+        }
+
+        try {
+            return Image::fromDataUrl($dataUrl);
+        } catch (\Throwable) {
+            return $this->json(
+                ['error' => 'Validation failed', 'details' => ['image' => 'Invalid image data.']],
+                Response::HTTP_BAD_REQUEST,
+            );
+        }
     }
 
     /**

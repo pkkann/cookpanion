@@ -188,8 +188,9 @@ The frontend offers a "Save as recipe" action that POSTs a suggestion to `/api/r
 ## AI recipe import  `/api/ai/import-recipe`
 
 `POST /ai/import-recipe`
-Body: `{ "url"?: string, "text"?: string }` — provide one. When both are present, `text` wins.
+Body: `{ "url"?: string, "text"?: string, "image"?: string }` — provide one. Precedence when several are present: `text`, then `image`, then `url`.
 - With `url`, the backend fetches the page (http/https only; localhost and private/reserved IPs are refused) and reduces it to text before extraction.
+- With `image` (a base64 data URL, e.g. `data:image/jpeg;base64,…` — jpeg/png/webp/gif, ~7 MB max), the photo is sent to the vision model, which reads printed or handwritten text.
 - The extracted recipe is **always in English** — content in another language is translated.
 
 Response `200`:
@@ -209,7 +210,7 @@ Response `200`:
 
 `ingredients` are name-based (not ids); the frontend pre-fills the recipe form for review, matching names to existing ingredients and creating any missing ones on save.
 
-Errors: `400` when neither field is given or the URL is invalid/disallowed; `503` when `ANTHROPIC_API_KEY` is unset; `502` when the URL can't be fetched or the AI call fails; `422` when no recipe could be extracted from the content.
+Errors: `400` when no field is given, the URL is invalid/disallowed, or the image isn't a valid base64 image data URL; `503` when `ANTHROPIC_API_KEY` is unset; `502` when the URL can't be fetched or the AI call fails; `422` when no recipe could be extracted from the content.
 
 ## Conventions
 
