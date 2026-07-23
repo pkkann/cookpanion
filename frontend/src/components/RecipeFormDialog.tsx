@@ -62,6 +62,8 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [servings, setServings] = useState('4')
+  const [prepTime, setPrepTime] = useState('')
+  const [cookTime, setCookTime] = useState('')
   const [steps, setSteps] = useState<StepState[]>([newStep()])
   const [rows, setRows] = useState<RowState[]>([newRow()])
 
@@ -72,6 +74,8 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
       setTitle(recipe.title)
       setDescription(recipe.description ?? '')
       setServings(String(recipe.servings ?? 1))
+      setPrepTime(recipe.prepTimeMinutes != null ? String(recipe.prepTimeMinutes) : '')
+      setCookTime(recipe.cookTimeMinutes != null ? String(recipe.cookTimeMinutes) : '')
       setSteps(
         recipe.instructions.length > 0
           ? recipe.instructions.map((text) => newStep(text))
@@ -91,6 +95,8 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
       setTitle('')
       setDescription('')
       setServings('4')
+      setPrepTime('')
+      setCookTime('')
       setSteps([newStep()])
       setRows([newRow()])
     }
@@ -121,12 +127,20 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
 
+    const parseMinutes = (v: string): number | null => {
+      const trimmed = v.trim()
+      if (trimmed === '') return null
+      return Math.max(0, Math.round(Number(trimmed) || 0))
+    }
+
     const validRows = rows.filter((r) => r.ingredient && r.quantity !== '' && r.unit.trim())
     const payload: RecipePayload = {
       title: title.trim(),
       description: description.trim(),
       instructions: steps.map((s) => s.text.trim()).filter(Boolean),
       servings: Math.max(1, Math.round(Number(servings) || 1)),
+      prepTimeMinutes: parseMinutes(prepTime),
+      cookTimeMinutes: parseMinutes(cookTime),
       ingredients: validRows.map((r) => ({
         ingredientId: r.ingredient!.id,
         quantity: Number(r.quantity),
@@ -184,6 +198,27 @@ export default function RecipeFormDialog({ open, recipe, onClose }: RecipeFormDi
             value={servings}
             onChange={(e) => setServings(e.target.value)}
           />
+
+          <Stack direction="row" spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              label="Prep time (min)"
+              type="number"
+              fullWidth
+              slotProps={{ htmlInput: { min: 0, step: 1 } }}
+              placeholder="optional"
+              value={prepTime}
+              onChange={(e) => setPrepTime(e.target.value)}
+            />
+            <TextField
+              label="Cook time (min)"
+              type="number"
+              fullWidth
+              slotProps={{ htmlInput: { min: 0, step: 1 } }}
+              placeholder="optional"
+              value={cookTime}
+              onChange={(e) => setCookTime(e.target.value)}
+            />
+          </Stack>
 
           <Divider sx={{ my: 2 }} />
           <Typography variant="subtitle2" gutterBottom>

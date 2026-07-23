@@ -17,6 +17,7 @@ import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/DeleteOutlined'
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu'
 import PeopleIcon from '@mui/icons-material/People'
+import AccessTimeIcon from '@mui/icons-material/AccessTime'
 import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import ConfirmDialog from '../components/ConfirmDialog'
@@ -26,6 +27,7 @@ import { useNotify } from '../components/SnackbarProvider'
 import { useDeleteRecipe, useRecipes } from '../api/hooks'
 import type { Recipe } from '../api/types'
 import { errorMessage } from '../api/client'
+import { formatPrepCook } from '../utils/time'
 
 export default function Recipes() {
   const notify = useNotify()
@@ -154,6 +156,14 @@ export default function Recipes() {
                           : `${recipe.ingredients.length} ingredients`
                       }
                     />
+                    {formatPrepCook(recipe.prepTimeMinutes, recipe.cookTimeMinutes) && (
+                      <Chip
+                        size="small"
+                        variant="outlined"
+                        icon={<AccessTimeIcon />}
+                        label={formatPrepCook(recipe.prepTimeMinutes, recipe.cookTimeMinutes)}
+                      />
+                    )}
                   </Stack>
                 </CardContent>
               </CardActionArea>

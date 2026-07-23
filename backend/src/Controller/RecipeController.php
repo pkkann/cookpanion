@@ -232,6 +232,12 @@ class RecipeController extends AbstractApiController
         if (\array_key_exists('servings', $data)) {
             $recipe->setServings(max(1, (int) $data['servings']));
         }
+        if (\array_key_exists('prepTimeMinutes', $data)) {
+            $recipe->setPrepTimeMinutes($this->parseMinutes($data['prepTimeMinutes']));
+        }
+        if (\array_key_exists('cookTimeMinutes', $data)) {
+            $recipe->setCookTimeMinutes($this->parseMinutes($data['cookTimeMinutes']));
+        }
 
         if (!\array_key_exists('ingredients', $data)) {
             return null;
@@ -266,6 +272,19 @@ class RecipeController extends AbstractApiController
         }
 
         return null;
+    }
+
+    /**
+     * Normalizes an incoming minutes value: null/empty clears the field,
+     * anything else becomes a non-negative integer.
+     */
+    private function parseMinutes(mixed $value): ?int
+    {
+        if (null === $value || '' === $value) {
+            return null;
+        }
+
+        return max(0, (int) $value);
     }
 
     private function find(int $id): Recipe|JsonResponse

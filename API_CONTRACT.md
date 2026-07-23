@@ -16,7 +16,7 @@ Shared contract between the Symfony backend (`backend/`) and the React SPA (`fro
 - **Household**: id, name, members[]
 - **Ingredient**: id, name, defaultUnit (e.g. "g", "ml", "pcs") — scoped to household
 - **StockItem** (what's in the kitchen): id, ingredient, quantity (float), unit — scoped to household; one row per ingredient
-- **Recipe**: id, title, description, instructions (markdown/plain text), servings (int), author (User), createdAt — scoped to household
+- **Recipe**: id, title, description, instructions (markdown/plain text), servings (int), prepTimeMinutes (int|null), cookTimeMinutes (int|null), author (User), createdAt — scoped to household
 - **RecipeIngredient**: ingredientId, quantity (float), unit — embedded in a Recipe
 
 ## Auth
@@ -85,11 +85,15 @@ Recipe request body:
   "description": "string",
   "instructions": ["step one", "step two"],
   "servings": 4,
+  "prepTimeMinutes": 15,                 // optional; int minutes or null to clear
+  "cookTimeMinutes": 30,                 // optional; int minutes or null to clear
   "ingredients": [
     { "ingredientId": 1, "quantity": 200, "unit": "g" }
   ]
 }
 ```
+
+`prepTimeMinutes` / `cookTimeMinutes` are optional on write: omit to leave unchanged, send `null` (or `""`) to clear, any value is coerced to a non-negative integer.
 
 `Recipe` response shape:
 ```json
@@ -99,6 +103,8 @@ Recipe request body:
   "description": "string",
   "instructions": ["step one", "step two"],
   "servings": 4,
+  "prepTimeMinutes": 15,
+  "cookTimeMinutes": 30,
   "author": { "id": 1, "name": "string" },
   "createdAt": "2026-07-02T12:00:00+00:00",
   "ingredients": [
@@ -146,6 +152,8 @@ Body:
   "count": 3,                           // how many recipes to generate; clamped 1–8, default 3
   "maxToBuy": 3,                        // (kitchen/all) max extra ingredients allowed to buy (0 = strict)
   "numIngredients": 6,                  // (surprise) target ingredients per recipe; clamped 2–20, default 6
+  "servings": 2,                        // target servings each recipe is sized for; clamped 1–20, default 2
+  "maxTimeMinutes": 30,                 // cap on prep + cook time per recipe; clamped 0–600, 0 = no limit
   "preferences": "vegetarian, quick"   // optional free text
 }
 ```
@@ -160,6 +168,8 @@ Response `200`:
       "title": "string",
       "description": "string",
       "servings": 2,
+      "prepTimeMinutes": 15,
+      "cookTimeMinutes": 30,
       "instructions": ["step one", "step two"],
       "usesIngredients": [ { "name": "Eggs", "quantity": 3, "unit": "pcs" } ],
       "toBuy": [ { "name": "Milk", "quantity": 200, "unit": "ml" } ]

@@ -46,12 +46,16 @@ class AiController extends AbstractApiController
         $mode = \in_array($requestedMode, ['kitchen', 'all', 'surprise'], true) ? $requestedMode : 'kitchen';
         $preferences = trim((string) ($data['preferences'] ?? ''));
         $count = max(1, min(8, (int) ($data['count'] ?? 3)));
+        // Target servings every recipe should be sized for.
+        $servings = max(1, min(20, (int) ($data['servings'] ?? 2)));
+        // Upper bound on prep + cook time in minutes; 0 means no limit.
+        $maxTimeMinutes = max(0, min(600, (int) ($data['maxTimeMinutes'] ?? 0)));
 
         if ('surprise' === $mode) {
             // Ignore the household entirely: propose recipes from scratch, sized to
             // a chosen ingredient count. No ingredient lookup, no empty short-circuit.
             $numIngredients = max(2, min(20, (int) ($data['numIngredients'] ?? 6)));
-            $userPrompt = $this->buildSurprisePrompt($count, $numIngredients, $preferences);
+            $userPrompt = $this->buildSurprisePrompt($count, $numIngredients, $preferences, $servings, $maxTimeMinutes);
         } else {
             $maxToBuy = max(0, (int) ($data['maxToBuy'] ?? 0));
 
@@ -61,7 +65,7 @@ class AiController extends AbstractApiController
                 return $this->json(['suggestions' => []]);
             }
 
-            $userPrompt = $this->buildPrompt($mode, $available, $maxToBuy, $preferences, $count);
+            $userPrompt = $this->buildPrompt($mode, $available, $maxToBuy, $preferences, $count, $servings, $maxTimeMinutes);
         }
 
         try {
@@ -125,7 +129,7 @@ class AiController extends AbstractApiController
     /**
      * @param list<array{name: string, quantity: float|null, unit: string|null}> $available
      */
-    private function buildPrompt(string $mode, array $available, int $maxToBuy, string $preferences, int $count): string
+    private function buildPrompt(string $mode, array $available, int $maxToBuy, string $preferences, int $count, int $servings, int $maxTimeMinutes): string
     {
         $modeText = 'kitchen' === $mode
             ? 'Only the ingredients currently in stock (with quantities) are listed below.'
@@ -139,28 +143,17 @@ class AiController extends AbstractApiController
             $lines[] = '- '.$entry['name'].$suffix;
         }
 
-        $schema = <<<'JSON'
-        {
-          "suggestions": [
-            {
-              "title": "string",
-              "description": "string",
-              "servings": 2,
-              "instructions": ["string"],
-              "usesIngredients": [ { "name": "string", "quantity": 0, "unit": "string" } ],
-              "toBuy": [ { "name": "string", "quantity": 0, "unit": "string" } ]
-            }
-          ]
-        }
-        JSON;
-
+        $schema = $this->suggestionSchema();
         $prefText = '' !== $preferences ? $preferences : 'none';
+        $timeRule = $this->timeRule($maxTimeMinutes);
 
         return <<<PROMPT
         Suggest {$count} practical recipe(s).
 
         Mode: {$mode}. {$modeText}
         You may include AT MOST {$maxToBuy} extra ingredient(s) that are NOT in the list below; put those in each recipe's "toBuy". If maxToBuy is 0, every ingredient used must come from the list.
+        Every recipe must serve exactly {$servings} people: set "servings" to {$servings} and size all ingredient quantities for that many servings.
+        {$timeRule}
         Dietary preferences / constraints: {$prefText}.
 
         Available ingredients:
@@ -172,7 +165,8 @@ class AiController extends AbstractApiController
         Rules:
         - "usesIngredients" lists ingredients taken from the available list, with realistic quantities and units.
         - "toBuy" lists any extra ingredients (respecting the maxToBuy limit).
-        - "servings" is an integer.
+        - "servings" is an integer and must equal {$servings}.
+        - "prepTimeMinutes" and "cookTimeMinutes" are whole-minute integers: hands-on prep time and cooking time respectively.
         - "instructions" is an ordered array of steps, one concise step per element (do NOT put all steps in a single string).
         PROMPT;
     }
@@ -181,29 +175,18 @@ class AiController extends AbstractApiController
      * Builds the prompt for "Surprise me" mode: creative recipes with no regard to
      * what the household has, sized to roughly $numIngredients ingredients each.
      */
-    private function buildSurprisePrompt(int $count, int $numIngredients, string $preferences): string
+    private function buildSurprisePrompt(int $count, int $numIngredients, string $preferences, int $servings, int $maxTimeMinutes): string
     {
-        $schema = <<<'JSON'
-        {
-          "suggestions": [
-            {
-              "title": "string",
-              "description": "string",
-              "servings": 2,
-              "instructions": ["string"],
-              "usesIngredients": [ { "name": "string", "quantity": 0, "unit": "string" } ],
-              "toBuy": [ { "name": "string", "quantity": 0, "unit": "string" } ]
-            }
-          ]
-        }
-        JSON;
-
+        $schema = $this->suggestionSchema();
         $prefText = '' !== $preferences ? $preferences : 'none';
+        $timeRule = $this->timeRule($maxTimeMinutes);
 
         return <<<PROMPT
         Suggest {$count} creative, varied recipe(s) to surprise the user. Be adventurous — do NOT limit yourself to any particular pantry or set of ingredients. Vary the cuisines and styles across the suggestions.
 
         Each recipe should use AT MOST {$numIngredients} ingredient(s) — fewer is fine.
+        Every recipe must serve exactly {$servings} people: set "servings" to {$servings} and size all ingredient quantities for that many servings.
+        {$timeRule}
         Dietary preferences / constraints: {$prefText}.
 
         Return ONLY a JSON object exactly matching this schema (no extra keys, no prose, no markdown):
@@ -212,9 +195,39 @@ class AiController extends AbstractApiController
         Rules:
         - List EVERY ingredient the recipe needs in "usesIngredients", with realistic quantities and units.
         - Leave "toBuy" as an empty array (the user is starting from scratch).
-        - "servings" is an integer.
+        - "servings" is an integer and must equal {$servings}.
+        - "prepTimeMinutes" and "cookTimeMinutes" are whole-minute integers: hands-on prep time and cooking time respectively.
         - "instructions" is an ordered array of steps, one concise step per element (do NOT put all steps in a single string).
         PROMPT;
+    }
+
+    /** The JSON response schema shared by both suggestion prompts. */
+    private function suggestionSchema(): string
+    {
+        return <<<'JSON'
+        {
+          "suggestions": [
+            {
+              "title": "string",
+              "description": "string",
+              "servings": 2,
+              "prepTimeMinutes": 0,
+              "cookTimeMinutes": 0,
+              "instructions": ["string"],
+              "usesIngredients": [ { "name": "string", "quantity": 0, "unit": "string" } ],
+              "toBuy": [ { "name": "string", "quantity": 0, "unit": "string" } ]
+            }
+          ]
+        }
+        JSON;
+    }
+
+    /** Instruction line constraining total time, or asking for realistic times when unbounded. */
+    private function timeRule(int $maxTimeMinutes): string
+    {
+        return $maxTimeMinutes > 0
+            ? "Each recipe's total time (prepTimeMinutes + cookTimeMinutes) MUST be at most {$maxTimeMinutes} minutes."
+            : 'Give realistic prepTimeMinutes and cookTimeMinutes for each recipe.';
     }
 
     /**
@@ -262,6 +275,8 @@ class AiController extends AbstractApiController
                 'title' => (string) ($s['title'] ?? ''),
                 'description' => (string) ($s['description'] ?? ''),
                 'servings' => (int) ($s['servings'] ?? 1),
+                'prepTimeMinutes' => max(0, (int) ($s['prepTimeMinutes'] ?? 0)),
+                'cookTimeMinutes' => max(0, (int) ($s['cookTimeMinutes'] ?? 0)),
                 'instructions' => $this->normalizeSteps($s['instructions'] ?? []),
                 'usesIngredients' => $this->normalizeLines($s['usesIngredients'] ?? []),
                 'toBuy' => $this->normalizeLines($s['toBuy'] ?? []),

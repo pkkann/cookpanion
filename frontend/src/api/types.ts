@@ -58,6 +58,10 @@ export interface Recipe {
   description: string
   instructions: string[]
   servings: number
+  /** Hands-on prep time in minutes; null when not specified. */
+  prepTimeMinutes: number | null
+  /** Cooking time in minutes; null when not specified. */
+  cookTimeMinutes: number | null
   author: RecipeAuthor
   createdAt: string
   ingredients: RecipeIngredient[]
@@ -106,6 +110,8 @@ export interface RecipePayload {
   description: string
   instructions: string[]
   servings: number
+  prepTimeMinutes?: number | null
+  cookTimeMinutes?: number | null
   ingredients: RecipeIngredientPayload[]
 }
 
@@ -141,6 +147,10 @@ export interface SuggestPayload {
   maxToBuy: number
   /** Target ingredients per recipe; used in "surprise" mode. */
   numIngredients?: number
+  /** Target servings every suggested recipe should be sized for. */
+  servings?: number
+  /** Max total time (prep + cook) in minutes; 0 or omitted means no limit. */
+  maxTimeMinutes?: number
   preferences?: string
 }
 
@@ -154,6 +164,8 @@ export interface RecipeSuggestion {
   title: string
   description: string
   servings: number
+  prepTimeMinutes: number
+  cookTimeMinutes: number
   instructions: string[]
   usesIngredients: SuggestionIngredient[]
   toBuy: SuggestionIngredient[]

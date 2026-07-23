@@ -81,6 +81,8 @@ final class EntityPresenter
             'description' => $recipe->getDescription(),
             'instructions' => $recipe->getInstructionSteps(),
             'servings' => $recipe->getServings(),
+            'prepTimeMinutes' => $recipe->getPrepTimeMinutes(),
+            'cookTimeMinutes' => $recipe->getCookTimeMinutes(),
             'author' => [
                 'id' => $author?->getId(),
                 'name' => $author?->getName() ?? '',

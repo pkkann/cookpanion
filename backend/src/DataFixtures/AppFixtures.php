@@ -84,6 +84,8 @@ class AppFixtures extends Fixture
             'Fluffy breakfast pancakes made from pantry staples.',
             "1. Whisk flour, eggs and milk into a smooth batter.\n2. Melt a little butter in a pan over medium heat.\n3. Pour in batter and cook until golden on both sides.\n4. Serve warm.",
             4,
+            10,
+            15,
             [
                 ['Flour', 250, 'g'],
                 ['Eggs', 2, 'pcs'],
@@ -101,6 +103,8 @@ class AppFixtures extends Fixture
             'A quick weeknight pasta with a simple tomato and onion sauce.',
             "1. Cook the pasta in salted boiling water until al dente.\n2. Sauté chopped onion and tomato in butter.\n3. Toss the drained pasta with the sauce.\n4. Top with grated cheese and serve.",
             2,
+            10,
+            20,
             [
                 ['Pasta', 200, 'g'],
                 ['Tomato', 3, 'pcs'],
@@ -125,6 +129,8 @@ class AppFixtures extends Fixture
         string $description,
         string $instructions,
         int $servings,
+        int $prepTimeMinutes,
+        int $cookTimeMinutes,
         array $lines,
         array $ingredients,
     ): void {
@@ -133,6 +139,8 @@ class AppFixtures extends Fixture
             ->setDescription($description)
             ->setInstructions($instructions)
             ->setServings($servings)
+            ->setPrepTimeMinutes($prepTimeMinutes)
+            ->setCookTimeMinutes($cookTimeMinutes)
             ->setAuthor($author)
             ->setHousehold($household);
 

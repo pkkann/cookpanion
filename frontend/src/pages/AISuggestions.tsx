@@ -8,6 +8,7 @@ import Typography from '@mui/material/Typography'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Slider from '@mui/material/Slider'
+import MenuItem from '@mui/material/MenuItem'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import TextField from '@mui/material/TextField'
@@ -25,6 +26,7 @@ import KitchenIcon from '@mui/icons-material/Kitchen'
 import LocalDiningIcon from '@mui/icons-material/LocalDining'
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'
 import PeopleIcon from '@mui/icons-material/People'
+import AccessTimeIcon from '@mui/icons-material/AccessTime'
 import BookmarkAddIcon from '@mui/icons-material/BookmarkAdd'
 import PageHeader from '../components/PageHeader'
 import { useNotify } from '../components/SnackbarProvider'
@@ -32,12 +34,16 @@ import { useIngredients } from '../api/hooks'
 import { queryKeys } from '../api/hooks'
 import { createIngredient, createRecipe, suggestRecipes } from '../api/endpoints'
 import { errorMessage, errorStatus } from '../api/client'
+import { formatDuration, formatPrepCook } from '../utils/time'
 import type {
   Ingredient,
   RecipeIngredientPayload,
   RecipeSuggestion,
   SuggestMode,
 } from '../api/types'
+
+// Selectable ceilings for a recipe's total (prep + cook) time. 0 = no limit.
+const MAX_TIME_OPTIONS = [0, 15, 30, 45, 60, 90, 120]
 
 export default function AISuggestions() {
   const notify = useNotify()
@@ -50,6 +56,8 @@ export default function AISuggestions() {
   const [count, setCount] = useState(3)
   const [maxToBuy, setMaxToBuy] = useState(3)
   const [numIngredients, setNumIngredients] = useState(6)
+  const [servings, setServings] = useState(2)
+  const [maxTimeMinutes, setMaxTimeMinutes] = useState(0)
   const [preferences, setPreferences] = useState('')
 
   const [loading, setLoading] = useState(false)
@@ -72,6 +80,8 @@ export default function AISuggestions() {
         count,
         maxToBuy,
         numIngredients,
+        servings,
+        maxTimeMinutes,
         preferences: preferences.trim() || undefined,
       })
       setSuggestions(res.suggestions)
@@ -125,6 +135,8 @@ export default function AISuggestions() {
         description: suggestion.description,
         instructions: suggestion.instructions,
         servings: suggestion.servings,
+        prepTimeMinutes: suggestion.prepTimeMinutes || null,
+        cookTimeMinutes: suggestion.cookTimeMinutes || null,
         ingredients: recipeIngredients,
       })
 
@@ -191,6 +203,40 @@ export default function AISuggestions() {
               Number of recipe ideas to generate.
             </Typography>
           </Box>
+
+          <Box sx={{ maxWidth: 420, mb: 2 }}>
+            <Typography variant="subtitle2" gutterBottom>
+              Servings per recipe: <strong>{servings}</strong>
+            </Typography>
+            <Slider
+              value={servings}
+              onChange={(_e, val) => setServings(val as number)}
+              min={1}
+              max={12}
+              step={1}
+              marks
+              valueLabelDisplay="auto"
+            />
+            <Typography variant="caption" color="text.secondary">
+              Every suggestion is sized for this many people.
+            </Typography>
+          </Box>
+
+          <TextField
+            select
+            label="Max total time"
+            value={maxTimeMinutes}
+            onChange={(e) => setMaxTimeMinutes(Number(e.target.value))}
+            sx={{ maxWidth: 420, mb: 2 }}
+            fullWidth
+            helperText="Cap on prep + cook time for each recipe."
+          >
+            {MAX_TIME_OPTIONS.map((minutes) => (
+              <MenuItem key={minutes} value={minutes}>
+                {minutes === 0 ? 'No limit' : formatDuration(minutes)}
+              </MenuItem>
+            ))}
+          </TextField>
 
           {mode === 'surprise' ? (
             <Box sx={{ maxWidth: 420, mb: 2 }}>
@@ -294,12 +340,21 @@ export default function AISuggestions() {
                 <Typography variant="h6" gutterBottom>
                   {s.title}
                 </Typography>
-                <Chip
-                  size="small"
-                  icon={<PeopleIcon />}
-                  label={s.servings === 1 ? `${s.servings} serving` : `${s.servings} servings`}
-                  sx={{ mb: 1.5 }}
-                />
+                <Stack direction="row" spacing={1} useFlexGap sx={{ mb: 1.5, flexWrap: 'wrap' }}>
+                  <Chip
+                    size="small"
+                    icon={<PeopleIcon />}
+                    label={s.servings === 1 ? `${s.servings} serving` : `${s.servings} servings`}
+                  />
+                  {formatPrepCook(s.prepTimeMinutes, s.cookTimeMinutes) && (
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      icon={<AccessTimeIcon />}
+                      label={formatPrepCook(s.prepTimeMinutes, s.cookTimeMinutes)}
+                    />
+                  )}
+                </Stack>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                   {s.description}
                 </Typography>

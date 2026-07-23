@@ -24,6 +24,7 @@ import RemoveIcon from '@mui/icons-material/Remove'
 import RestartAltIcon from '@mui/icons-material/RestartAlt'
 import PeopleIcon from '@mui/icons-material/People'
 import RestaurantIcon from '@mui/icons-material/Restaurant'
+import AccessTimeIcon from '@mui/icons-material/AccessTime'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import WarningAmberIcon from '@mui/icons-material/WarningAmber'
 import CancelIcon from '@mui/icons-material/Cancel'
@@ -46,6 +47,7 @@ import { formatQuantity, scaleQuantity } from '../utils/quantity'
 import { computeAvailability } from '../utils/availability'
 import { addToStock } from '../utils/stock'
 import { useIsMobile } from '../utils/useIsMobile'
+import { formatPrepCook } from '../utils/time'
 import type { Availability } from '../utils/availability'
 import type { RecipeIngredient, StockItem } from '../api/types'
 
@@ -271,6 +273,13 @@ export default function RecipeDetail() {
                   variant="outlined"
                   label={`by ${recipe.author?.name ?? 'Unknown'}`}
                 />
+                {formatPrepCook(recipe.prepTimeMinutes, recipe.cookTimeMinutes) && (
+                  <Chip
+                    icon={<AccessTimeIcon />}
+                    variant="outlined"
+                    label={formatPrepCook(recipe.prepTimeMinutes, recipe.cookTimeMinutes)}
+                  />
+                )}
               </Stack>
             </Box>
             <Stack

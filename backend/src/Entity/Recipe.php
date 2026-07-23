@@ -27,6 +27,14 @@ class Recipe
     #[ORM\Column]
     private int $servings = 1;
 
+    /** Hands-on preparation time in whole minutes. Null when not specified. */
+    #[ORM\Column(nullable: true)]
+    private ?int $prepTimeMinutes = null;
+
+    /** Cooking time in whole minutes. Null when not specified. */
+    #[ORM\Column(nullable: true)]
+    private ?int $cookTimeMinutes = null;
+
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(nullable: false)]
     private ?User $author = null;
@@ -165,6 +173,30 @@ class Recipe
     public function setServings(int $servings): static
     {
         $this->servings = $servings;
+
+        return $this;
+    }
+
+    public function getPrepTimeMinutes(): ?int
+    {
+        return $this->prepTimeMinutes;
+    }
+
+    public function setPrepTimeMinutes(?int $prepTimeMinutes): static
+    {
+        $this->prepTimeMinutes = $prepTimeMinutes;
+
+        return $this;
+    }
+
+    public function getCookTimeMinutes(): ?int
+    {
+        return $this->cookTimeMinutes;
+    }
+
+    public function setCookTimeMinutes(?int $cookTimeMinutes): static
+    {
+        $this->cookTimeMinutes = $cookTimeMinutes;
 
         return $this;
     }
