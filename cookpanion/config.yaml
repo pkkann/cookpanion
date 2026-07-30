@@ -1,0 +1,25 @@
+name: Cookpanion
+slug: cookpanion
+description: Plan meals, track your kitchen stock, and cook with what you have.
+version: "1.0.0"
+url: https://github.com/pkkann/recipe_ai
+arch:
+  - amd64
+  - aarch64
+# Prebuilt multi-arch image pushed by .github/workflows/addon-image.yml.
+# The tag must match `version` above.
+image: ghcr.io/pkkann/cookpanion
+init: false
+ports:
+  80/tcp: 8099
+ports_description:
+  80/tcp: Web UI (direct access, no ingress)
+webui: http://[HOST]:[PORT:80]
+options:
+  google_client_id: ""
+  anthropic_api_key: ""
+  ai_model: claude-sonnet-4-5
+schema:
+  google_client_id: str?
+  anthropic_api_key: password?
+  ai_model: str?

@@ -1,13 +1,29 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Box from '@mui/material/Box'
+import { fetchAppConfig } from '../api/config'
 
-const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
 const GSI_SRC = 'https://accounts.google.com/gsi/client'
 const SCRIPT_ID = 'google-gsi-client'
 
-/** True when a Google client id is configured; pages use it to gate the button + divider. */
+/**
+ * Whether Google sign-in is configured on this installation. The client id
+ * comes from the backend at runtime (/api/config), so this is async: undefined
+ * while loading, then a boolean. Pages use it to gate the button + divider.
+ */
 // eslint-disable-next-line react-refresh/only-export-components
-export const googleSignInEnabled = Boolean(CLIENT_ID)
+export function useGoogleSignInEnabled(): boolean | undefined {
+  const [enabled, setEnabled] = useState<boolean | undefined>(undefined)
+  useEffect(() => {
+    let cancelled = false
+    fetchAppConfig().then((cfg) => {
+      if (!cancelled) setEnabled(Boolean(cfg.googleClientId))
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+  return enabled
+}
 
 interface GoogleCredentialResponse {
   credential?: string
@@ -61,23 +77,35 @@ interface Props {
 /**
  * Renders Google's official "Sign in with Google" button using Google Identity
  * Services directly (no npm dependency). On success Google hands us a signed ID
- * token, which the caller forwards to the backend. Renders nothing when no
- * client id is configured, so the app is unchanged until Google sign-in is set up.
+ * token, which the caller forwards to the backend. The client id is fetched
+ * from the backend at runtime; while it's missing nothing is rendered, so the
+ * app is unchanged until Google sign-in is set up.
  */
 export default function GoogleSignInButton({ onCredential }: Props) {
   const ref = useRef<HTMLDivElement | null>(null)
+  const [clientId, setClientId] = useState<string>('')
   // Keep the callback fresh without re-initializing GIS on every render.
   const cbRef = useRef(onCredential)
   cbRef.current = onCredential
 
   useEffect(() => {
-    if (!CLIENT_ID) return
+    let cancelled = false
+    fetchAppConfig().then((cfg) => {
+      if (!cancelled && cfg.googleClientId) setClientId(cfg.googleClientId)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!clientId) return
     let cancelled = false
     loadGsi()
       .then(() => {
         if (cancelled || !ref.current || !window.google) return
         window.google.accounts.id.initialize({
-          client_id: CLIENT_ID,
+          client_id: clientId,
           callback: (res) => {
             if (res.credential) cbRef.current(res.credential)
           },
@@ -100,9 +128,9 @@ export default function GoogleSignInButton({ onCredential }: Props) {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [clientId])
 
-  if (!CLIENT_ID) return null
+  if (!clientId) return null
 
   return <Box ref={ref} sx={{ display: 'flex', justifyContent: 'center' }} />
 }

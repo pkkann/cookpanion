@@ -32,6 +32,7 @@ security:
 
     # Note: only the *first* matching rule is applied.
     access_control:
+        - { path: ^/api/config, roles: PUBLIC_ACCESS }
         - { path: ^/api/auth/google, roles: PUBLIC_ACCESS }
         - { path: ^/api/token/refresh, roles: PUBLIC_ACCESS }
         - { path: ^/api, roles: ROLE_USER }

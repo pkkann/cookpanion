@@ -4,11 +4,12 @@ import Alert from '@mui/material/Alert'
 import { useAuth } from '../auth/AuthContext'
 import { errorMessage } from '../api/client'
 import AuthShell from '../components/AuthShell'
-import GoogleSignInButton, { googleSignInEnabled } from '../auth/GoogleSignInButton'
+import GoogleSignInButton, { useGoogleSignInEnabled } from '../auth/GoogleSignInButton'
 import { useT } from '../i18n/LanguageProvider'
 
 export default function Login() {
   const { user, loginWithGoogle } = useAuth()
+  const googleSignInEnabled = useGoogleSignInEnabled()
   const t = useT()
   const navigate = useNavigate()
   const location = useLocation()
@@ -42,7 +43,8 @@ export default function Login() {
           {error}
         </Alert>
       )}
-      {googleSignInEnabled ? (
+      {/* undefined = config still loading; show nothing rather than flashing the fallback */}
+      {googleSignInEnabled !== false ? (
         <GoogleSignInButton onCredential={handleGoogle} />
       ) : (
         <Alert severity="info">{t("Sign-in isn't available right now. Please try again later.")}</Alert>

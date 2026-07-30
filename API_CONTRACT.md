@@ -19,6 +19,13 @@ Shared contract between the Symfony backend (`backend/`) and the React SPA (`fro
 - **Recipe**: id, title, description, instructions (markdown/plain text), servings (int), prepTimeMinutes (int|null), cookTimeMinutes (int|null), author (User), createdAt — scoped to household
 - **RecipeIngredient**: ingredientId, quantity (float), unit — embedded in a Recipe
 
+## Runtime config
+
+### GET /config
+Public (no auth). Returns per-installation settings the prebuilt SPA cannot know at
+build time: `{ "googleClientId": string }` (empty string when Google sign-in is not
+configured — the frontend hides the button).
+
 ## Auth
 
 Sign-in is **Google-only**. `POST /auth/google` is the single entry point for both

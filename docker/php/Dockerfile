@@ -10,7 +10,6 @@ RUN apk add --no-cache \
         oniguruma-dev \
     && apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
     && docker-php-ext-install -j"$(nproc)" \
-        pdo_mysql \
         intl \
         zip \
         opcache \

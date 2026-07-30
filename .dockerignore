@@ -1,0 +1,11 @@
+.git
+.env
+backend/vendor
+backend/var
+backend/.env.local
+backend/config/jwt/*.pem
+frontend/node_modules
+frontend/dist
+cookpanion
+.github
+.claude
