@@ -310,7 +310,7 @@ export default function Settings() {
               <Typography variant="subtitle2">{t('Invite link')}</Typography>
               <Typography variant="body2" color="text.secondary">
                 {t(
-                  'Share this link so someone can join this household and see the same ingredients, stock, recipes and plan.',
+                  'Share this link so someone can join this household and see the same recipes and meal plan.',
                 )}
               </Typography>
               <TextField

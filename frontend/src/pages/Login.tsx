@@ -59,7 +59,7 @@ export default function Login() {
   return (
     <AuthShell
       title={t('Welcome to Cookpanion')}
-      subtitle={t("Sign in to plan meals with what's already in your kitchen.")}
+      subtitle={t('Sign in to plan your meals and keep your recipes together.')}
       footer={
         appConfig?.allowRegistration !== false ? (
           <Typography variant="body2" color="text.secondary">

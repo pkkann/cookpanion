@@ -31,26 +31,14 @@ export interface RefreshResponse {
   refresh_token: string
 }
 
+/**
+ * Internal recipe-line vocabulary: created implicitly by the recipe form's
+ * autocomplete and AI flows. There is no ingredient management UI.
+ */
 export interface Ingredient {
   id: number
   name: string
   defaultUnit: string | null
-  /** A pantry staple that never runs out (e.g. water) — always counts as available. */
-  alwaysInStock: boolean
-  // Referenced by kitchen stock or a recipe → can't be deleted. Present on
-  // ingredient endpoints; may be absent when an Ingredient is nested elsewhere.
-  inUse?: boolean
-  /** Has a kitchen stock row. Present on ingredient endpoints. */
-  usedInKitchen?: boolean
-  /** Referenced by at least one recipe. Present on ingredient endpoints. */
-  usedInRecipes?: boolean
-}
-
-export interface StockItem {
-  id: number
-  ingredient: Ingredient
-  quantity: number
-  unit: string
 }
 
 export interface RecipeIngredient {
@@ -98,18 +86,6 @@ export interface GoogleAuthPayload {
 export interface IngredientPayload {
   name: string
   defaultUnit?: string | null
-  alwaysInStock?: boolean
-}
-
-export interface StockCreatePayload {
-  ingredientId: number
-  quantity: number
-  unit: string
-}
-
-export interface StockUpdatePayload {
-  quantity: number
-  unit: string
 }
 
 export interface RecipeIngredientPayload {
@@ -128,11 +104,6 @@ export interface RecipePayload {
   ingredients: RecipeIngredientPayload[]
 }
 
-export interface CookItem {
-  ingredientId: number
-  quantity: number
-}
-
 export interface PlannedMealCreatePayload {
   recipeId: number
   /** Date-only ISO string, `YYYY-MM-DD`. */
@@ -145,21 +116,11 @@ export interface PlannedMealUpdatePayload {
   servings?: number
 }
 
-export interface CookPayload {
-  items: CookItem[]
-}
-
 // ---- AI suggestions ----
 
-export type SuggestMode = 'kitchen' | 'all' | 'surprise'
-
 export interface SuggestPayload {
-  mode: SuggestMode
   /** How many recipes to generate. */
   count?: number
-  maxToBuy: number
-  /** Target ingredients per recipe; used in "surprise" mode. */
-  numIngredients?: number
   /** Target servings every suggested recipe should be sized for. */
   servings?: number
   /** Max total time (prep + cook) in minutes; 0 or omitted means no limit. */
@@ -180,8 +141,7 @@ export interface RecipeSuggestion {
   prepTimeMinutes: number
   cookTimeMinutes: number
   instructions: string[]
-  usesIngredients: SuggestionIngredient[]
-  toBuy: SuggestionIngredient[]
+  ingredients: SuggestionIngredient[]
 }
 
 export interface SuggestResponse {

@@ -48,7 +48,7 @@ export default function Onboarding() {
     <AuthShell
       title={t('Name your kitchen')}
       subtitle={t(
-        'Give your household a name so you can share ingredients, stock and recipes. You can change it later in settings.',
+        'Give your household a name so you can share recipes and meal plans. You can change it later in settings.',
       )}
     >
       <Box component="form" onSubmit={handleSubmit} noValidate>

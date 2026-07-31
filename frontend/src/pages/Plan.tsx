@@ -17,15 +17,12 @@ import Autocomplete from '@mui/material/Autocomplete'
 import Stack from '@mui/material/Stack'
 import Skeleton from '@mui/material/Skeleton'
 import Alert from '@mui/material/Alert'
-import Paper from '@mui/material/Paper'
 import Link from '@mui/material/Link'
-import Tooltip from '@mui/material/Tooltip'
 import AddIcon from '@mui/icons-material/Add'
 import RemoveIcon from '@mui/icons-material/Remove'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/DeleteOutlined'
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'
 import PageHeader from '../components/PageHeader'
 import EmptyState from '../components/EmptyState'
 import ConfirmDialog from '../components/ConfirmDialog'
@@ -34,21 +31,15 @@ import { useNotify } from '../components/SnackbarProvider'
 import { useT } from '../i18n/LanguageProvider'
 import {
   useCreatePlannedMeal,
-  useCreateStock,
   useDeletePlannedMeal,
   usePlannedMeals,
   useRecipes,
-  useStock,
   useUpdatePlannedMeal,
-  useUpdateStock,
 } from '../api/hooks'
-import type { PlannedMeal, Recipe, StockItem } from '../api/types'
+import type { PlannedMeal, Recipe } from '../api/types'
 import { errorMessage } from '../api/client'
-import { formatQuantity } from '../utils/quantity'
-import { addDaysIso, formatWeekdayDate, todayIso } from '../utils/date'
-import { planShoppingList } from '../utils/planShoppingList'
-import type { PlanBuyItem } from '../utils/planShoppingList'
-import { addToStock } from '../utils/stock'
+import { todayIso } from '../utils/date'
+import { usePlanDateLabel } from '../utils/usePlanDateLabel'
 import { useIsMobile } from '../utils/useIsMobile'
 
 export default function Plan() {
@@ -58,13 +49,10 @@ export default function Plan() {
 
   const { data: plannedMeals, isLoading, isError, error } = usePlannedMeals()
   const { data: recipes } = useRecipes()
-  const { data: stock } = useStock()
 
   const createMut = useCreatePlannedMeal()
   const updateMut = useUpdatePlannedMeal()
   const deleteMut = useDeletePlannedMeal()
-  const createStock = useCreateStock()
-  const updateStock = useUpdateStock()
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<PlannedMeal | null>(null)
@@ -76,13 +64,7 @@ export default function Plan() {
   const [servings, setServings] = useState(0)
 
   const today = todayIso()
-  const tomorrow = addDaysIso(today, 1)
-
-  const dateLabel = (iso: string) => {
-    if (iso === today) return t('Today')
-    if (iso === tomorrow) return t('Tomorrow')
-    return formatWeekdayDate(iso)
-  }
+  const dateLabel = usePlanDateLabel()
 
   // Upcoming meals (today onward), grouped by date in ascending order.
   const groups = useMemo(() => {
@@ -98,21 +80,10 @@ export default function Plan() {
     return [...map.entries()]
   }, [plannedMeals, today])
 
-  const shopping = useMemo(
-    () => planShoppingList(plannedMeals ?? [], stock ?? []),
-    [plannedMeals, stock],
-  )
-
   const plannedDates = useMemo(
     () => new Set((plannedMeals ?? []).map((m) => m.date)),
     [plannedMeals],
   )
-
-  const stockById = useMemo(() => {
-    const m = new Map<number, StockItem>()
-    for (const s of stock ?? []) m.set(s.ingredient.id, s)
-    return m
-  }, [stock])
 
   const openAdd = () => {
     setEditing(null)
@@ -164,40 +135,11 @@ export default function Plan() {
     }
   }
 
-  const stockBusy = createStock.isPending || updateStock.isPending
-
-  const addOne = (item: PlanBuyItem) =>
-    addToStock(
-      { ingredientId: item.ingredientId, quantity: item.shortfall, unit: item.unit },
-      stockById,
-      { createStock: createStock.mutateAsync, updateStock: updateStock.mutateAsync },
-    )
-
-  const handleAddToKitchen = async (item: PlanBuyItem) => {
-    try {
-      await addOne(item)
-      notify(t('Added {name} to your kitchen', { name: item.name }), 'success')
-    } catch (err) {
-      notify(errorMessage(err, t('Could not save stock')), 'error')
-    }
-  }
-
-  const handleAddAllToKitchen = async () => {
-    try {
-      for (const item of shopping.toBuy) {
-        await addOne(item)
-      }
-      notify(t('Added everything to your kitchen'), 'success')
-    } catch (err) {
-      notify(errorMessage(err, t('Could not save stock')), 'error')
-    }
-  }
-
   return (
     <Box>
       <PageHeader
         title={t('Meal plan')}
-        subtitle={t('Plan what to cook and see what you need to buy.')}
+        subtitle={t('Plan what to cook, day by day.')}
         action={
           <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd}>
             {t('Plan a meal')}
@@ -221,7 +163,7 @@ export default function Plan() {
         <EmptyState
           icon={<CalendarMonthIcon fontSize="inherit" />}
           title={t('Nothing planned yet')}
-          description={t('Plan a recipe for a day to start building your shopping list.')}
+          description={t('Plan a recipe for a day to fill your week.')}
           action={
             <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd}>
               {t('Plan a meal')}
@@ -229,16 +171,8 @@ export default function Plan() {
           }
         />
       ) : (
-        <Box
-          sx={{
-            display: 'grid',
-            gap: 3,
-            gridTemplateColumns: { xs: '1fr', md: '3fr 2fr' },
-            alignItems: 'start',
-          }}
-        >
-          {/* Upcoming meals grouped by date */}
-          <Stack spacing={2}>
+        /* Upcoming meals grouped by date */
+        <Stack spacing={2}>
             {groups.map(([groupDate, meals]) => (
               <Box key={groupDate}>
                 <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
@@ -259,7 +193,7 @@ export default function Plan() {
                         <Box sx={{ minWidth: 0 }}>
                           <Link
                             component={RouterLink}
-                            to={`/recipes/${meal.recipe.id}`}
+                            to={`/recipes/${meal.recipe.id}?servings=${meal.servings}`}
                             variant="subtitle1"
                             sx={{ fontWeight: 600 }}
                             underline="hover"
@@ -298,73 +232,7 @@ export default function Plan() {
                 </Stack>
               </Box>
             ))}
-          </Stack>
-
-          {/* Shopping list for the plan */}
-          <Paper variant="outlined" sx={{ p: 2.5 }}>
-            <Typography
-              variant="h6"
-              sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
-            >
-              <ShoppingCartIcon fontSize="small" /> {t('To buy for this plan')}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
-              {t("Across your upcoming meals, minus what's already in your kitchen.")}
-            </Typography>
-
-            {shopping.toBuy.length === 0 ? (
-              <Alert severity="success" sx={{ py: 0.25 }}>
-                {t('You have everything you need for your planned meals.')}
-              </Alert>
-            ) : (
-              <>
-                <Stack spacing={0.25} sx={{ mb: 1.5 }}>
-                  {shopping.toBuy.map((item) => (
-                    <Stack
-                      key={`${item.ingredientId}-${item.unit}`}
-                      direction="row"
-                      spacing={1}
-                      sx={{ alignItems: 'center', justifyContent: 'space-between' }}
-                    >
-                      <Typography variant="body2">
-                        {`${item.name} — ${formatQuantity(item.shortfall)} ${item.unit}`.trim()}
-                      </Typography>
-                      <Tooltip title={t('Add to kitchen')}>
-                        <span>
-                          <IconButton
-                            size="small"
-                            disabled={stockBusy}
-                            aria-label={t('Add to kitchen')}
-                            onClick={() => handleAddToKitchen(item)}
-                          >
-                            <AddIcon fontSize="small" />
-                          </IconButton>
-                        </span>
-                      </Tooltip>
-                    </Stack>
-                  ))}
-                </Stack>
-                <Button
-                  size="small"
-                  startIcon={<AddIcon />}
-                  disabled={stockBusy}
-                  onClick={handleAddAllToKitchen}
-                  sx={{ mt: 0.5 }}
-                >
-                  {t('Add all to kitchen')}
-                </Button>
-              </>
-            )}
-
-            {shopping.unknown.length > 0 && (
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5 }}>
-                {t('Check manually (unit differs from your kitchen): {names}', {
-                  names: shopping.unknown.map((u) => u.name).join(', '),
-                })}
-              </Typography>
-            )}
-          </Paper>
-        </Box>
+        </Stack>
       )}
 
       {/* Plan / edit dialog */}

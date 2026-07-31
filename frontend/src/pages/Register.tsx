@@ -71,7 +71,7 @@ export default function Register() {
   return (
     <AuthShell
       title={t('Create your account')}
-      subtitle={t("Plan meals with what's already in your kitchen. You'll name your household in the next step.")}
+      subtitle={t("Plan meals and collect your recipes. You'll name your household in the next step.")}
       footer={
         <Typography variant="body2" color="text.secondary">
           {t('Already have an account?')}{' '}

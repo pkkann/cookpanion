@@ -10,17 +10,15 @@ import Chip from '@mui/material/Chip'
 import Stack from '@mui/material/Stack'
 import Skeleton from '@mui/material/Skeleton'
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
-import KitchenIcon from '@mui/icons-material/Kitchen'
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu'
-import LocalDiningIcon from '@mui/icons-material/LocalDining'
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
 import { useAuth } from '../auth/AuthContext'
 import { useAiEnabled } from '../api/config'
 import { useT } from '../i18n/LanguageProvider'
-import { useIngredients, usePlannedMeals, useRecipes, useStock } from '../api/hooks'
-import { formatWeekdayDate, todayIso } from '../utils/date'
-import { planShoppingList } from '../utils/planShoppingList'
+import { usePlannedMeals, useRecipes } from '../api/hooks'
+import { todayIso } from '../utils/date'
+import { usePlanDateLabel } from '../utils/usePlanDateLabel'
 
 interface StatCardProps {
   label: string
@@ -70,9 +68,8 @@ export default function Dashboard() {
   const t = useT()
   const navigate = useNavigate()
   const aiEnabled = useAiEnabled()
+  const dateLabel = usePlanDateLabel()
   const { user } = useAuth()
-  const ingredients = useIngredients()
-  const stock = useStock()
   const recipes = useRecipes()
   const plannedMeals = usePlannedMeals()
 
@@ -84,7 +81,10 @@ export default function Dashboard() {
     .filter((m) => m.date >= today)
     .sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id)
   const nextMeals = upcomingMeals.slice(0, 3)
-  const buyCount = planShoppingList(plannedMeals.data ?? [], stock.data ?? []).toBuy.length
+  // Something is planned for today → the user already knows what to cook, so
+  // the hero shows that instead of the AI pitch.
+  const todaysMeals = upcomingMeals.filter((m) => m.date === today)
+  const todaysMeal = todaysMeals[0]
 
   return (
     <Box>
@@ -97,8 +97,51 @@ export default function Dashboard() {
         })}
       </Typography>
 
-      {/* Hero CTA — only when the server has AI configured */}
-      {aiEnabled && (
+      {/* Hero — today's planned meal wins; the AI pitch is the fallback */}
+      {todaysMeal ? (
+        <Paper
+          sx={{
+            p: { xs: 3, md: 4 },
+            mb: 4,
+            color: 'primary.contrastText',
+            bgcolor: 'primary.main',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 2,
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <Box>
+            <Typography variant="overline" sx={{ opacity: 0.85, letterSpacing: 1 }}>
+              {t("On today's menu")}
+            </Typography>
+            <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+              {todaysMeal.recipe.title}
+            </Typography>
+            <Typography variant="body1" sx={{ opacity: 0.92 }}>
+              {todaysMeal.servings === 1
+                ? t('{count} serving', { count: todaysMeal.servings })
+                : t('{count} servings', { count: todaysMeal.servings })}
+              {todaysMeals.length > 1 &&
+                ` · ${t('{count} more planned today', { count: todaysMeals.length - 1 })}`}
+            </Typography>
+          </Box>
+          <Button
+            variant="contained"
+            size="large"
+            startIcon={<RestaurantMenuIcon />}
+            onClick={() => navigate(`/recipes/${todaysMeal.recipe.id}?servings=${todaysMeal.servings}`)}
+            sx={{
+              bgcolor: 'background.paper',
+              color: 'primary.main',
+              '&:hover': { bgcolor: 'grey.100' },
+            }}
+          >
+            {t('Open recipe')}
+          </Button>
+        </Paper>
+      ) : aiEnabled && (
         <Paper
           sx={{
             p: { xs: 3, md: 4 },
@@ -118,7 +161,7 @@ export default function Dashboard() {
             </Typography>
             <Typography variant="body1" sx={{ opacity: 0.92, maxWidth: 520 }}>
               {t(
-                "Get AI recipe ideas based on what's already in your kitchen — plus a short shopping list when you need a little extra.",
+                "Get AI recipe ideas tuned to your household's taste — ready to save and plan.",
               )}
             </Typography>
           </Box>
@@ -162,17 +205,10 @@ export default function Dashboard() {
                 <Chip
                   key={m.id}
                   size="small"
-                  label={`${formatWeekdayDate(m.date)} · ${m.recipe.title}`}
+                  label={`${dateLabel(m.date)} · ${m.recipe.title}`}
                 />
               ))}
             </Stack>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              {buyCount > 0
-                ? buyCount === 1
-                  ? t('1 ingredient to buy')
-                  : t('{count} ingredients to buy', { count: buyCount })
-                : t("Everything's already in your kitchen")}
-            </Typography>
           </Box>
           <Button
             variant="contained"
@@ -189,24 +225,10 @@ export default function Dashboard() {
         sx={{
           display: 'grid',
           gap: 2,
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
           mb: 4,
         }}
       >
-        <StatCard
-          label={t('Ingredients')}
-          value={ingredients.data?.length ?? 0}
-          loading={ingredients.isLoading}
-          icon={<LocalDiningIcon />}
-          to="/ingredients"
-        />
-        <StatCard
-          label={t('In your kitchen')}
-          value={stock.data?.length ?? 0}
-          loading={stock.isLoading}
-          icon={<KitchenIcon />}
-          to="/kitchen"
-        />
         <StatCard
           label={t('Recipes')}
           value={recipes.data?.length ?? 0}
@@ -236,9 +258,9 @@ export default function Dashboard() {
       >
         {[
           {
-            title: t('Stock your kitchen'),
-            body: t('Track what you have on hand so suggestions stay realistic.'),
-            to: '/kitchen',
+            title: t('Plan your meals'),
+            body: t('Pick recipes for the days ahead so dinner is already decided.'),
+            to: '/plan',
           },
           {
             title: t('Build a recipe'),

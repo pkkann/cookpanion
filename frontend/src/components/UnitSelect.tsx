@@ -2,6 +2,7 @@ import MenuItem from '@mui/material/MenuItem'
 import TextField from '@mui/material/TextField'
 import { UNIT_OPTIONS } from '../constants/units'
 import { useT } from '../i18n/LanguageProvider'
+import { useUnitLabel } from '../i18n/unitLabels'
 
 interface UnitSelectProps {
   value: string
@@ -33,6 +34,7 @@ export default function UnitSelect({
   sx,
 }: UnitSelectProps) {
   const t = useT()
+  const u = useUnitLabel()
   const options: string[] = [...UNIT_OPTIONS]
   if (value && !options.includes(value)) {
     options.unshift(value)
@@ -57,7 +59,7 @@ export default function UnitSelect({
       )}
       {options.map((unit) => (
         <MenuItem key={unit} value={unit}>
-          {unit}
+          {u(unit)}
         </MenuItem>
       ))}
     </TextField>

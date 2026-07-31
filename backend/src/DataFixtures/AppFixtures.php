@@ -6,7 +6,6 @@ use App\Entity\Household;
 use App\Entity\Ingredient;
 use App\Entity\Recipe;
 use App\Entity\RecipeIngredient;
-use App\Entity\StockItem;
 use App\Entity\User;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
@@ -54,26 +53,6 @@ class AppFixtures extends Fixture
                 ->setHousehold($household);
             $manager->persist($ingredient);
             $ingredients[$name] = $ingredient;
-        }
-
-        // Kitchen stock (a subset, with quantities).
-        $stock = [
-            'Eggs' => [6, 'pcs'],
-            'Flour' => [1000, 'g'],
-            'Milk' => [500, 'ml'],
-            'Butter' => [250, 'g'],
-            'Tomato' => [4, 'pcs'],
-            'Onion' => [3, 'pcs'],
-            'Pasta' => [500, 'g'],
-            'Cheese' => [200, 'g'],
-        ];
-        foreach ($stock as $name => [$quantity, $unit]) {
-            $item = (new StockItem())
-                ->setIngredient($ingredients[$name])
-                ->setQuantity((float) $quantity)
-                ->setUnit($unit)
-                ->setHousehold($household);
-            $manager->persist($item);
         }
 
         $this->createRecipe(

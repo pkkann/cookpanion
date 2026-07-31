@@ -1,18 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import * as api from './endpoints'
 import type {
-  CookPayload,
   IngredientPayload,
   PlannedMealCreatePayload,
   PlannedMealUpdatePayload,
   RecipePayload,
-  StockCreatePayload,
-  StockUpdatePayload,
 } from './types'
 
 export const queryKeys = {
   ingredients: ['ingredients'] as const,
-  stock: ['stock'] as const,
   recipes: ['recipes'] as const,
   recipe: (id: number) => ['recipes', id] as const,
   plannedMeals: ['plannedMeals'] as const,
@@ -28,59 +24,6 @@ export function useCreateIngredient() {
   return useMutation({
     mutationFn: (payload: IngredientPayload) => api.createIngredient(payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.ingredients }),
-  })
-}
-
-export function useUpdateIngredient() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: IngredientPayload }) =>
-      api.updateIngredient(id, payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.ingredients })
-      qc.invalidateQueries({ queryKey: queryKeys.stock })
-    },
-  })
-}
-
-export function useDeleteIngredient() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (id: number) => api.deleteIngredient(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.ingredients })
-      qc.invalidateQueries({ queryKey: queryKeys.stock })
-    },
-  })
-}
-
-// ---- Stock ----
-export function useStock() {
-  return useQuery({ queryKey: queryKeys.stock, queryFn: api.listStock })
-}
-
-export function useCreateStock() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (payload: StockCreatePayload) => api.createStock(payload),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.stock }),
-  })
-}
-
-export function useUpdateStock() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: StockUpdatePayload }) =>
-      api.updateStock(id, payload),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.stock }),
-  })
-}
-
-export function useDeleteStock() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (id: number) => api.deleteStock(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.stock }),
   })
 }
 
@@ -122,19 +65,6 @@ export function useDeleteRecipe() {
   return useMutation({
     mutationFn: (id: number) => api.deleteRecipe(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.recipes }),
-  })
-}
-
-export function useCookRecipe() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: CookPayload }) =>
-      api.cookRecipe(id, payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.stock })
-      // Cooking removes the recipe's next planned meal server-side.
-      qc.invalidateQueries({ queryKey: queryKeys.plannedMeals })
-    },
   })
 }
 

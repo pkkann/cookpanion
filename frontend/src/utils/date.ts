@@ -29,11 +29,16 @@ export function addDaysIso(iso: string, days: number): string {
   return toIso(d)
 }
 
-/** Weekday + day + month for a `YYYY-MM-DD`. */
-export function formatWeekdayDate(iso: string): string {
-  return new Intl.DateTimeFormat('en', {
+/** Weekday + day + month for a `YYYY-MM-DD`, in the given locale. */
+export function formatWeekdayDate(iso: string, locale: string = 'en'): string {
+  return new Intl.DateTimeFormat(locale, {
     weekday: 'long',
     day: 'numeric',
     month: 'short',
   }).format(parseIso(iso))
+}
+
+/** Localized weekday name ("Friday" / "fredag") for a `YYYY-MM-DD`. */
+export function formatWeekday(iso: string, locale: string = 'en'): string {
+  return new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(parseIso(iso))
 }

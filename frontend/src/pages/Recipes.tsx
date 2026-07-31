@@ -100,7 +100,7 @@ export default function Recipes() {
           title={t('No recipes yet')}
           description={
             aiEnabled
-              ? t('Create a recipe by hand, or let the AI suggest recipes based on your kitchen.')
+              ? t('Create a recipe by hand, or let the AI suggest some ideas.')
               : t('Create a recipe by hand to get started.')
           }
           action={

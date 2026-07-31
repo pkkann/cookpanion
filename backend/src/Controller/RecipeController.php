@@ -8,7 +8,6 @@ use App\Entity\User;
 use App\Repository\IngredientRepository;
 use App\Repository\PlannedMealRepository;
 use App\Repository\RecipeRepository;
-use App\Repository\StockItemRepository;
 use App\Service\EntityPresenter;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -23,7 +22,6 @@ class RecipeController extends AbstractApiController
         private readonly EntityManagerInterface $em,
         private readonly RecipeRepository $recipes,
         private readonly IngredientRepository $ingredients,
-        private readonly StockItemRepository $stock,
         private readonly PlannedMealRepository $plannedMeals,
         private readonly EntityPresenter $presenter,
     ) {
@@ -104,84 +102,6 @@ class RecipeController extends AbstractApiController
         $this->em->flush();
 
         return $this->json($this->presenter->recipe($recipe));
-    }
-
-    /**
-     * Deducts the given amounts from the household's kitchen stock ("cooking" the
-     * recipe). All deductions are applied in a single flush; a stock row depleted
-     * to zero (or below) is removed from the kitchen entirely. Ingredients with no
-     * stock row are silently skipped. Cooking also removes the recipe's next
-     * upcoming planned meal from the plan (if any). Returns the updated stock list.
-     */
-    #[Route('/{id}/cook', name: 'api_recipes_cook', methods: ['POST'], requirements: ['id' => '\d+'])]
-    public function cook(int $id, Request $request): JsonResponse
-    {
-        $recipe = $this->find($id);
-        if ($recipe instanceof JsonResponse) {
-            return $recipe;
-        }
-
-        $data = $this->decode($request);
-        if ($data instanceof JsonResponse) {
-            return $data;
-        }
-
-        $items = $data['items'] ?? null;
-        if (!\is_array($items)) {
-            return $this->json(['error' => 'Validation failed', 'details' => ['items' => 'Must be an array.']], Response::HTTP_BAD_REQUEST);
-        }
-
-        $household = $this->household();
-
-        foreach ($items as $index => $line) {
-            if (!\is_array($line)) {
-                return $this->json(['error' => 'Validation failed', 'details' => ["items[$index]" => 'Must be an object.']], Response::HTTP_BAD_REQUEST);
-            }
-
-            $ingredientId = (int) ($line['ingredientId'] ?? 0);
-            $quantity = max(0.0, (float) ($line['quantity'] ?? 0));
-            if ($ingredientId <= 0 || 0.0 === $quantity) {
-                continue;
-            }
-
-            $ingredient = $this->ingredients->findOneBy(['id' => $ingredientId, 'household' => $household]);
-            if (null === $ingredient) {
-                continue;
-            }
-
-            $stock = $this->stock->findOneBy(['ingredient' => $ingredient, 'household' => $household]);
-            if (null === $stock) {
-                continue;
-            }
-
-            $newQuantity = $stock->getQuantity() - $quantity;
-            if ($newQuantity <= 0) {
-                // Fully used up — drop it from the kitchen rather than keeping a 0 row.
-                $this->em->remove($stock);
-            } else {
-                $stock->setQuantity($newQuantity);
-            }
-        }
-
-        // Cooking the recipe crosses off its next upcoming planned meal (today or
-        // later). Only the soonest occurrence is removed; other planned days stay.
-        $today = new \DateTimeImmutable('today');
-        $planned = $this->plannedMeals->findBy(
-            ['recipe' => $recipe, 'household' => $household],
-            ['date' => 'ASC', 'id' => 'ASC'],
-        );
-        foreach ($planned as $meal) {
-            if ($meal->getDate() >= $today) {
-                $this->em->remove($meal);
-                break;
-            }
-        }
-
-        $this->em->flush();
-
-        $updated = $this->stock->findBy(['household' => $household]);
-
-        return $this->json(array_map($this->presenter->stockItem(...), $updated));
     }
 
     #[Route('/{id}', name: 'api_recipes_delete', methods: ['DELETE'], requirements: ['id' => '\d+'])]

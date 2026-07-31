@@ -8,14 +8,13 @@ Shared contract between the Symfony backend (`backend/`) and the React SPA (`fro
 - Auth: JWT Bearer. Send `Authorization: Bearer <token>` on every endpoint except `GET /config`, `POST /register`, `POST /login`, `POST /auth/google`, and `POST /token/refresh`.
 - The access `token` is short-lived (~1h). Auth responses also return a long-lived `refresh_token` (~30d); when a request returns `401`, exchange the refresh token at `POST /token/refresh` for a new pair and replay the request.
 - Errors use standard HTTP status codes with body: `{ "error": "message", "details"?: {...} }`.
-- All domain data is scoped to the authenticated user's **household**. A user only ever sees their household's ingredients, stock, and recipes.
+- All domain data is scoped to the authenticated user's **household**. A user only ever sees their household's recipes and meal plan.
 
 ## Data model (conceptual)
 
 - **User**: id, email, name, household (belongs to one household)
 - **Household**: id, name, language (`"en"` | `"da"`, default `"en"` — the content language for AI-generated/imported recipes & ingredients), members[]
-- **Ingredient**: id, name, defaultUnit (e.g. "g", "ml", "pcs") — scoped to household
-- **StockItem** (what's in the kitchen): id, ingredient, quantity (float), unit — scoped to household; one row per ingredient
+- **Ingredient**: id, name, defaultUnit (e.g. "g", "ml", "pcs") — household-scoped **internal vocabulary** for recipe lines; created implicitly, never managed directly
 - **Recipe**: id, title, description, instructions (markdown/plain text), servings (int), prepTimeMinutes (int|null), cookTimeMinutes (int|null), author (User), createdAt — scoped to household
 - **RecipeIngredient**: ingredientId, quantity (float), unit — embedded in a Recipe
 
@@ -89,22 +88,15 @@ Updates the current user's household. Body may include `"name"` (non-empty) and/
 
 ## Ingredients  `/api/ingredients`
 
+Ingredients exist **only** as the household's recipe-line vocabulary: the recipe
+form's autocomplete lists them and creates missing ones on save (the AI flows do
+the same). There is no ingredient-management UI, so only two endpoints exist.
+Rows no longer referenced by any recipe are harmless and simply accumulate.
+
 - `GET /ingredients` → `Ingredient[]`
 - `POST /ingredients` body `{ "name", "defaultUnit"? }` → `201 Ingredient`
-- `GET /ingredients/{id}` → `Ingredient`
-- `PUT /ingredients/{id}` body `{ "name", "defaultUnit"? }` → `Ingredient`
-- `DELETE /ingredients/{id}` → `204`
 
 `Ingredient` shape: `{ "id": int, "name": string, "defaultUnit": string|null }`
-
-## Kitchen stock  `/api/stock`
-
-- `GET /stock` → `StockItem[]`
-- `POST /stock` body `{ "ingredientId": int, "quantity": float, "unit": string }` → `201 StockItem`
-- `PUT /stock/{id}` body `{ "quantity": float, "unit": string }` → `StockItem`, or `204` if the update leaves quantity ≤ 0 (the row is deleted — a stock row is never kept at zero).
-- `DELETE /stock/{id}` → `204`
-
-`StockItem` shape: `{ "id": int, "ingredient": Ingredient, "quantity": float, "unit": string }`
 
 ## Recipes  `/api/recipes`
 
@@ -113,9 +105,6 @@ Updates the current user's household. Body may include `"name"` (non-empty) and/
 - `GET /recipes/{id}` → `Recipe`
 - `PUT /recipes/{id}` → `Recipe`
 - `DELETE /recipes/{id}` → `204`
-- `POST /recipes/{id}/cook` body `{ "items": [ { "ingredientId": int, "quantity": number } ] }` → `StockItem[]` (updated stock)
-  - Deducts each amount from the household's matching stock row in one transaction. A row depleted to 0 (or below) is removed from the kitchen. Ingredients with no stock row are skipped. Returns the full updated stock list.
-  - Side effect: also removes the recipe's **next upcoming** planned meal (soonest date ≥ today) from the plan, if any. Only that one occurrence is removed; other planned days for the recipe are kept.
 
 Recipe request body:
 ```json
@@ -178,26 +167,22 @@ the collection of a household's planned meals *is* the plan.
 }
 ```
 
-The "what to buy for the plan" shopping list is computed **client-side** from planned meals (from
-today onward) minus current stock — there is no server-side aggregation endpoint.
-
 ## AI recipe suggestions  `/api/ai/suggest-recipes`
 
 `POST /ai/suggest-recipes`
-Body:
+Body (all optional):
 ```json
 {
-  "mode": "kitchen" | "all" | "surprise", // "kitchen" = only current stock; "all" = all household ingredients; "surprise" = ignore the kitchen, propose from scratch
   "count": 3,                           // how many recipes to generate; clamped 1–8, default 3
-  "maxToBuy": 3,                        // (kitchen/all) max extra ingredients allowed to buy (0 = strict)
-  "numIngredients": 6,                  // (surprise) target ingredients per recipe; clamped 2–20, default 6
   "servings": 2,                        // target servings each recipe is sized for; clamped 1–20, default 2
   "maxTimeMinutes": 30,                 // cap on prep + cook time per recipe; clamped 0–600, 0 = no limit
-  "preferences": "vegetarian, quick"   // optional free text
+  "preferences": "vegetarian, quick"    // optional free text
 }
 ```
 
-In `surprise` mode the kitchen is ignored and there is no empty-result short-circuit; every ingredient a recipe needs is returned in `usesIngredients` and `toBuy` is empty.
+Suggestions are driven by the given preferences plus **taste context**: the titles of the
+household's most recent saved recipes (max 50) are sent to the model, which is instructed to
+match their style without duplicating them. Works fine with zero saved recipes.
 
 Response `200`:
 ```json
@@ -210,8 +195,7 @@ Response `200`:
       "prepTimeMinutes": 15,
       "cookTimeMinutes": 30,
       "instructions": ["step one", "step two"],
-      "usesIngredients": [ { "name": "Eggs", "quantity": 3, "unit": "pcs" } ],
-      "toBuy": [ { "name": "Milk", "quantity": 200, "unit": "ml" } ]
+      "ingredients": [ { "name": "Eggs", "quantity": 3, "unit": "pcs" } ]
     }
   ]
 }
@@ -222,7 +206,8 @@ If `ANTHROPIC_API_KEY` is not configured, return `503` with
 so the frontend can show a friendly message.
 
 The frontend offers a "Save as recipe" action that POSTs a suggestion to `/api/recipes`
-(mapping suggestion `usesIngredients` to existing ingredients by name, creating missing ones first is a frontend/back convenience — backend `POST /recipes` accepts `ingredients` by `ingredientId`).
+(mapping suggestion `ingredients` to existing ingredients by name and creating missing ones
+first — backend `POST /recipes` accepts `ingredients` by `ingredientId`).
 
 ## AI recipe import  `/api/ai/import-recipe`
 

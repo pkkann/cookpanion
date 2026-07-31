@@ -1,7 +1,6 @@
 import { api } from './client'
 import type {
   AuthResponse,
-  CookPayload,
   ImportedRecipe,
   ImportRecipePayload,
   Ingredient,
@@ -11,9 +10,6 @@ import type {
   PlannedMealUpdatePayload,
   Recipe,
   RecipePayload,
-  StockCreatePayload,
-  StockItem,
-  StockUpdatePayload,
   SuggestPayload,
   SuggestResponse,
   User,
@@ -86,44 +82,6 @@ export async function createIngredient(payload: IngredientPayload): Promise<Ingr
   return data
 }
 
-export async function updateIngredient(
-  id: number,
-  payload: IngredientPayload,
-): Promise<Ingredient> {
-  const { data } = await api.put<Ingredient>(`/ingredients/${id}`, payload)
-  return data
-}
-
-export async function deleteIngredient(id: number): Promise<void> {
-  await api.delete(`/ingredients/${id}`)
-}
-
-// ---- Kitchen stock ----
-export async function listStock(): Promise<StockItem[]> {
-  const { data } = await api.get<StockItem[]>('/stock')
-  return data
-}
-
-export async function createStock(payload: StockCreatePayload): Promise<StockItem> {
-  const { data } = await api.post<StockItem>('/stock', payload)
-  return data
-}
-
-// Returns the updated item, or nothing (204) when the update empties the row
-// and the backend deletes it. Callers refetch the stock list rather than using
-// the return value.
-export async function updateStock(
-  id: number,
-  payload: StockUpdatePayload,
-): Promise<StockItem | void> {
-  const { data } = await api.put<StockItem>(`/stock/${id}`, payload)
-  return data
-}
-
-export async function deleteStock(id: number): Promise<void> {
-  await api.delete(`/stock/${id}`)
-}
-
 // ---- Recipes ----
 export async function listRecipes(): Promise<Recipe[]> {
   const { data } = await api.get<Recipe[]>('/recipes')
@@ -147,11 +105,6 @@ export async function updateRecipe(id: number, payload: RecipePayload): Promise<
 
 export async function deleteRecipe(id: number): Promise<void> {
   await api.delete(`/recipes/${id}`)
-}
-
-export async function cookRecipe(id: number, payload: CookPayload): Promise<StockItem[]> {
-  const { data } = await api.post<StockItem[]>(`/recipes/${id}/cook`, payload)
-  return data
 }
 
 // ---- Meal plan (planned meals) ----
@@ -194,3 +147,4 @@ export async function retranslateContent(): Promise<{ recipes: number; ingredien
   const { data } = await api.post<{ recipes: number; ingredients: number }>('/ai/retranslate')
   return data
 }
+

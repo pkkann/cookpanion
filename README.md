@@ -1,16 +1,15 @@
 # Cookpanion 🍳🤖
 
-A multi-user kitchen app: track your **ingredients**, keep an inventory of **what's in your kitchen**,
-store **recipes** built from those ingredients, and let **Claude** suggest recipes from what you have
-(optionally allowing a few extra items to buy).
+A multi-user kitchen app: collect your **recipes**, build a **meal plan** for the week, and let
+**Claude** suggest new recipe ideas or import one from a link, some text, or a photo.
 
 - **Backend:** Symfony 7.4 (PHP 8.4) REST API — JWT auth, Doctrine ORM, [Symfony AI Bundle](https://symfony.com/doc/current/ai/bundles/ai-bundle.html) → Anthropic Claude
 - **Frontend:** React + TypeScript + Vite + MUI single-page app
 - **Database:** SQLite (a single file — no database server)
 - **Runs in Docker** for development, and ships as a **Home Assistant addon** for "production".
 
-Data is scoped to a **household/team**: everyone in a household shares the same ingredients,
-kitchen stock and recipes.
+Data is scoped to a **household/team**: everyone in a household shares the same recipes and
+meal plan.
 
 ---
 
@@ -114,14 +113,15 @@ No code changes are needed — the key is wired through `config/packages/ai.yaml
 
 ## How the AI feature works
 
-On the **AI Suggestions** page you choose:
-- **Mode** — use *only what's in your kitchen* (`kitchen`) or *all your ingredients* (`all`)
-- **Max to buy** — how many extra ingredients Claude may add to a shopping list
-- **Preferences** — free text (e.g. "vegetarian, quick, kid-friendly")
+On the **AI Suggestions** page you choose how many recipes, how many servings, an optional
+time cap, and free-text **preferences** (e.g. "vegetarian, quick, kid-friendly").
 
-The backend builds a prompt from your household's ingredient/stock list and asks the `recipe`
-agent (Claude) to return structured suggestions. Each suggestion shows what it **uses**, what to
-**buy**, and can be **saved as a real recipe** with one click.
+The backend also sends the titles of your household's most recent recipes as *taste context* —
+Claude is told to match your style without duplicating what you already have. Each suggestion
+comes back with full ingredients and steps, and can be **saved as a real recipe** with one click.
+
+**Import recipe** does the reverse: paste a link or the recipe text, or snap a photo, and Claude
+extracts a structured recipe for review before saving.
 
 ---
 

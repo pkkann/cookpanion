@@ -31,7 +31,7 @@ import type {
 import { useIsMobile } from '../utils/useIsMobile'
 
 // A synthetic Autocomplete option representing "create this new ingredient"
-// (mirrors the pattern used on the Kitchen page).
+// (ingredients are created implicitly — there is no ingredient management UI).
 type NewIngredientOption = { inputValue: string; isNew: true }
 type IngredientOption = Ingredient | NewIngredientOption
 

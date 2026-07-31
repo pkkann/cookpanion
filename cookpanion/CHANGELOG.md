@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.5.0
+
+- **BREAKING:** the kitchen-stock, ingredient-management and shopping-list
+  features are removed. The upgrade migration **permanently deletes all kitchen
+  stock data** — recipes, meal plans, households and accounts are untouched.
+- AI suggestions are now driven by your preferences plus your saved recipes as
+  taste context, instead of your kitchen inventory.
+- The "Cook this" action is gone; remove a planned meal from the Meal plan page
+  when you're done with it.
+
 ## 1.4.2
 
 - Revert the Adminer ingress panel from 1.4.0: with ingress enabled, Home

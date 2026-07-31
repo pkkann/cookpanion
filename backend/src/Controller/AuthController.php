@@ -6,7 +6,6 @@ use App\Entity\Household;
 use App\Entity\Ingredient;
 use App\Entity\PlannedMeal;
 use App\Entity\Recipe;
-use App\Entity\StockItem;
 use App\Entity\User;
 use App\Repository\UserRepository;
 use App\Service\EntityPresenter;
@@ -354,7 +353,7 @@ class AuthController extends AbstractController
             return false;
         }
 
-        foreach ([Ingredient::class, Recipe::class, StockItem::class, PlannedMeal::class] as $entity) {
+        foreach ([Ingredient::class, Recipe::class, PlannedMeal::class] as $entity) {
             if ($this->em->getRepository($entity)->count(['household' => $household]) > 0) {
                 return false;
             }

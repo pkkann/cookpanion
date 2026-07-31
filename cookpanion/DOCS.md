@@ -1,7 +1,7 @@
 # Cookpanion
 
-Plan meals, track your kitchen stock, and let AI suggest recipes with what you
-already have.
+Collect your recipes, plan the week's meals, and let AI suggest new ideas or
+import a recipe from a link, text or a photo.
 
 ## Installation
 
@@ -67,7 +67,7 @@ Google later.
 Everything lives in the addon's `/data` volume and is included in normal Home
 Assistant backups:
 
-- `app.db` — the SQLite database (all recipes, stock, meal plans).
+- `app.db` — the SQLite database (all recipes and meal plans).
 - `jwt/` and the generated secrets — keeping these means users stay signed in
   across addon restarts and updates.
 

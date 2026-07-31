@@ -20,15 +20,25 @@ interface QuickPlanButtonProps {
   variant: 'icon' | 'button'
   /** Forwarded to the `button` variant to match responsive sibling buttons. */
   fullWidth?: boolean
+  /**
+   * Servings to plan for. Defaults to the recipe's own servings; the detail
+   * page passes its live scaled value so planning matches what's on screen.
+   */
+  servings?: number
 }
 
 /**
  * A recipe-side shortcut for adding a recipe to the meal plan: opens a small
- * popover to pick a date (defaulting to today), then creates the planned meal
- * with the recipe's default servings. The create mutation invalidates the
- * planned-meals query, so the Plan page refreshes on its own.
+ * popover to pick a date (defaulting to today), then creates the planned meal.
+ * The create mutation invalidates the planned-meals query, so the Plan page
+ * refreshes on its own.
  */
-export default function QuickPlanButton({ recipe, variant, fullWidth }: QuickPlanButtonProps) {
+export default function QuickPlanButton({
+  recipe,
+  variant,
+  fullWidth,
+  servings,
+}: QuickPlanButtonProps) {
   const t = useT()
   const notify = useNotify()
   const createMut = useCreatePlannedMeal()
@@ -54,7 +64,7 @@ export default function QuickPlanButton({ recipe, variant, fullWidth }: QuickPla
       await createMut.mutateAsync({
         recipeId: recipe.id,
         date,
-        servings: Math.max(1, recipe.servings),
+        servings: Math.max(1, servings ?? recipe.servings),
       })
       notify(t('Added “{title}” to your plan', { title: recipe.title }), 'success')
       close()

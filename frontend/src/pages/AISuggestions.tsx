@@ -5,12 +5,8 @@ import Box from '@mui/material/Box'
 import Paper from '@mui/material/Paper'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
-import ToggleButton from '@mui/material/ToggleButton'
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Slider from '@mui/material/Slider'
 import MenuItem from '@mui/material/MenuItem'
-import useMediaQuery from '@mui/material/useMediaQuery'
-import { useTheme } from '@mui/material/styles'
 import TextField from '@mui/material/TextField'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
@@ -22,42 +18,32 @@ import Alert from '@mui/material/Alert'
 import AlertTitle from '@mui/material/AlertTitle'
 import CircularProgress from '@mui/material/CircularProgress'
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
-import KitchenIcon from '@mui/icons-material/Kitchen'
 import LocalDiningIcon from '@mui/icons-material/LocalDining'
-import ShoppingCartIcon from '@mui/icons-material/ShoppingCart'
 import PeopleIcon from '@mui/icons-material/People'
 import AccessTimeIcon from '@mui/icons-material/AccessTime'
 import BookmarkAddIcon from '@mui/icons-material/BookmarkAdd'
 import PageHeader from '../components/PageHeader'
 import { useNotify } from '../components/SnackbarProvider'
 import { useT } from '../i18n/LanguageProvider'
+import { useUnitLabel } from '../i18n/unitLabels'
 import { useIngredients } from '../api/hooks'
 import { queryKeys } from '../api/hooks'
 import { createIngredient, createRecipe, suggestRecipes } from '../api/endpoints'
 import { errorMessage, errorStatus } from '../api/client'
 import { formatDuration, formatPrepCook } from '../utils/time'
-import type {
-  Ingredient,
-  RecipeIngredientPayload,
-  RecipeSuggestion,
-  SuggestMode,
-} from '../api/types'
+import type { Ingredient, RecipeIngredientPayload, RecipeSuggestion } from '../api/types'
 
 // Selectable ceilings for a recipe's total (prep + cook) time. 0 = no limit.
 const MAX_TIME_OPTIONS = [0, 15, 30, 45, 60, 90, 120]
 
 export default function AISuggestions() {
   const t = useT()
+  const unitOf = useUnitLabel()
   const notify = useNotify()
-  const theme = useTheme()
-  const isDesktop = useMediaQuery(theme.breakpoints.up('md'))
   const queryClient = useQueryClient()
   const { data: ingredients } = useIngredients()
 
-  const [mode, setMode] = useState<SuggestMode>('kitchen')
   const [count, setCount] = useState(3)
-  const [maxToBuy, setMaxToBuy] = useState(3)
-  const [numIngredients, setNumIngredients] = useState(6)
   const [servings, setServings] = useState(2)
   const [maxTimeMinutes, setMaxTimeMinutes] = useState(0)
   const [preferences, setPreferences] = useState('')
@@ -78,10 +64,7 @@ export default function AISuggestions() {
     setSavedIndexes(new Set())
     try {
       const res = await suggestRecipes({
-        mode,
         count,
-        maxToBuy,
-        numIngredients,
         servings,
         maxTimeMinutes,
         preferences: preferences.trim() || undefined,
@@ -111,10 +94,9 @@ export default function AISuggestions() {
       const recipeIngredients: RecipeIngredientPayload[] = []
       let createdAny = false
 
-      // A recipe needs ALL of its ingredients: the ones the household already
-      // has (`usesIngredients`) and the ones it still needs to buy (`toBuy`).
-      // Missing ingredients are created on the fly so the recipe is complete.
-      for (const used of [...suggestion.usesIngredients, ...suggestion.toBuy]) {
+      // Ingredients the household doesn't know yet are created on the fly so
+      // the saved recipe is complete.
+      for (const used of suggestion.ingredients) {
         const key = used.name.trim().toLowerCase()
         let ingredient = byName.get(key)
         if (!ingredient) {
@@ -158,36 +140,14 @@ export default function AISuggestions() {
 
   return (
     <Box>
-      <PageHeader title={t('AI Suggestions')} subtitle={t('Let Claude suggest recipes from what you have (and a short shopping list).')} />
+      <PageHeader
+        title={t('AI Suggestions')}
+        subtitle={t("Recipe ideas tuned to your household's taste and preferences.")}
+      />
 
       {/* Request form */}
       <Paper variant="outlined" sx={{ p: { xs: 2.5, md: 3 }, mb: 3 }}>
         <Box component="form" onSubmit={handleSubmit}>
-          <Typography variant="subtitle2" gutterBottom>
-            {t('What should we cook with?')}
-          </Typography>
-          <ToggleButtonGroup
-            value={mode}
-            exclusive
-            orientation={isDesktop ? 'horizontal' : 'vertical'}
-            fullWidth={!isDesktop}
-            onChange={(_e, val: SuggestMode | null) => val && setMode(val)}
-            sx={{ mb: 3 }}
-          >
-            <ToggleButton value="kitchen" sx={{ px: 2, justifyContent: { xs: 'flex-start', md: 'center' } }}>
-              <KitchenIcon fontSize="small" sx={{ mr: 1 }} />
-              {t('Only my kitchen stock')}
-            </ToggleButton>
-            <ToggleButton value="all" sx={{ px: 2, justifyContent: { xs: 'flex-start', md: 'center' } }}>
-              <LocalDiningIcon fontSize="small" sx={{ mr: 1 }} />
-              {t('All my ingredients')}
-            </ToggleButton>
-            <ToggleButton value="surprise" sx={{ px: 2, justifyContent: { xs: 'flex-start', md: 'center' } }}>
-              <AutoAwesomeIcon fontSize="small" sx={{ mr: 1 }} />
-              {t('Surprise me')}
-            </ToggleButton>
-          </ToggleButtonGroup>
-
           <Box sx={{ maxWidth: 420, mb: 2 }}>
             <Typography variant="subtitle2" gutterBottom>
               {t('How many recipes:')} <strong>{count}</strong>
@@ -240,44 +200,6 @@ export default function AISuggestions() {
             ))}
           </TextField>
 
-          {mode === 'surprise' ? (
-            <Box sx={{ maxWidth: 420, mb: 2 }}>
-              <Typography variant="subtitle2" gutterBottom>
-                {t('Max ingredients per recipe:')} <strong>{numIngredients}</strong>
-              </Typography>
-              <Slider
-                value={numIngredients}
-                onChange={(_e, val) => setNumIngredients(val as number)}
-                min={3}
-                max={15}
-                step={1}
-                marks
-                valueLabelDisplay="auto"
-              />
-              <Typography variant="caption" color="text.secondary">
-                {t('Each recipe uses at most this many ingredients. Ignores your kitchen entirely.')}
-              </Typography>
-            </Box>
-          ) : (
-            <Box sx={{ maxWidth: 420, mb: 2 }}>
-              <Typography variant="subtitle2" gutterBottom>
-                {t('Max extra ingredients to buy:')} <strong>{maxToBuy}</strong>
-              </Typography>
-              <Slider
-                value={maxToBuy}
-                onChange={(_e, val) => setMaxToBuy(val as number)}
-                min={0}
-                max={10}
-                step={1}
-                marks
-                valueLabelDisplay="auto"
-              />
-              <Typography variant="caption" color="text.secondary">
-                {t('0 means suggestions must only use what you already have.')}
-              </Typography>
-            </Box>
-          )}
-
           <TextField
             label={t('Preferences (optional)')}
             fullWidth
@@ -324,7 +246,7 @@ export default function AISuggestions() {
 
       {/* Empty result */}
       {!loading && suggestions?.length === 0 && (
-        <Alert severity="info">{t('No suggestions came back. Try allowing a few more ingredients to buy, or switch to using all your ingredients.')}</Alert>
+        <Alert severity="info">{t('No suggestions came back. Try again, or loosen the time limit.')}</Alert>
       )}
 
       {/* Suggestions */}
@@ -361,41 +283,22 @@ export default function AISuggestions() {
                   {s.description}
                 </Typography>
 
-                <Typography variant="subtitle2" gutterBottom>
-                  {t('Uses')}
+                <Typography
+                  variant="subtitle2"
+                  gutterBottom
+                  sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
+                >
+                  <LocalDiningIcon fontSize="small" /> {t('Ingredients')}
                 </Typography>
                 <Stack direction="row" spacing={1} useFlexGap sx={{ mb: 2, flexWrap: 'wrap' }}>
-                  {s.usesIngredients.map((u, ui) => (
+                  {s.ingredients.map((ing, ii) => (
                     <Chip
-                      key={`use-${ui}`}
+                      key={`ing-${ii}`}
                       size="small"
-                      label={`${u.name} · ${u.quantity} ${u.unit}`}
+                      label={`${ing.name} · ${ing.quantity} ${unitOf(ing.unit)}`}
                     />
                   ))}
                 </Stack>
-
-                {s.toBuy.length > 0 && (
-                  <>
-                    <Typography
-                      variant="subtitle2"
-                      gutterBottom
-                      sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-                    >
-                      <ShoppingCartIcon fontSize="small" /> {t('To buy')}
-                    </Typography>
-                    <Stack direction="row" spacing={1} useFlexGap sx={{ mb: 2, flexWrap: 'wrap' }}>
-                      {s.toBuy.map((b, bi) => (
-                        <Chip
-                          key={`buy-${bi}`}
-                          size="small"
-                          color="secondary"
-                          variant="outlined"
-                          label={`${b.name} · ${b.quantity} ${b.unit}`}
-                        />
-                      ))}
-                    </Stack>
-                  </>
-                )}
 
                 <Divider sx={{ my: 1.5 }} />
                 <Typography variant="subtitle2" gutterBottom>

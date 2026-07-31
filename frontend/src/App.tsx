@@ -10,8 +10,6 @@ import Onboarding from './pages/Onboarding'
 import JoinHousehold from './pages/JoinHousehold'
 import Settings from './pages/Settings'
 import Dashboard from './pages/Dashboard'
-import Ingredients from './pages/Ingredients'
-import Kitchen from './pages/Kitchen'
 import Recipes from './pages/Recipes'
 import RecipeDetail from './pages/RecipeDetail'
 import AISuggestions from './pages/AISuggestions'
@@ -38,8 +36,6 @@ export default function App() {
             <Route path="/join/:code" element={<JoinHousehold />} />
             <Route element={<Layout />}>
               <Route path="/" element={<Dashboard />} />
-              <Route path="/ingredients" element={<Ingredients />} />
-              <Route path="/kitchen" element={<Kitchen />} />
               <Route path="/recipes" element={<Recipes />} />
               <Route path="/recipes/:id" element={<RecipeDetail />} />
               <Route path="/plan" element={<Plan />} />

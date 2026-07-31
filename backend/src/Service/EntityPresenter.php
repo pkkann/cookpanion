@@ -5,7 +5,6 @@ namespace App\Service;
 use App\Entity\Ingredient;
 use App\Entity\PlannedMeal;
 use App\Entity\Recipe;
-use App\Entity\StockItem;
 use App\Entity\User;
 
 /**
@@ -17,7 +16,7 @@ use App\Entity\User;
 final class EntityPresenter
 {
     /**
-     * @return array{id: int|null, name: string, defaultUnit: string|null, alwaysInStock: bool}
+     * @return array{id: int|null, name: string, defaultUnit: string|null}
      */
     public function ingredient(Ingredient $ingredient): array
     {
@@ -25,20 +24,6 @@ final class EntityPresenter
             'id' => $ingredient->getId(),
             'name' => $ingredient->getName(),
             'defaultUnit' => $ingredient->getDefaultUnit(),
-            'alwaysInStock' => $ingredient->isAlwaysInStock(),
-        ];
-    }
-
-    /**
-     * @return array{id: int|null, ingredient: array, quantity: float, unit: string}
-     */
-    public function stockItem(StockItem $item): array
-    {
-        return [
-            'id' => $item->getId(),
-            'ingredient' => $this->ingredient($item->getIngredient()),
-            'quantity' => $item->getQuantity(),
-            'unit' => $item->getUnit(),
         ];
     }
 
@@ -98,8 +83,8 @@ final class EntityPresenter
     }
 
     /**
-     * A planned meal embeds the full recipe so the SPA can aggregate a
-     * shopping list across the plan client-side. `date` is date-only.
+     * A planned meal embeds the full recipe so the SPA can render plan
+     * entries without extra requests. `date` is date-only.
      */
     public function plannedMeal(PlannedMeal $meal): array
     {

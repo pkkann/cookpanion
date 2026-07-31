@@ -20,12 +20,10 @@ import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
 import MenuIcon from '@mui/icons-material/Menu'
 import DashboardIcon from '@mui/icons-material/Dashboard'
-import KitchenIcon from '@mui/icons-material/Kitchen'
 import RestaurantMenuIcon from '@mui/icons-material/RestaurantMenu'
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
 import DownloadIcon from '@mui/icons-material/Download'
-import LocalDiningIcon from '@mui/icons-material/LocalDining'
 import SettingsIcon from '@mui/icons-material/Settings'
 import LogoutIcon from '@mui/icons-material/Logout'
 import { useAuth } from '../auth/AuthContext'
@@ -44,8 +42,6 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { title: 'Dashboard', path: '/', icon: <DashboardIcon /> },
-  { title: 'Ingredients', path: '/ingredients', icon: <LocalDiningIcon /> },
-  { title: 'Kitchen', path: '/kitchen', icon: <KitchenIcon /> },
   { title: 'Recipes', path: '/recipes', icon: <RestaurantMenuIcon /> },
   { title: 'Meal plan', path: '/plan', icon: <CalendarMonthIcon /> },
   { title: 'AI Suggestions', path: '/suggestions', icon: <AutoAwesomeIcon />, requiresAi: true },
