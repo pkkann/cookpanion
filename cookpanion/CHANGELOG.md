@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.1
+
+- The prep and cook time labels on recipes are now translated instead of always
+  showing in English.
+
 ## 1.5.0
 
 - **BREAKING:** the kitchen-stock, ingredient-management and shopping-list
