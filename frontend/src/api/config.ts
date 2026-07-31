@@ -4,6 +4,8 @@ import { API_URL } from './client'
 export interface AppConfig {
   googleClientId: string
   allowRegistration: boolean
+  /** False when the server has no Anthropic API key — AI features are hidden. */
+  aiEnabled: boolean
 }
 
 // Fetched once per page load and shared by all callers. Uses plain fetch (not
@@ -21,12 +23,22 @@ export function fetchAppConfig(): Promise<AppConfig> {
       .then((cfg) => ({
         googleClientId: cfg.googleClientId ?? '',
         allowRegistration: cfg.allowRegistration ?? true,
+        aiEnabled: cfg.aiEnabled ?? true,
       }))
-      // Degrade to defaults: Google sign-in hidden, registration link shown
-      // (the backend still enforces the real toggle).
-      .catch(() => ({ googleClientId: '', allowRegistration: true }))
+      // Degrade to defaults: Google sign-in hidden, registration link and AI
+      // features shown (the backend still enforces the real toggles).
+      .catch(() => ({ googleClientId: '', allowRegistration: true, aiEnabled: true }))
   }
   return configPromise
+}
+
+/**
+ * Whether AI features should be shown. True while the config loads so the UI
+ * doesn't flash; the backend rejects AI calls regardless when unconfigured.
+ */
+export function useAiEnabled(): boolean {
+  const config = useAppConfig()
+  return config?.aiEnabled !== false
 }
 
 /** The runtime config, or undefined while it's still loading. */

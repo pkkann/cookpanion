@@ -16,6 +16,7 @@ import LocalDiningIcon from '@mui/icons-material/LocalDining'
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
 import { useAuth } from '../auth/AuthContext'
+import { useAiEnabled } from '../api/config'
 import { useT } from '../i18n/LanguageProvider'
 import { useIngredients, usePlannedMeals, useRecipes, useStock } from '../api/hooks'
 import { formatWeekdayDate, todayIso } from '../utils/date'
@@ -68,6 +69,7 @@ function StatCard({ label, value, loading, icon, to }: StatCardProps) {
 export default function Dashboard() {
   const t = useT()
   const navigate = useNavigate()
+  const aiEnabled = useAiEnabled()
   const { user } = useAuth()
   const ingredients = useIngredients()
   const stock = useStock()
@@ -95,44 +97,46 @@ export default function Dashboard() {
         })}
       </Typography>
 
-      {/* Hero CTA */}
-      <Paper
-        sx={{
-          p: { xs: 3, md: 4 },
-          mb: 4,
-          color: 'primary.contrastText',
-          bgcolor: 'primary.main',
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 2,
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <Box>
-          <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
-            {t('Not sure what to cook?')}
-          </Typography>
-          <Typography variant="body1" sx={{ opacity: 0.92, maxWidth: 520 }}>
-            {t(
-              "Get AI recipe ideas based on what's already in your kitchen — plus a short shopping list when you need a little extra.",
-            )}
-          </Typography>
-        </Box>
-        <Button
-          variant="contained"
-          size="large"
-          startIcon={<AutoAwesomeIcon />}
-          onClick={() => navigate('/suggestions')}
+      {/* Hero CTA — only when the server has AI configured */}
+      {aiEnabled && (
+        <Paper
           sx={{
-            bgcolor: 'background.paper',
-            color: 'primary.main',
-            '&:hover': { bgcolor: 'grey.100' },
+            p: { xs: 3, md: 4 },
+            mb: 4,
+            color: 'primary.contrastText',
+            bgcolor: 'primary.main',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 2,
+            alignItems: 'center',
+            justifyContent: 'space-between',
           }}
         >
-          {t('Get suggestions')}
-        </Button>
-      </Paper>
+          <Box>
+            <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+              {t('Not sure what to cook?')}
+            </Typography>
+            <Typography variant="body1" sx={{ opacity: 0.92, maxWidth: 520 }}>
+              {t(
+                "Get AI recipe ideas based on what's already in your kitchen — plus a short shopping list when you need a little extra.",
+              )}
+            </Typography>
+          </Box>
+          <Button
+            variant="contained"
+            size="large"
+            startIcon={<AutoAwesomeIcon />}
+            onClick={() => navigate('/suggestions')}
+            sx={{
+              bgcolor: 'background.paper',
+              color: 'primary.main',
+              '&:hover': { bgcolor: 'grey.100' },
+            }}
+          >
+            {t('Get suggestions')}
+          </Button>
+        </Paper>
+      )}
 
       {/* Meal plan highlight — shown whenever there are upcoming planned meals */}
       {upcomingMeals.length > 0 && (

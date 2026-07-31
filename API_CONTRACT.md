@@ -23,9 +23,12 @@ Shared contract between the Symfony backend (`backend/`) and the React SPA (`fro
 
 ### GET /config
 Public (no auth). Returns per-installation settings the prebuilt SPA cannot know at
-build time: `{ "googleClientId": string, "allowRegistration": boolean }`.
+build time: `{ "googleClientId": string, "allowRegistration": boolean, "aiEnabled": boolean }`.
 `googleClientId` is empty when Google sign-in is not configured (the frontend hides
-the button); `allowRegistration: false` hides the register UI.
+the button); `allowRegistration: false` hides the register UI; `aiEnabled: false`
+(no `ANTHROPIC_API_KEY` on the server) hides all AI features — nav entries, the
+`/suggestions` and `/import` pages, and AI buttons. The AI endpoints themselves
+return `503` regardless.
 
 ## Auth
 

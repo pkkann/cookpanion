@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.0
+
+- When no Anthropic API key is configured, AI features are now hidden from the
+  app entirely (nav entries, suggestion/import pages, AI buttons) instead of
+  showing "not configured" errors. The rest of the app works as normal.
+
 ## 1.2.0
 
 - New `allow_registration` option: turn off account creation (password

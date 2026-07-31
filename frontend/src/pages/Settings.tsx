@@ -20,6 +20,7 @@ import { useAuth } from '../auth/AuthContext'
 import { useNotify } from '../components/SnackbarProvider'
 import { useRetranslateContent } from '../api/hooks'
 import { errorMessage } from '../api/client'
+import { useAiEnabled } from '../api/config'
 import { useLanguage, useT } from '../i18n/LanguageProvider'
 import { LANGUAGE_LABELS, SUPPORTED_LANGUAGES } from '../i18n/strings'
 import type { Language } from '../i18n/strings'
@@ -39,6 +40,7 @@ export default function Settings() {
   const { lang } = useLanguage()
   const t = useT()
   const notify = useNotify()
+  const aiEnabled = useAiEnabled()
 
   const [name, setName] = useState(user?.household?.name ?? '')
   const [saving, setSaving] = useState(false)
@@ -210,29 +212,31 @@ export default function Settings() {
                   </MenuItem>
                 ))}
               </TextField>
-              <Box>
-                <Button
-                  variant="outlined"
-                  disabled={retranslateMut.isPending}
-                  startIcon={
-                    retranslateMut.isPending ? (
-                      <CircularProgress size={16} color="inherit" />
-                    ) : (
-                      <TranslateIcon />
-                    )
-                  }
-                  onClick={() => setRetranslateOpen(true)}
-                >
-                  {retranslateMut.isPending
-                    ? t('Translating…')
-                    : t('Re-translate existing content')}
-                </Button>
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                  {t(
-                    'Rewrites all existing recipes and ingredient names into the selected recipe language using AI.',
-                  )}
-                </Typography>
-              </Box>
+              {aiEnabled && (
+                <Box>
+                  <Button
+                    variant="outlined"
+                    disabled={retranslateMut.isPending}
+                    startIcon={
+                      retranslateMut.isPending ? (
+                        <CircularProgress size={16} color="inherit" />
+                      ) : (
+                        <TranslateIcon />
+                      )
+                    }
+                    onClick={() => setRetranslateOpen(true)}
+                  >
+                    {retranslateMut.isPending
+                      ? t('Translating…')
+                      : t('Re-translate existing content')}
+                  </Button>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                    {t(
+                      'Rewrites all existing recipes and ingredient names into the selected recipe language using AI.',
+                    )}
+                  </Typography>
+                </Box>
+              )}
             </Stack>
           </CardContent>
         </Card>

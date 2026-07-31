@@ -29,6 +29,7 @@ import LocalDiningIcon from '@mui/icons-material/LocalDining'
 import SettingsIcon from '@mui/icons-material/Settings'
 import LogoutIcon from '@mui/icons-material/Logout'
 import { useAuth } from '../auth/AuthContext'
+import { useAiEnabled } from '../api/config'
 import { useT } from '../i18n/LanguageProvider'
 
 const DRAWER_WIDTH = 248
@@ -37,6 +38,8 @@ interface NavItem {
   title: string
   path: string
   icon: React.ReactNode
+  /** Entry is hidden when the server has no AI configured. */
+  requiresAi?: boolean
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -45,8 +48,8 @@ const NAV_ITEMS: NavItem[] = [
   { title: 'Kitchen', path: '/kitchen', icon: <KitchenIcon /> },
   { title: 'Recipes', path: '/recipes', icon: <RestaurantMenuIcon /> },
   { title: 'Meal plan', path: '/plan', icon: <CalendarMonthIcon /> },
-  { title: 'AI Suggestions', path: '/suggestions', icon: <AutoAwesomeIcon /> },
-  { title: 'Import recipe', path: '/import', icon: <DownloadIcon /> },
+  { title: 'AI Suggestions', path: '/suggestions', icon: <AutoAwesomeIcon />, requiresAi: true },
+  { title: 'Import recipe', path: '/import', icon: <DownloadIcon />, requiresAi: true },
 ]
 
 function isActivePath(current: string, target: string): boolean {
@@ -61,6 +64,8 @@ export default function Layout() {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
   const t = useT()
+  const aiEnabled = useAiEnabled()
+  const navItems = NAV_ITEMS.filter((item) => aiEnabled || !item.requiresAi)
 
   const [mobileOpen, setMobileOpen] = useState(false)
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null)
@@ -88,7 +93,7 @@ export default function Layout() {
       </Toolbar>
       <Divider />
       <List sx={{ flexGrow: 1 }}>
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const active = isActivePath(location.pathname, item.path)
           return (
             <ListItem key={item.path} disablePadding>

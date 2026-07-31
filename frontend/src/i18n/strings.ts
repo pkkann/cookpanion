@@ -94,6 +94,7 @@ export const daTranslations: Record<string, string> = {
   "Could not save stock": "Kunne ikke gemme lager",
   "Could not translate your content.": "Kunne ikke oversætte dit indhold.",
   "Couldn't check kitchen stock.": "Kunne ikke tjekke køkkenlageret.",
+  "Create a recipe by hand to get started.": "Opret en opskrift manuelt for at komme i gang.",
   "Create a recipe by hand, or let the AI suggest recipes based on your kitchen.": "Opret en opskrift manuelt, eller lad AI'en foreslå opskrifter baseret på dit køkken.",
   "Create account": "Opret konto",
   "Create an account": "Opret en konto",

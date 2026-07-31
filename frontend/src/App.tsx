@@ -1,5 +1,7 @@
+import type { ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext'
+import { useAiEnabled } from './api/config'
 import ProtectedRoute from './auth/ProtectedRoute'
 import Layout from './components/Layout'
 import Login from './pages/Login'
@@ -15,6 +17,13 @@ import RecipeDetail from './pages/RecipeDetail'
 import AISuggestions from './pages/AISuggestions'
 import ImportRecipe from './pages/ImportRecipe'
 import Plan from './pages/Plan'
+
+/** Redirects home when the server has no AI configured (pages stay unreachable). */
+function RequireAi({ children }: { children: ReactNode }) {
+  const aiEnabled = useAiEnabled()
+  if (!aiEnabled) return <Navigate to="/" replace />
+  return children
+}
 
 export default function App() {
   return (
@@ -34,8 +43,8 @@ export default function App() {
               <Route path="/recipes" element={<Recipes />} />
               <Route path="/recipes/:id" element={<RecipeDetail />} />
               <Route path="/plan" element={<Plan />} />
-              <Route path="/suggestions" element={<AISuggestions />} />
-              <Route path="/import" element={<ImportRecipe />} />
+              <Route path="/suggestions" element={<RequireAi><AISuggestions /></RequireAi>} />
+              <Route path="/import" element={<RequireAi><ImportRecipe /></RequireAi>} />
               <Route path="/settings" element={<Settings />} />
             </Route>
           </Route>

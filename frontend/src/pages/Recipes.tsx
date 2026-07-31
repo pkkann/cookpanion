@@ -28,9 +28,11 @@ import { useT } from '../i18n/LanguageProvider'
 import { useDeleteRecipe, useRecipes } from '../api/hooks'
 import type { Recipe } from '../api/types'
 import { errorMessage } from '../api/client'
+import { useAiEnabled } from '../api/config'
 import { formatPrepCook } from '../utils/time'
 
 export default function Recipes() {
+  const aiEnabled = useAiEnabled()
   const notify = useNotify()
   const t = useT()
   const navigate = useNavigate()
@@ -96,15 +98,21 @@ export default function Recipes() {
         <EmptyState
           icon={<RestaurantMenuIcon fontSize="inherit" />}
           title={t('No recipes yet')}
-          description={t('Create a recipe by hand, or let the AI suggest recipes based on your kitchen.')}
+          description={
+            aiEnabled
+              ? t('Create a recipe by hand, or let the AI suggest recipes based on your kitchen.')
+              : t('Create a recipe by hand to get started.')
+          }
           action={
             <Stack direction="row" spacing={1.5}>
               <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>
                 {t('New recipe')}
               </Button>
-              <Button variant="outlined" onClick={() => navigate('/suggestions')}>
-                {t('Get AI suggestions')}
-              </Button>
+              {aiEnabled && (
+                <Button variant="outlined" onClick={() => navigate('/suggestions')}>
+                  {t('Get AI suggestions')}
+                </Button>
+              )}
             </Stack>
           }
         />

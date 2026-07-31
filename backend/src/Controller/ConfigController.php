@@ -19,6 +19,8 @@ class ConfigController extends AbstractController
         private readonly string $googleClientId,
         #[Autowire('%env(bool:ALLOW_REGISTRATION)%')]
         private readonly bool $allowRegistration,
+        #[Autowire('%env(ANTHROPIC_API_KEY)%')]
+        private readonly string $anthropicApiKey,
     ) {
     }
 
@@ -28,6 +30,8 @@ class ConfigController extends AbstractController
         return $this->json([
             'googleClientId' => $this->googleClientId,
             'allowRegistration' => $this->allowRegistration,
+            // Only the boolean — never the key itself (this endpoint is public).
+            'aiEnabled' => '' !== $this->anthropicApiKey,
         ]);
     }
 }
