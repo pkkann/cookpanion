@@ -31,6 +31,21 @@ database — think phpMyAdmin. Set `db_admin_password`, restart, then open
   mapping for this port.
 - Leave `db_admin_password` empty to disable it entirely.
 
+Adminer is reachable two ways:
+
+- **HA sidebar (recommended):** the addon's ingress panel serves Adminer.
+  Enable the **Show in sidebar** toggle on the addon page and a
+  "Cookpanion DB" entry appears (admin users only). Requests go through Home
+  Assistant's own authentication *and* the `db_admin_password` prompt, and it
+  works over HTTPS.
+- **Direct port 8100** on the LAN (`http://<ha-host>:8100`) — optional; you
+  can remove the port mapping in the addon's Network settings if the sidebar
+  panel is enough.
+
+The "Open Web UI" button always opens the app itself; ingress is used for
+Adminer because the app's SPA routing doesn't work under ingress path
+prefixes, while Adminer's query-string navigation does.
+
 ## Signing in
 
 **Email + password works out of the box** — open the app and create an account.

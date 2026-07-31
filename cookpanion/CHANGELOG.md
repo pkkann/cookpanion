@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.0
+
+- Adminer is now available as a Home Assistant sidebar panel ("Cookpanion DB")
+  via ingress — enable "Show in sidebar" on the addon page. HA authentication
+  (admin only) applies in front of the usual `db_admin_password` prompt. The
+  direct port 8100 remains available and optional.
+
 ## 1.3.0
 
 - When no Anthropic API key is configured, AI features are now hidden from the
