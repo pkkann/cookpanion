@@ -1,7 +1,7 @@
 name: Cookpanion
 slug: cookpanion
 description: Plan meals, track your kitchen stock, and cook with what you have.
-version: "1.4.1"
+version: "1.4.2"
 url: https://github.com/pkkann/recipe_ai
 arch:
   - amd64
@@ -15,16 +15,11 @@ ports:
   8081/tcp: 8100
 ports_description:
   80/tcp: Web UI (direct access, no ingress)
-  8081/tcp: Adminer database browser, direct LAN access (optional — also available via the sidebar panel; requires db_admin_password)
+  8081/tcp: Adminer database browser (requires db_admin_password; LAN use only — do not expose publicly)
+# No ingress on purpose: HA shows either the ingress button or this webui
+# link, never both — and the button should open the app. (The SPA wouldn't
+# survive ingress path prefixes anyway; Adminer lives on its own port.)
 webui: http://[HOST]:[PORT:80]
-# Ingress serves ADMINER (not the app) as an HA sidebar panel: HA's own auth
-# in front, admin users only, works under HTTPS. The app itself stays on the
-# direct port — its SPA routing and PWA don't survive ingress path prefixes.
-ingress: true
-ingress_port: 8081
-panel_icon: mdi:database
-panel_title: Cookpanion DB
-panel_admin: true
 options:
   google_client_id: ""
   anthropic_api_key: ""

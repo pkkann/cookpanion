@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.2
+
+- Revert the Adminer ingress panel from 1.4.0: with ingress enabled, Home
+  Assistant replaces the "Open Web UI" button with the ingress page, so the
+  button no longer opened the app. The button now opens the app again;
+  Adminer remains on port 8100.
+
 ## 1.4.1
 
 - Much faster image builds: the frontend and composer build stages now run
