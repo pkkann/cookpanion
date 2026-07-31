@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0
+
+- New `allow_registration` option: turn off account creation (password
+  registration and first-time Google sign-ins) once your household is set up —
+  recommended before exposing the app to the internet.
+- Bundled Adminer database browser on port 8100. Set `db_admin_password` to
+  enable it; leave empty to keep it disabled. LAN use only.
+
 ## 1.1.0
 
 - Add email/password sign-in alongside Google. Register directly in the app, or

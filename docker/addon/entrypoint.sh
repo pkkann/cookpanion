@@ -6,15 +6,23 @@ OPTIONS=/data/options.json
 # Home Assistant writes addon options to /data/options.json. When testing with
 # plain `docker run`, options can be passed as -e env vars instead (env wins
 # only when the option is absent/empty).
-opt() { jq -r --arg k "$1" '.[$k] // empty' "$OPTIONS" 2>/dev/null; }
+# NB: not `// empty` — jq's alternative operator would swallow a boolean
+# `false` (e.g. allow_registration: false) as if the option were unset.
+opt() { jq -r --arg k "$1" '.[$k] | select(. != null) | tostring' "$OPTIONS" 2>/dev/null; }
 if [ -f "$OPTIONS" ]; then
-    v="$(opt google_client_id)";  [ -n "$v" ] && export GOOGLE_CLIENT_ID="$v"
-    v="$(opt anthropic_api_key)"; [ -n "$v" ] && export ANTHROPIC_API_KEY="$v"
-    v="$(opt ai_model)";          [ -n "$v" ] && export AI_MODEL="$v"
+    v="$(opt google_client_id)";    [ -n "$v" ] && export GOOGLE_CLIENT_ID="$v"
+    v="$(opt anthropic_api_key)";   [ -n "$v" ] && export ANTHROPIC_API_KEY="$v"
+    v="$(opt ai_model)";            [ -n "$v" ] && export AI_MODEL="$v"
+    v="$(opt allow_registration)";  [ -n "$v" ] && export ALLOW_REGISTRATION="$v"
+    v="$(opt db_admin_password)";   [ -n "$v" ] && export DB_ADMIN_PASSWORD="$v"
 fi
 export GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-}"
 export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
 export AI_MODEL="${AI_MODEL:-claude-sonnet-4-5}"
+export ALLOW_REGISTRATION="${ALLOW_REGISTRATION:-true}"
+# Adminer (port 8081 → host 8100). Empty password = login disabled.
+export DB_ADMIN_PASSWORD="${DB_ADMIN_PASSWORD:-}"
+export SQLITE_DB_PATH=/data/app.db
 
 # Secrets are generated once and persisted in /data so JWTs (and therefore
 # sessions) survive addon restarts and updates.

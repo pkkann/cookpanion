@@ -8,6 +8,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { useAuth } from '../auth/AuthContext'
 import { errorMessage } from '../api/client'
+import { useAppConfig } from '../api/config'
 import AuthShell from '../components/AuthShell'
 import { useT } from '../i18n/LanguageProvider'
 
@@ -15,6 +16,7 @@ const MIN_PASSWORD_LENGTH = 6
 
 export default function Register() {
   const { user, register } = useAuth()
+  const appConfig = useAppConfig()
   const t = useT()
   const navigate = useNavigate()
 
@@ -25,6 +27,27 @@ export default function Register() {
   const [error, setError] = useState<string | null>(null)
 
   if (user) return <Navigate to="/" replace />
+
+  if (appConfig && !appConfig.allowRegistration) {
+    return (
+      <AuthShell
+        title={t('Create your account')}
+        subtitle={t('Registration is currently disabled on this installation.')}
+        footer={
+          <Typography variant="body2" color="text.secondary">
+            {t('Already have an account?')}{' '}
+            <Link component={RouterLink} to="/login">
+              {t('Sign in')}
+            </Link>
+          </Typography>
+        }
+      >
+        <Alert severity="info">
+          {t('Ask a household member for help, or enable registration in the server settings.')}
+        </Alert>
+      </AuthShell>
+    )
+  }
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()

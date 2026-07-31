@@ -9,6 +9,7 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { useAuth } from '../auth/AuthContext'
 import { errorMessage } from '../api/client'
+import { useAppConfig } from '../api/config'
 import AuthShell from '../components/AuthShell'
 import GoogleSignInButton, { useGoogleSignInEnabled } from '../auth/GoogleSignInButton'
 import { useT } from '../i18n/LanguageProvider'
@@ -16,6 +17,7 @@ import { useT } from '../i18n/LanguageProvider'
 export default function Login() {
   const { user, login, loginWithGoogle } = useAuth()
   const googleSignInEnabled = useGoogleSignInEnabled()
+  const appConfig = useAppConfig()
   const t = useT()
   const navigate = useNavigate()
   const location = useLocation()
@@ -59,12 +61,14 @@ export default function Login() {
       title={t('Welcome to Cookpanion')}
       subtitle={t("Sign in to plan meals with what's already in your kitchen.")}
       footer={
-        <Typography variant="body2" color="text.secondary">
-          {t('New here?')}{' '}
-          <Link component={RouterLink} to="/register">
-            {t('Create an account')}
-          </Link>
-        </Typography>
+        appConfig?.allowRegistration !== false ? (
+          <Typography variant="body2" color="text.secondary">
+            {t('New here?')}{' '}
+            <Link component={RouterLink} to="/register">
+              {t('Create an account')}
+            </Link>
+          </Typography>
+        ) : undefined
       }
     >
       {error && (

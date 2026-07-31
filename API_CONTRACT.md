@@ -23,8 +23,9 @@ Shared contract between the Symfony backend (`backend/`) and the React SPA (`fro
 
 ### GET /config
 Public (no auth). Returns per-installation settings the prebuilt SPA cannot know at
-build time: `{ "googleClientId": string }` (empty string when Google sign-in is not
-configured — the frontend hides the button).
+build time: `{ "googleClientId": string, "allowRegistration": boolean }`.
+`googleClientId` is empty when Google sign-in is not configured (the frontend hides
+the button); `allowRegistration: false` hides the register UI.
 
 ## Auth
 
@@ -40,6 +41,9 @@ Creates a user plus an **unnamed** household (the frontend routes new users thro
 onboarding step to name it — same as the Google flow). Returns `201` with
 `{ "token": string, "refresh_token": string, "user": User }`.
 - `400 { "error": "Validation failed", "details": {field: message} }` on invalid input.
+- `403 { "error": "Registration is disabled." }` when the installation has closed
+  registration (`ALLOW_REGISTRATION=false`). The same applies to a **first-time**
+  Google sign-in on `POST /auth/google` (existing accounts still sign in).
 - `409 { "error": "Email already registered" }` if the email exists (sign in instead —
   via password, or Google for Google-created accounts).
 

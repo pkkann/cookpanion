@@ -16,6 +16,20 @@ already have.
 | `google_client_id` | no | Google OAuth **Web** client ID used by "Sign in with Google". Public value, no secret. Empty = the Google button is hidden; email/password sign-in always works. |
 | `anthropic_api_key` | for AI features | Anthropic API key. Empty = AI endpoints return 503; the rest of the app keeps working. |
 | `ai_model` | no | Anthropic model ID (default `claude-sonnet-4-5`). |
+| `allow_registration` | no | Whether new accounts can be created — password registration *and* first-time Google sign-ins (default `true`). **Turn this off once your household is set up**, especially if the app is reachable from the internet: registered accounts can use the AI endpoints, i.e. your Anthropic credits. Existing accounts always sign in fine. |
+| `db_admin_password` | no | Master password for the Adminer database browser on port 8100. **Empty (default) = Adminer is disabled** (nobody can log in). |
+
+## Database browser (Adminer)
+
+The addon bundles [Adminer](https://www.adminer.org/) for browsing the SQLite
+database — think phpMyAdmin. Set `db_admin_password`, restart, then open
+`http://<your-home-assistant-host>:8100` and enter that password.
+
+- It edits **live production data** — there is no undo.
+- Keep it LAN-only: never point a reverse proxy or tunnel hostname at port
+  8100. If you use a Cloudflare Tunnel for the app, simply don't add a
+  mapping for this port.
+- Leave `db_admin_password` empty to disable it entirely.
 
 ## Signing in
 

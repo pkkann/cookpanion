@@ -16,6 +16,7 @@ use Gesdinet\JWTRefreshTokenBundle\Generator\RefreshTokenGeneratorInterface;
 use Gesdinet\JWTRefreshTokenBundle\Model\RefreshTokenManagerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,6 +36,8 @@ class AuthController extends AbstractController
     private const MIN_PASSWORD_LENGTH = 6;
 
     public function __construct(
+        #[Autowire('%env(bool:ALLOW_REGISTRATION)%')]
+        private readonly bool $allowRegistration,
         private readonly EntityManagerInterface $em,
         private readonly UserRepository $users,
         private readonly UserPasswordHasherInterface $passwordHasher,
@@ -77,6 +80,13 @@ class AuthController extends AbstractController
             return $this->authResponse($existing);
         }
 
+        // A new Google email creates an account, so the registration toggle
+        // applies here too — otherwise any Google user could sign up while
+        // registration is closed.
+        if (!$this->allowRegistration) {
+            return $this->json(['error' => 'Registration is disabled.'], Response::HTTP_FORBIDDEN);
+        }
+
         // First time we've seen this Google email → create a household + user.
         // The household is left unnamed on purpose: the frontend detects the empty
         // name and sends the new user through a one-time onboarding step to name it.
@@ -107,6 +117,12 @@ class AuthController extends AbstractController
     #[Route('/register', name: 'api_register', methods: ['POST'])]
     public function register(Request $request): JsonResponse
     {
+        // Instance owners can close registration (e.g. once the household is
+        // set up and the app is exposed to the internet).
+        if (!$this->allowRegistration) {
+            return $this->json(['error' => 'Registration is disabled.'], Response::HTTP_FORBIDDEN);
+        }
+
         $data = $this->decode($request);
         if ($data instanceof JsonResponse) {
             return $data;

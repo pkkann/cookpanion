@@ -17,6 +17,8 @@ class ConfigController extends AbstractController
     public function __construct(
         #[Autowire('%env(GOOGLE_CLIENT_ID)%')]
         private readonly string $googleClientId,
+        #[Autowire('%env(bool:ALLOW_REGISTRATION)%')]
+        private readonly bool $allowRegistration,
     ) {
     }
 
@@ -25,6 +27,7 @@ class ConfigController extends AbstractController
     {
         return $this->json([
             'googleClientId' => $this->googleClientId,
+            'allowRegistration' => $this->allowRegistration,
         ]);
     }
 }

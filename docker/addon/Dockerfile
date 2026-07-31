@@ -39,6 +39,7 @@ RUN { \
 
 COPY --from=backend /srv /var/www/html
 COPY --from=frontend /app/dist /var/www/spa
+COPY docker/adminer /var/www/adminer
 COPY docker/addon/nginx.conf /etc/nginx/http.d/default.conf
 COPY docker/addon/supervisord.conf /etc/supervisord.conf
 COPY docker/addon/entrypoint.sh /entrypoint.sh
@@ -46,5 +47,5 @@ RUN chmod +x /entrypoint.sh && mkdir -p /var/www/html/var
 
 ENV APP_ENV=prod APP_DEBUG=0
 WORKDIR /var/www/html
-EXPOSE 80
+EXPOSE 80 8081
 ENTRYPOINT ["/entrypoint.sh"]

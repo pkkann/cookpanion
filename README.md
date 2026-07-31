@@ -36,6 +36,10 @@ and runs database migrations on startup. The SQLite database lives at
 `backend/var/data/app.db` on your machine, so it survives rebuilds and
 `docker compose down`; delete the file for a fresh start.
 
+To browse the database (Adminer, phpMyAdmin-style): set `DB_ADMIN_PASSWORD` in
+`.env`, `docker compose up -d`, then open http://localhost:8100 and log in with
+that password. Empty password = Adminer disabled.
+
 Sign in with **email + password** (register in the app; demo fixtures create
 `demo@recipe.ai` / `demo1234`) or with **Google**: set `GOOGLE_CLIENT_ID` in
 `.env` (a Google OAuth *Web* client id with `http://localhost:5173` as an
