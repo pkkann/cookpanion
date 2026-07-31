@@ -26,6 +26,21 @@ export async function googleAuth(credential: string): Promise<AuthResponse> {
   return data
 }
 
+export async function login(email: string, password: string): Promise<AuthResponse> {
+  const { data } = await api.post<AuthResponse>('/login', { email, password })
+  return data
+}
+
+export async function register(name: string, email: string, password: string): Promise<AuthResponse> {
+  const { data } = await api.post<AuthResponse>('/register', { name, email, password })
+  return data
+}
+
+/** Set (or replace) the signed-in user's password, enabling email/password login. */
+export async function setPassword(password: string): Promise<void> {
+  await api.post('/me/password', { password })
+}
+
 /** Best-effort server-side revocation of the refresh token on sign-out. */
 export async function logout(refreshToken: string): Promise<void> {
   await api.post('/logout', { refresh_token: refreshToken })

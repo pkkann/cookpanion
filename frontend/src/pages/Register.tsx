@@ -1,8 +1,7 @@
 import { useState } from 'react'
-import { Link as RouterLink, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Link as RouterLink, Navigate, useNavigate } from 'react-router-dom'
 import Alert from '@mui/material/Alert'
 import Button from '@mui/material/Button'
-import Divider from '@mui/material/Divider'
 import Link from '@mui/material/Link'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
@@ -10,59 +9,51 @@ import Typography from '@mui/material/Typography'
 import { useAuth } from '../auth/AuthContext'
 import { errorMessage } from '../api/client'
 import AuthShell from '../components/AuthShell'
-import GoogleSignInButton, { useGoogleSignInEnabled } from '../auth/GoogleSignInButton'
 import { useT } from '../i18n/LanguageProvider'
 
-export default function Login() {
-  const { user, login, loginWithGoogle } = useAuth()
-  const googleSignInEnabled = useGoogleSignInEnabled()
+const MIN_PASSWORD_LENGTH = 6
+
+export default function Register() {
+  const { user, register } = useAuth()
   const t = useT()
   const navigate = useNavigate()
-  const location = useLocation()
-  const from = (location.state as { from?: string } | null)?.from ?? '/'
 
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  if (user) return <Navigate to={from} replace />
+  if (user) return <Navigate to="/" replace />
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     setError(null)
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setError(t('Password must be at least 6 characters.'))
+      return
+    }
     setSubmitting(true)
     try {
-      await login(email.trim(), password)
-      navigate(from, { replace: true })
+      await register(name.trim(), email.trim(), password)
+      // The new household is unnamed; ProtectedRoute routes through onboarding.
+      navigate('/', { replace: true })
     } catch (err) {
-      setError(errorMessage(err, t('Sign-in failed')))
+      setError(errorMessage(err, t('Registration failed')))
     } finally {
       setSubmitting(false)
     }
   }
 
-  const handleGoogle = async (credential: string) => {
-    setError(null)
-    try {
-      await loginWithGoogle(credential)
-      // New accounts have an unnamed household; ProtectedRoute redirects them to
-      // the one-time onboarding step. Everyone else lands on their target page.
-      navigate(from, { replace: true })
-    } catch (err) {
-      setError(errorMessage(err, t('Google sign-in failed')))
-    }
-  }
-
   return (
     <AuthShell
-      title={t('Welcome to Cookpanion')}
-      subtitle={t("Sign in to plan meals with what's already in your kitchen.")}
+      title={t('Create your account')}
+      subtitle={t("Plan meals with what's already in your kitchen. You'll name your household in the next step.")}
       footer={
         <Typography variant="body2" color="text.secondary">
-          {t('New here?')}{' '}
-          <Link component={RouterLink} to="/register">
-            {t('Create an account')}
+          {t('Already have an account?')}{' '}
+          <Link component={RouterLink} to="/login">
+            {t('Sign in')}
           </Link>
         </Typography>
       }
@@ -74,12 +65,20 @@ export default function Login() {
       )}
       <Stack component="form" spacing={2} onSubmit={handleSubmit}>
         <TextField
+          label={t('Name')}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+          autoFocus
+          autoComplete="name"
+          fullWidth
+        />
+        <TextField
           label={t('Email')}
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          autoFocus
           autoComplete="email"
           fullWidth
         />
@@ -89,23 +88,14 @@ export default function Login() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          autoComplete="current-password"
+          autoComplete="new-password"
+          helperText={t('At least 6 characters.')}
           fullWidth
         />
         <Button type="submit" variant="contained" size="large" disabled={submitting}>
-          {t('Sign in')}
+          {t('Create account')}
         </Button>
       </Stack>
-      {googleSignInEnabled && (
-        <>
-          <Divider sx={{ my: 3 }}>
-            <Typography variant="body2" color="text.secondary">
-              {t('or')}
-            </Typography>
-          </Divider>
-          <GoogleSignInButton onCredential={handleGoogle} />
-        </>
-      )}
     </AuthShell>
   )
 }

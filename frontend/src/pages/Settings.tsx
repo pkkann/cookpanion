@@ -23,6 +23,9 @@ import { errorMessage } from '../api/client'
 import { useLanguage, useT } from '../i18n/LanguageProvider'
 import { LANGUAGE_LABELS, SUPPORTED_LANGUAGES } from '../i18n/strings'
 import type { Language } from '../i18n/strings'
+import { setPassword as setPasswordRequest } from '../api/endpoints'
+
+const MIN_PASSWORD_LENGTH = 6
 
 /** Pull the invite code out of a pasted invite URL, or accept a bare code. */
 function extractCode(input: string): string {
@@ -43,6 +46,9 @@ export default function Settings() {
   const [joining, setJoining] = useState(false)
   const [languageSaving, setLanguageSaving] = useState(false)
   const [displaySaving, setDisplaySaving] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordSaving, setPasswordSaving] = useState(false)
 
   const handleDisplayLanguage = async (next: Language) => {
     if (next === lang) return
@@ -117,6 +123,29 @@ export default function Settings() {
       notify(t('Invite link copied'), 'success')
     } catch {
       notify(t('Something went wrong'), 'error')
+    }
+  }
+
+  const handleSetPassword = async (e: FormEvent) => {
+    e.preventDefault()
+    if (newPassword.length < MIN_PASSWORD_LENGTH) {
+      notify(t('Password must be at least 6 characters.'), 'error')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      notify(t('Passwords do not match'), 'error')
+      return
+    }
+    setPasswordSaving(true)
+    try {
+      await setPasswordRequest(newPassword)
+      setNewPassword('')
+      setConfirmPassword('')
+      notify(t('Password saved'), 'success')
+    } catch (err) {
+      notify(errorMessage(err, t('Could not save password')), 'error')
+    } finally {
+      setPasswordSaving(false)
     }
   }
 
@@ -222,6 +251,48 @@ export default function Settings() {
               <Box>
                 <Button type="submit" variant="contained" disabled={!dirty || saving}>
                   {t('Save changes')}
+                </Button>
+              </Box>
+            </Stack>
+          </CardContent>
+        </Card>
+
+        {/* Password */}
+        <Card variant="outlined">
+          <CardContent component="form" onSubmit={handleSetPassword}>
+            <Stack spacing={2}>
+              <Box>
+                <Typography variant="subtitle2">{t('Password')}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {t(
+                    'Set a password to sign in with your email instead of Google. Useful when Google sign-in is unavailable.',
+                  )}
+                </Typography>
+              </Box>
+              <TextField
+                label={t('New password')}
+                type="password"
+                fullWidth
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                autoComplete="new-password"
+                helperText={t('At least 6 characters.')}
+              />
+              <TextField
+                label={t('Confirm password')}
+                type="password"
+                fullWidth
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
+              />
+              <Box>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  disabled={!newPassword || !confirmPassword || passwordSaving}
+                >
+                  {t('Save password')}
                 </Button>
               </Box>
             </Stack>

@@ -5,7 +5,7 @@ Shared contract between the Symfony backend (`backend/`) and the React SPA (`fro
 
 - Base URL (from browser): `/api` (the SPA and API are served on one origin behind nginx).
 - All requests/responses are JSON (`Content-Type: application/json`).
-- Auth: JWT Bearer. Send `Authorization: Bearer <token>` on every endpoint except `POST /register`, `POST /login`, `POST /auth/google`, and `POST /token/refresh`.
+- Auth: JWT Bearer. Send `Authorization: Bearer <token>` on every endpoint except `GET /config`, `POST /register`, `POST /login`, `POST /auth/google`, and `POST /token/refresh`.
 - The access `token` is short-lived (~1h). Auth responses also return a long-lived `refresh_token` (~30d); when a request returns `401`, exchange the refresh token at `POST /token/refresh` for a new pair and replay the request.
 - Errors use standard HTTP status codes with body: `{ "error": "message", "details"?: {...} }`.
 - All domain data is scoped to the authenticated user's **household**. A user only ever sees their household's ingredients, stock, and recipes.
@@ -28,17 +28,39 @@ configured — the frontend hides the button).
 
 ## Auth
 
-Sign-in is **Google-only**. `POST /auth/google` is the single entry point for both
-signing in and signing up (a verified Google email that matches an account logs in;
-a new email creates a user + household). There are no email/password endpoints.
+Two sign-in methods share the same accounts, linked by email:
+- **Google** — `POST /auth/google` signs in and signs up (a verified Google email that
+  matches an account logs into it; a new email creates a user + household).
+- **Email + password** — `POST /register` creates an account, `POST /login` signs in.
+  Google-created accounts have no usable password until one is set via `POST /me/password`.
+
+### POST /register
+Body: `{ "name": string, "email": string, "password": string }` (password ≥ 6 chars).
+Creates a user plus an **unnamed** household (the frontend routes new users through the
+onboarding step to name it — same as the Google flow). Returns `201` with
+`{ "token": string, "refresh_token": string, "user": User }`.
+- `400 { "error": "Validation failed", "details": {field: message} }` on invalid input.
+- `409 { "error": "Email already registered" }` if the email exists (sign in instead —
+  via password, or Google for Google-created accounts).
+
+### POST /login
+Body: `{ "email": string, "password": string }`.
+Returns `200` with the same body as `/register`.
+- `401 { "error": "Invalid credentials" }` — wrong email/password, including
+  Google-created accounts that never set a password.
+
+### POST /me/password
+Authenticated. Body: `{ "password": string }` (≥ 6 chars). Sets or replaces the current
+user's password (no current-password check — the JWT already proves identity, and
+Google-created accounts couldn't provide one). Returns `204`.
+- `400 { "error": "Validation failed", "details": { "password": message } }` if too short.
 
 ### POST /auth/google
 Body: `{ "credential": string }` — the Google Identity Services ID token obtained by the
 "Sign in with Google" button in the browser.
 Verifies the token with Google (audience must match the server's `GOOGLE_CLIENT_ID`, email must be
 verified), then signs in. A verified email matching an existing account logs into it (link by email,
-`200`); a new email creates a user + household (`201`). Response body is the same as login/register:
-`{ "token": string, "refresh_token": string, "user": User }`.
+`200`); a new email creates a user + household (`201`). Response body is the same as `/login`.
 - `401 { "error": "Invalid Google credential" }` if the token is missing/invalid/unverified.
 - `503 { "error": "Google sign-in is not configured." }` if `GOOGLE_CLIENT_ID` is unset.
 

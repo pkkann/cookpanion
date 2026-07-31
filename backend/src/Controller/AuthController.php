@@ -31,6 +31,9 @@ class AuthController extends AbstractController
     /** Refresh-token lifetime in seconds (30 days). Mirrors gesdinet_jwt_refresh_token.ttl. */
     private const REFRESH_TOKEN_TTL = 2592000;
 
+    /** Keep in sync with the frontend's client-side check. */
+    private const MIN_PASSWORD_LENGTH = 6;
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly UserRepository $users,
@@ -93,6 +96,111 @@ class AuthController extends AbstractController
         $this->em->flush();
 
         return $this->authResponse($user, Response::HTTP_CREATED);
+    }
+
+    /**
+     * Creates an account with email + password. The household is left unnamed,
+     * exactly like the Google flow, so the frontend sends the new user through
+     * the one-time onboarding step. An email that signed up here can later use
+     * "Sign in with Google" too — Google links by verified email.
+     */
+    #[Route('/register', name: 'api_register', methods: ['POST'])]
+    public function register(Request $request): JsonResponse
+    {
+        $data = $this->decode($request);
+        if ($data instanceof JsonResponse) {
+            return $data;
+        }
+
+        $email = trim((string) ($data['email'] ?? ''));
+        $password = (string) ($data['password'] ?? '');
+        $name = trim((string) ($data['name'] ?? ''));
+
+        $errors = [];
+        if ('' === $email || !filter_var($email, \FILTER_VALIDATE_EMAIL)) {
+            $errors['email'] = 'A valid email is required.';
+        }
+        if (\strlen($password) < self::MIN_PASSWORD_LENGTH) {
+            $errors['password'] = 'Password must be at least 6 characters.';
+        }
+        if ('' === $name) {
+            $errors['name'] = 'Name is required.';
+        }
+        if ($errors) {
+            return $this->json(['error' => 'Validation failed', 'details' => $errors], Response::HTTP_BAD_REQUEST);
+        }
+
+        if (null !== $this->users->findOneBy(['email' => $email])) {
+            return $this->json(['error' => 'Email already registered'], Response::HTTP_CONFLICT);
+        }
+
+        $household = (new Household())
+            ->setName('')
+            ->setInviteCode($this->generateInviteCode());
+        $user = (new User())
+            ->setEmail($email)
+            ->setName($name)
+            ->setHousehold($household);
+        $user->setPassword($this->passwordHasher->hashPassword($user, $password));
+
+        $this->em->persist($household);
+        $this->em->persist($user);
+        $this->em->flush();
+
+        return $this->authResponse($user, Response::HTTP_CREATED);
+    }
+
+    /**
+     * Signs in with email + password. Works for any account with a password set:
+     * accounts created via /register, or Google-created accounts after they set
+     * one through POST /me/password.
+     */
+    #[Route('/login', name: 'api_login', methods: ['POST'])]
+    public function login(Request $request): JsonResponse
+    {
+        $data = $this->decode($request);
+        if ($data instanceof JsonResponse) {
+            return $data;
+        }
+
+        $email = trim((string) ($data['email'] ?? ''));
+        $password = (string) ($data['password'] ?? '');
+
+        $user = '' !== $email ? $this->users->findOneBy(['email' => $email]) : null;
+        if (null === $user || !$this->passwordHasher->isPasswordValid($user, $password)) {
+            return $this->json(['error' => 'Invalid credentials'], Response::HTTP_UNAUTHORIZED);
+        }
+
+        return $this->authResponse($user);
+    }
+
+    /**
+     * Sets (or replaces) the signed-in user's password. No current-password
+     * check: Google-created accounts hold an unguessable random hash the user
+     * couldn't provide, and the caller already proves identity with a valid JWT.
+     */
+    #[Route('/me/password', name: 'api_me_password', methods: ['POST'])]
+    public function setPassword(Request $request): JsonResponse
+    {
+        $data = $this->decode($request);
+        if ($data instanceof JsonResponse) {
+            return $data;
+        }
+
+        $password = (string) ($data['password'] ?? '');
+        if (\strlen($password) < self::MIN_PASSWORD_LENGTH) {
+            return $this->json(
+                ['error' => 'Validation failed', 'details' => ['password' => 'Password must be at least 6 characters.']],
+                Response::HTTP_BAD_REQUEST,
+            );
+        }
+
+        /** @var User $user */
+        $user = $this->getUser();
+        $user->setPassword($this->passwordHasher->hashPassword($user, $password));
+        $this->em->flush();
+
+        return $this->json(null, Response::HTTP_NO_CONTENT);
     }
 
     #[Route('/me', name: 'api_me', methods: ['GET'])]

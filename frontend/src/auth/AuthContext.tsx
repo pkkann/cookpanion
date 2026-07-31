@@ -5,7 +5,9 @@ import {
   getMe,
   googleAuth as googleAuthRequest,
   joinHousehold as joinHouseholdRequest,
+  login as loginRequest,
   logout as logoutRequest,
+  register as registerRequest,
   updateHousehold as updateHouseholdRequest,
   updateHouseholdLanguage as updateHouseholdLanguageRequest,
   updateMe as updateMeRequest,
@@ -18,6 +20,8 @@ interface AuthContextValue {
   user: User | null
   initializing: boolean
   loginWithGoogle: (credential: string) => Promise<void>
+  login: (email: string, password: string) => Promise<void>
+  register: (name: string, email: string, password: string) => Promise<void>
   updateHousehold: (name: string) => Promise<void>
   setHouseholdLanguage: (language: Language) => Promise<void>
   setUserLanguage: (language: Language) => Promise<void>
@@ -70,6 +74,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(res.user)
   }
 
+  const login = async (email: string, password: string) => {
+    const res = await loginRequest(email, password)
+    setSession(res.token, res.refresh_token)
+    setUser(res.user)
+  }
+
+  const register = async (name: string, email: string, password: string) => {
+    const res = await registerRequest(name, email, password)
+    setSession(res.token, res.refresh_token)
+    setUser(res.user)
+  }
+
   const updateHousehold = async (name: string) => {
     const updated = await updateHouseholdRequest(name)
     setUser(updated)
@@ -106,6 +122,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       initializing,
       loginWithGoogle,
+      login,
+      register,
       updateHousehold,
       setHouseholdLanguage,
       setUserLanguage,

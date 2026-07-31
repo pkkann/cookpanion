@@ -36,9 +36,13 @@ and runs database migrations on startup. The SQLite database lives at
 `backend/var/data/app.db` on your machine, so it survives rebuilds and
 `docker compose down`; delete the file for a fresh start.
 
-Sign-in is Google-only: set `GOOGLE_CLIENT_ID` in `.env` (a Google OAuth *Web*
-client id with `http://localhost:5173` as an authorized JavaScript origin). The
-SPA fetches it at runtime from `GET /api/config` — nothing is baked into the build.
+Sign in with **email + password** (register in the app; demo fixtures create
+`demo@recipe.ai` / `demo1234`) or with **Google**: set `GOOGLE_CLIENT_ID` in
+`.env` (a Google OAuth *Web* client id with `http://localhost:5173` as an
+authorized JavaScript origin). The SPA fetches it at runtime from
+`GET /api/config` — nothing is baked into the build. Both methods share the
+same account, linked by email; Google-created accounts can set a password
+under **Settings → Password**.
 
 ---
 
