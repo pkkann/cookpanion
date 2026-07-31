@@ -30,7 +30,7 @@ import { useIngredients } from '../api/hooks'
 import { queryKeys } from '../api/hooks'
 import { createIngredient, createRecipe, suggestRecipes } from '../api/endpoints'
 import { errorMessage, errorStatus } from '../api/client'
-import { formatDuration, formatPrepCook } from '../utils/time'
+import { useFormatDuration, useFormatPrepCook } from '../utils/time'
 import type { Ingredient, RecipeIngredientPayload, RecipeSuggestion } from '../api/types'
 
 // Selectable ceilings for a recipe's total (prep + cook) time. 0 = no limit.
@@ -39,6 +39,8 @@ const MAX_TIME_OPTIONS = [0, 15, 30, 45, 60, 90, 120]
 export default function AISuggestions() {
   const t = useT()
   const unitOf = useUnitLabel()
+  const duration = useFormatDuration()
+  const prepCook = useFormatPrepCook()
   const notify = useNotify()
   const queryClient = useQueryClient()
   const { data: ingredients } = useIngredients()
@@ -195,7 +197,7 @@ export default function AISuggestions() {
           >
             {MAX_TIME_OPTIONS.map((minutes) => (
               <MenuItem key={minutes} value={minutes}>
-                {minutes === 0 ? t('No limit') : formatDuration(minutes)}
+                {minutes === 0 ? t('No limit') : duration(minutes)}
               </MenuItem>
             ))}
           </TextField>
@@ -270,12 +272,12 @@ export default function AISuggestions() {
                     icon={<PeopleIcon />}
                     label={s.servings === 1 ? t('{count} serving', { count: s.servings }) : t('{count} servings', { count: s.servings })}
                   />
-                  {formatPrepCook(s.prepTimeMinutes, s.cookTimeMinutes) && (
+                  {prepCook(s.prepTimeMinutes, s.cookTimeMinutes) && (
                     <Chip
                       size="small"
                       variant="outlined"
                       icon={<AccessTimeIcon />}
-                      label={formatPrepCook(s.prepTimeMinutes, s.cookTimeMinutes)}
+                      label={prepCook(s.prepTimeMinutes, s.cookTimeMinutes)}
                     />
                   )}
                 </Stack>

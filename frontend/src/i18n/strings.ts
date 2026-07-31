@@ -238,11 +238,15 @@ export const daTranslations: Record<string, string> = {
   "servings": "portioner",
   "there": "ven",
   "your household": "din husstand",
+  "{count} h": "{count} t",
   "{count} ingredient": "{count} ingrediens",
   "{count} ingredients": "{count} ingredienser",
+  "{count} min": "{count} min",
   "{count} more planned today": "{count} mere planlagt i dag",
   "{count} serving": "{count} portion",
   "{count} servings": "{count} portioner",
+  "{duration} cook": "{duration} tilberedning",
+  "{duration} prep": "{duration} forberedelse",
   "“{title}” on {date} will be removed from your plan.": "“{title}” {date} fjernes fra din madplan.",
   "“{title}” will be permanently deleted, along with any meals planned with it.": "“{title}” slettes permanent sammen med alle måltider, der er planlagt med den."
 }

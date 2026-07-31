@@ -33,7 +33,7 @@ import { useDeleteRecipe, useRecipe } from '../api/hooks'
 import { errorMessage } from '../api/client'
 import { formatQuantity, scaleQuantity } from '../utils/quantity'
 import { useIsMobile } from '../utils/useIsMobile'
-import { formatPrepCook } from '../utils/time'
+import { useFormatPrepCook } from '../utils/time'
 
 export default function RecipeDetail() {
   const { id } = useParams<{ id: string }>()
@@ -43,6 +43,7 @@ export default function RecipeDetail() {
   const isMobile = useIsMobile()
   const t = useT()
   const u = useUnitLabel()
+  const prepCook = useFormatPrepCook()
 
   const { data: recipe, isLoading, isError, error } = useRecipe(recipeId)
   const deleteMut = useDeleteRecipe()
@@ -131,11 +132,11 @@ export default function RecipeDetail() {
                   variant="outlined"
                   label={t('by {author}', { author: recipe.author?.name ?? t('Unknown') })}
                 />
-                {formatPrepCook(recipe.prepTimeMinutes, recipe.cookTimeMinutes) && (
+                {prepCook(recipe.prepTimeMinutes, recipe.cookTimeMinutes) && (
                   <Chip
                     icon={<AccessTimeIcon />}
                     variant="outlined"
-                    label={formatPrepCook(recipe.prepTimeMinutes, recipe.cookTimeMinutes)}
+                    label={prepCook(recipe.prepTimeMinutes, recipe.cookTimeMinutes)}
                   />
                 )}
               </Stack>

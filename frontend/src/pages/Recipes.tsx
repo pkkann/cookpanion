@@ -29,12 +29,13 @@ import { useDeleteRecipe, useRecipes } from '../api/hooks'
 import type { Recipe } from '../api/types'
 import { errorMessage } from '../api/client'
 import { useAiEnabled } from '../api/config'
-import { formatPrepCook } from '../utils/time'
+import { useFormatPrepCook } from '../utils/time'
 
 export default function Recipes() {
   const aiEnabled = useAiEnabled()
   const notify = useNotify()
   const t = useT()
+  const prepCook = useFormatPrepCook()
   const navigate = useNavigate()
   const { data: recipes, isLoading, isError, error } = useRecipes()
   const deleteMut = useDeleteRecipe()
@@ -166,12 +167,12 @@ export default function Recipes() {
                           : t('{count} ingredients', { count: recipe.ingredients.length })
                       }
                     />
-                    {formatPrepCook(recipe.prepTimeMinutes, recipe.cookTimeMinutes) && (
+                    {prepCook(recipe.prepTimeMinutes, recipe.cookTimeMinutes) && (
                       <Chip
                         size="small"
                         variant="outlined"
                         icon={<AccessTimeIcon />}
-                        label={formatPrepCook(recipe.prepTimeMinutes, recipe.cookTimeMinutes)}
+                        label={prepCook(recipe.prepTimeMinutes, recipe.cookTimeMinutes)}
                       />
                     )}
                   </Stack>
