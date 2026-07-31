@@ -2,7 +2,10 @@
 # Build context is the REPO ROOT:  docker build -f docker/addon/Dockerfile .
 
 # --- Stage 1: build the SPA ---------------------------------------------------
-FROM node:22-alpine AS frontend
+# --platform=$BUILDPLATFORM: runs natively on the build host even when the
+# target is another arch — the JS bundle is architecture-independent, and
+# emulated npm/vite is 10x slower.
+FROM --platform=$BUILDPLATFORM node:22-alpine AS frontend
 WORKDIR /app
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
@@ -10,7 +13,8 @@ COPY frontend/ ./
 RUN npm run build
 
 # --- Stage 2: install backend dependencies ------------------------------------
-FROM php:8.4-fpm-alpine AS backend
+# Native for the same reason: composer only writes PHP source files.
+FROM --platform=$BUILDPLATFORM php:8.4-fpm-alpine AS backend
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 ENV COMPOSER_ALLOW_SUPERUSER=1 APP_ENV=prod
 WORKDIR /srv

@@ -1,7 +1,7 @@
 name: Cookpanion
 slug: cookpanion
 description: Plan meals, track your kitchen stock, and cook with what you have.
-version: "1.4.0"
+version: "1.4.1"
 url: https://github.com/pkkann/recipe_ai
 arch:
   - amd64

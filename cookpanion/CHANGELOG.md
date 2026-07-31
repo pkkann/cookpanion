@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.1
+
+- Much faster image builds: the frontend and composer build stages now run
+  natively instead of under QEMU emulation. No functional changes.
+
 ## 1.4.0
 
 - Adminer is now available as a Home Assistant sidebar panel ("Cookpanion DB")
