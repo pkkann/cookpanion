@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.6.0
+
+- Reworked navigation. Phones and small tablets now get a bottom bar with
+  Dashboard, Recipes and Meal plan instead of the hamburger menu, so switching
+  pages is one thumb tap while you cook.
+- On larger screens the sidebar starts as a compact icon rail and expands to
+  full labels from the button in the top bar; your choice is remembered.
+- "New recipe", "Import recipe" and "AI Suggestions" moved out of the
+  navigation into a single ＋ button, available from every page. The navigation
+  itself now looks the same whether or not an Anthropic API key is configured.
+
 ## 1.5.1
 
 - The prep and cook time labels on recipes are now translated instead of always
